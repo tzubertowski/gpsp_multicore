@@ -26,33 +26,6 @@ void video_reload_counters(void);
 extern s32 affine_reference_x[2];
 extern s32 affine_reference_y[2];
 
-typedef void (* tile_render_function)(u32 layer_number, u32 start, u32 end,
- void *dest_ptr);
-typedef void (* bitmap_render_function)(u32 start, u32 end, void *dest_ptr);
-
-typedef struct
-{
-  tile_render_function normal_render_base;
-  tile_render_function normal_render_transparent;
-  tile_render_function alpha_render_base;
-  tile_render_function alpha_render_transparent;
-  tile_render_function color16_render_base;
-  tile_render_function color16_render_transparent;
-  tile_render_function color32_render_base;
-  tile_render_function color32_render_transparent;
-} tile_layer_render_struct;
-
-typedef struct
-{
-  bitmap_render_function normal_render;
-} bitmap_layer_render_struct;
-
-typedef enum
-{
-  filter_nearest,
-  filter_bilinear
-} video_filter_type;
-
 extern u16* gba_screen_pixels;
 
 #endif

@@ -37,12 +37,14 @@ ifneq ($(GIT_VERSION)," unknown")
    COREFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 endif
 
+# We do not use the stdlib++ on purpose, disable it to reduce dependencies.
+
 include $(CLEAR_VARS)
 LOCAL_DISABLE_FATAL_LINKER_WARNINGS := true
 LOCAL_MODULE    := retro
-LOCAL_SRC_FILES := $(SOURCES_C) $(SOURCES_ASM)
+LOCAL_SRC_FILES := $(SOURCES_C) $(SOURCES_ASM) $(SOURCES_CC)
 LOCAL_CFLAGS    := $(COREFLAGS) $(INCFLAGS)
-LOCAL_LDFLAGS   := -Wl,-version-script=$(CORE_DIR)/link.T
+LOCAL_LDFLAGS   := -Wl,-version-script=$(CORE_DIR)/link.T -nostdlib++
 LOCAL_LDLIBS    := $(CORE_LDLIBS)
 LOCAL_ARM_MODE  := arm
 include $(BUILD_SHARED_LIBRARY)

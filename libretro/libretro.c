@@ -303,8 +303,6 @@ static void video_post_process_cc_mix(void)
 
 static void init_post_processing(void)
 {
-   size_t buf_size = GBA_SCREEN_PITCH * GBA_SCREEN_HEIGHT * sizeof(u16);
-
    video_post_process = NULL;
 
    /* If post processing is disabled, return
@@ -317,27 +315,27 @@ static void init_post_processing(void)
        (post_process_cc || post_process_mix))
    {
 #ifdef _3DS
-      gba_processed_pixels = (u16*)linearMemAlign(buf_size, 128);
+      gba_processed_pixels = (u16*)linearMemAlign(GBA_SCREEN_BUFFER_SIZE, 128);
 #else
-      gba_processed_pixels = (u16*)malloc(buf_size);
+      gba_processed_pixels = (u16*)malloc(GBA_SCREEN_BUFFER_SIZE);
 #endif
 
       if (!gba_processed_pixels)
          return;
 
-      memset(gba_processed_pixels, 0xFFFF, buf_size);
+      memset(gba_processed_pixels, 0xFFFF, GBA_SCREEN_BUFFER_SIZE);
    }
 
    /* Initialise 'history' buffer, if required */
    if (!gba_screen_pixels_prev &&
        post_process_mix)
    {
-      gba_screen_pixels_prev = (u16*)malloc(buf_size);
+      gba_screen_pixels_prev = (u16*)malloc(GBA_SCREEN_BUFFER_SIZE);
 
       if (!gba_screen_pixels_prev)
          return;
 
-      memset(gba_screen_pixels_prev, 0xFFFF, buf_size);
+      memset(gba_screen_pixels_prev, 0xFFFF, GBA_SCREEN_BUFFER_SIZE);
    }
 
    /* Assign post processing function */
@@ -570,9 +568,9 @@ void retro_init(void)
 
    if(!gba_screen_pixels)
 #ifdef _3DS
-      gba_screen_pixels = (uint16_t*)linearMemAlign(GBA_SCREEN_PITCH * GBA_SCREEN_HEIGHT * sizeof(uint16_t), 128);
+      gba_screen_pixels = (uint16_t*)linearMemAlign(GBA_SCREEN_BUFFER_SIZE, 128);
 #else
-      gba_screen_pixels = (uint16_t*)malloc(GBA_SCREEN_PITCH * GBA_SCREEN_HEIGHT * sizeof(uint16_t));
+      gba_screen_pixels = (uint16_t*)malloc(GBA_SCREEN_BUFFER_SIZE);
 #endif
 
    libretro_supports_bitmasks = false;

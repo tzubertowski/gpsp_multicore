@@ -109,13 +109,10 @@ else ifeq ($(platform), osx)
    ifeq ($(CROSS_COMPILE),1)
 		TARGET_RULE   = -target $(LIBRETRO_APPLE_PLATFORM) -isysroot $(LIBRETRO_APPLE_ISYSROOT)
 		CFLAGS   += $(TARGET_RULE)
-		CPPFLAGS += $(TARGET_RULE)
-		CXXFLAGS += $(TARGET_RULE)
 		LDFLAGS  += $(TARGET_RULE)
    endif
 
 	CFLAGS  += $(ARCHFLAGS)
-	CXXFLAGS  += $(ARCHFLAGS)
 	LDFLAGS += $(ARCHFLAGS)
 
 # iOS
@@ -180,6 +177,7 @@ else ifeq ($(platform), qnx)
 	CPU_ARCH := arm
 
 	CC = qcc -Vgcc_ntoarmv7le
+	CXX = qcc -Vgcc_ntoarmv7le
 	AR = qcc -Vgcc_ntoarmv7le
 	CFLAGS += -D__BLACKBERRY_QNX_
 	HAVE_DYNAREC := 1
@@ -188,6 +186,7 @@ else ifeq ($(platform), qnx)
 else ifeq ($(platform), psl1ght)
 	TARGET := $(TARGET_NAME)_libretro_$(platform).a
 	CC = $(PS3DEV)/ppu/bin/ppu-gcc$(EXE_EXT)
+	CXX = $(PS3DEV)/ppu/bin/ppu-g++$(EXE_EXT)
 	AR = $(PS3DEV)/ppu/bin/ppu-ar$(EXE_EXT)
 	CFLAGS += -DMSB_FIRST -D__ppc__
 	STATIC_LINKING = 1
@@ -203,6 +202,7 @@ else ifeq ($(platform), switch)
 else ifneq (,$(filter $(platform), ngc wii wiiu))
 	TARGET := $(TARGET_NAME)_libretro_$(platform).a
 	CC = $(DEVKITPPC)/bin/powerpc-eabi-gcc$(EXE_EXT)
+	CXX = $(DEVKITPPC)/bin/powerpc-eabi-g++$(EXE_EXT)
 	AR = $(DEVKITPPC)/bin/powerpc-eabi-ar$(EXE_EXT)
 	CFLAGS += -DGEKKO -mcpu=750 -meabi -mhard-float -DHAVE_STRTOF_L
 	STATIC_LINKING = 1
@@ -211,6 +211,7 @@ else ifneq (,$(filter $(platform), ngc wii wiiu))
 else ifeq ($(platform), psp1)
 	TARGET := $(TARGET_NAME)_libretro_$(platform).a
 	CC = psp-gcc$(EXE_EXT)
+	CXX = psp-g++$(EXE_EXT)
 	AR = psp-ar$(EXE_EXT)
 	CFLAGS += -DPSP -G0 -DUSE_BGR_FORMAT -DMIPS_HAS_R2_INSTS -DSMALL_TRANSLATION_CACHE
 	CFLAGS += -I$(shell psp-config --pspsdk-path)/include
@@ -225,6 +226,7 @@ else ifeq ($(platform), psp1)
 else ifeq ($(platform), vita)
 	TARGET := $(TARGET_NAME)_libretro_$(platform).a
 	CC = arm-vita-eabi-gcc$(EXE_EXT)
+	CXX = arm-vita-eabi-g++$(EXE_EXT)
 	AR = arm-vita-eabi-ar$(EXE_EXT)
 	CFLAGS += -DVITA -DOVERCLOCK_60FPS
 	CFLAGS += -marm -mcpu=cortex-a9 -mfloat-abi=hard
@@ -247,7 +249,6 @@ else ifeq ($(platform), ctr)
 	CFLAGS += -march=armv6k -mtune=mpcore -mfloat-abi=hard
 	CFLAGS += -Wall -mword-relocations
 	CFLAGS += -fomit-frame-pointer -ffast-math
-	CXXFLAGS = $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
 	CPU_ARCH := arm
 	HAVE_DYNAREC = 1
 	STATIC_LINKING = 1
@@ -259,7 +260,6 @@ else ifeq ($(platform), rpi3)
 	SHARED := -shared -Wl,--version-script=link.T -Wl,--no-undefined
 	CFLAGS += -marm -mcpu=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard
 	CFLAGS += -fomit-frame-pointer -ffast-math
-	CXXFLAGS = $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
 	CPU_ARCH := arm
 	MMAP_JIT_CACHE = 1
 	HAVE_DYNAREC = 1
@@ -271,7 +271,6 @@ else ifeq ($(platform), rpi2)
 	SHARED := -shared -Wl,--version-script=link.T -Wl,--no-undefined
 	CFLAGS += -marm -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard
 	CFLAGS += -fomit-frame-pointer -ffast-math
-	CXXFLAGS = $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
 	CPU_ARCH := arm
 	MMAP_JIT_CACHE = 1
 	HAVE_DYNAREC = 1
@@ -284,7 +283,6 @@ else ifeq ($(platform), rpi1)
 	CFLAGS += -DARM11
 	CFLAGS += -marm -mfpu=vfp -mfloat-abi=hard -march=armv6j
 	CFLAGS += -fomit-frame-pointer -ffast-math
-	CXXFLAGS = $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
 	CPU_ARCH := arm
 	MMAP_JIT_CACHE = 1
 	HAVE_DYNAREC = 1
@@ -307,8 +305,6 @@ else ifeq ($(platform), classic_armv7_a7)
 	-fno-unwind-tables -fno-asynchronous-unwind-tables -fno-unroll-loops \
 	-fmerge-all-constants -fno-math-errno \
 	-marm -mtune=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard
-	CXXFLAGS = $(CFLAGS) -std=gnu++11
-	CPPFLAGS += $(CFLAGS)
 	ASFLAGS += $(CFLAGS)
 	HAVE_NEON = 1
 	ARCH = arm
@@ -331,6 +327,7 @@ else ifeq ($(platform), classic_armv7_a7)
 else ifeq ($(platform), xenon)
 	TARGET := $(TARGET_NAME)_libretro_xenon360.a
 	CC = xenon-gcc$(EXE_EXT)
+	CXX = xenon-g++$(EXE_EXT)
 	AR = xenon-ar$(EXE_EXT)
 	CFLAGS += -D__LIBXENON__ -m32 -D__ppc__
 	STATIC_LINKING = 1
@@ -339,6 +336,7 @@ else ifeq ($(platform), xenon)
 else ifeq ($(platform), ngc)
 	TARGET := $(TARGET_NAME)_libretro_$(platform).a
 	CC = $(DEVKITPPC)/bin/powerpc-eabi-gcc$(EXE_EXT)
+	CXX = $(DEVKITPPC)/bin/powerpc-eabi-g++$(EXE_EXT)
 	AR = $(DEVKITPPC)/bin/powerpc-eabi-ar$(EXE_EXT)
 	CFLAGS += -DGEKKO -DHW_DOL -mrvl -mcpu=750 -meabi -mhard-float -DMSB_FIRST -D__ppc__
 	STATIC_LINKING = 1
@@ -347,6 +345,7 @@ else ifeq ($(platform), ngc)
 else ifeq ($(platform), wii)
 	TARGET := $(TARGET_NAME)_libretro_$(platform).a
 	CC = $(DEVKITPPC)/bin/powerpc-eabi-gcc$(EXE_EXT)
+	CXX = $(DEVKITPPC)/bin/powerpc-eabi-g++$(EXE_EXT)
 	AR = $(DEVKITPPC)/bin/powerpc-eabi-ar$(EXE_EXT)
 	CFLAGS += -DGEKKO -DHW_RVL -mrvl -mcpu=750 -meabi -mhard-float -DMSB_FIRST -D__ppc__
 	STATIC_LINKING = 1
@@ -420,6 +419,7 @@ else ifeq ($(platform), mips64n32)
 else ifeq ($(platform), ps2)
 	TARGET := $(TARGET_NAME)_libretro_$(platform).a
 	CC = mips64r5900el-ps2-elf-gcc$(EXE_EXT)
+	CXX = mips64r5900el-ps2-elf-g++$(EXE_EXT)
 	AR = mips64r5900el-ps2-elf-ar$(EXE_EXT)
 	CFLAGS += -fomit-frame-pointer -ffast-math
 	CFLAGS += -DPS2 -DUSE_XBGR1555_FORMAT -DSMALL_TRANSLATION_CACHE -DROM_BUFFER_SIZE=16
@@ -488,6 +488,7 @@ else ifeq ($(platform), miyoo)
 else
 	TARGET := $(TARGET_NAME)_libretro.dll
 	CC ?= gcc
+	CXX ?= g++
 	SHARED := -shared -static-libgcc -static-libstdc++ -s -Wl,--version-script=link.T
 	CFLAGS += -D__WIN32__ -D__WIN32_LIBRETRO__
 
@@ -528,7 +529,7 @@ endif
 
 include Makefile.common
 
-OBJECTS := $(SOURCES_C:.c=.o) $(SOURCES_ASM:.S=.o)
+OBJECTS := $(SOURCES_C:.c=.o) $(SOURCES_ASM:.S=.o) $(SOURCES_CC:.cc=.o)
 
 WARNINGS_DEFINES =
 CODE_DEFINES =
@@ -555,14 +556,17 @@ CFLAGS  += -I$(CTRULIB)/include
 endif
 endif
 
+CXXFLAGS = $(CFLAGS) -fno-rtti -fno-exceptions -std=c++11
 
 ifeq ($(platform), theos_ios)
 COMMON_FLAGS := -DIOS $(COMMON_DEFINES) $(INCFLAGS) -I$(THEOS_INCLUDE_PATH) -Wno-error
 $(LIBRARY_NAME)_CFLAGS += $(COMMON_FLAGS) $(CFLAGS)
-${LIBRARY_NAME}_FILES = $(SOURCES_C) $(SOURCES_ASM)
+${LIBRARY_NAME}_FILES = $(SOURCES_C) $(SOURCES_ASM) $(SOURCES_CC)
 include $(THEOS_MAKE_PATH)/library.mk
 else
 all: $(TARGET)
+
+# Linking with gcc on purpose, we do not use any libstdc++ dependencies at all, only libc is required.
 
 $(TARGET): $(OBJECTS)
 ifeq ($(STATIC_LINKING), 1)
@@ -580,7 +584,7 @@ cpu_threaded.o: cpu_threaded.c
 %.o: %.c
 	$(CC) $(INCFLAGS) $(CFLAGS) $(OPTIMIZE) -c  -o $@ $<
 
-%.o: %.cpp
+%.o: %.cc
 	$(CXX) $(INCFLAGS) $(CXXFLAGS) $(OPTIMIZE) -c  -o $@ $<
 
 clean-objs:

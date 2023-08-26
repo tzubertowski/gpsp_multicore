@@ -93,6 +93,11 @@
 #define GBA_SCREEN_HEIGHT (160)
 #define GBA_SCREEN_PITCH  (240)
 
+// The buffer is 16 bit color depth.
+// We reserve extra memory at the end for extra effects (winobj rendering).
+#define GBA_SCREEN_BUFFER_SIZE  \
+  (GBA_SCREEN_PITCH * (GBA_SCREEN_HEIGHT + 1) * sizeof(uint16_t))
+
 
 typedef u32 fixed16_16;
 typedef u32 fixed8_24;
