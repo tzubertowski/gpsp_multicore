@@ -129,17 +129,21 @@ else ifneq (,$(findstring ios,$(platform)))
 
 	ifeq ($(platform),ios-arm64)
 		CC = cc -arch arm64 -isysroot $(IOSSDK)
+		CXX = c++ -arch arm64 -isysroot $(IOSSDK)
 	else
 		CC = cc -arch armv7 -isysroot $(IOSSDK)
+		CXX = c++ -arch armv7 -isysroot $(IOSSDK)
 	endif
 	CFLAGS += -DIOS -DHAVE_POSIX_MEMALIGN -marm
-ifeq ($(platform),$(filter $(platform),ios9 ios-arm64))
-	CC += -miphoneos-version-min=8.0
-	CFLAGS += -miphoneos-version-min=8.0
-else
-	CC += -miphoneos-version-min=5.0
-	CFLAGS += -miphoneos-version-min=5.0
-endif
+
+	ifeq ($(platform),$(filter $(platform),ios9 ios-arm64))
+		MINVERSION = -miphoneos-version-min=8.0
+	else
+		MINVERSION = -miphoneos-version-min=5.0
+	endif
+	SHARED += $(MINVERSION)
+	CC += $(MINVERSION)
+	CXX += $(MINVERSION)
 
 # tvOS
 else ifeq ($(platform), tvos-arm64)
