@@ -100,17 +100,19 @@ else ifeq ($(platform), osx)
 	endif
 	OSXVER = `sw_vers -productVersion | cut -d. -f 2`
 	OSX_LT_MAVERICKS = `(( $(OSXVER) <= 9)) && echo "YES"`
-	fpic += -mmacosx-version-min=10.1
+	ifeq ($(OSX_LT_MAVERICKS),YES)
+		fpic += -mmacosx-version-min=10.1
+	endif
 	SHARED := -dynamiclib
 	ifeq ($(HAVE_DYNAREC),1)
 		MMAP_JIT_CACHE = 1
 	endif
 
-   ifeq ($(CROSS_COMPILE),1)
+	ifeq ($(CROSS_COMPILE),1)
 		TARGET_RULE   = -target $(LIBRETRO_APPLE_PLATFORM) -isysroot $(LIBRETRO_APPLE_ISYSROOT)
 		CFLAGS   += $(TARGET_RULE)
 		LDFLAGS  += $(TARGET_RULE)
-   endif
+	endif
 
 	CFLAGS  += $(ARCHFLAGS)
 	LDFLAGS += $(ARCHFLAGS)
