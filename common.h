@@ -78,10 +78,7 @@
   typedef signed long long int s64;
 #endif
 
-#ifdef USE_BGR_FORMAT
-  #define convert_palette(value)  \
-    (((value & 0x7FE0) << 1) | (value & 0x1F))
-#elif defined(USE_XBGR1555_FORMAT)
+#if defined(USE_XBGR1555_FORMAT)
   #define convert_palette(value)  \
     (value & 0x7FFF)
 #else

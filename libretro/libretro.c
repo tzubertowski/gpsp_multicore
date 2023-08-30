@@ -102,20 +102,6 @@ static void (*video_post_process)(void) = NULL;
 static bool post_process_cc  = false;
 static bool post_process_mix = false;
 
-#if defined(PSP)
-static uint32_t next_pow2(uint32_t v)
-{
-   v--;
-   v |= v >> 1;
-   v |= v >> 2;
-   v |= v >> 4;
-   v |= v >> 8;
-   v |= v >> 16;
-   v++;
-   return v;
-}
-#endif
-
 static void error_msg(const char* text)
 {
    if (log_cb)
@@ -430,31 +416,8 @@ static void video_run(void)
       gba_screen_pixels_buf = gba_processed_pixels;
    }
 
-#if defined(PSP)
-   static unsigned int __attribute__((aligned(16))) d_list[32];
-   void* texture_vram_p = NULL;
-   int texture_size = (GBA_SCREEN_WIDTH*GBA_SCREEN_HEIGHT*2);
-   
-   texture_vram_p = (void*) (0x44200000 - texture_size); /* max VRAM address - frame size */
-
-   sceKernelDcacheWritebackRange(gba_screen_pixels_buf, texture_size);
-
-   sceGuStart(GU_DIRECT, d_list);
-   sceGuTexMode(GU_PSM_5650, 0, 0, GU_FALSE);
-   sceGuCopyImage(GU_PSM_5650, 0, 0, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT, GBA_SCREEN_WIDTH,
-               gba_screen_pixels_buf, 0, 0, GBA_SCREEN_WIDTH, texture_vram_p);
-   sceGuTexImage(0, next_pow2(GBA_SCREEN_WIDTH), next_pow2(GBA_SCREEN_HEIGHT), GBA_SCREEN_WIDTH, texture_vram_p);
-   sceGuTexFunc(GU_TFX_REPLACE, GU_TCC_RGB);
-   sceGuDisable(GU_BLEND);
-
-   sceGuFinish();
-
-   video_cb(texture_vram_p, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT,
-            GBA_SCREEN_PITCH * 2);
-#else 
    video_cb(gba_screen_pixels_buf, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT,
             GBA_SCREEN_PITCH * 2);
-#endif
 }
 
 #ifdef PERF_TEST

@@ -2356,13 +2356,7 @@ static void emit_pmemst_stub(
 
 // Palette conversion functions. a1 contains the palette value (16 LSB)
 // Places the result in reg_temp, can use a0 as temporary register
-#ifdef USE_BGR_FORMAT
-  /* 0BGR to BGR565, only for PSP (uses ins) */
-  #define palette_convert()                       \
-    mips_emit_sll(reg_temp, reg_a1, 1);           \
-    mips_emit_andi(reg_temp, reg_temp, 0xFFC0);   \
-    mips_emit_ins(reg_temp, reg_a1, 0, 5);
-#elif defined(USE_XBGR1555_FORMAT)
+#if defined(USE_XBGR1555_FORMAT)
   /* PS2's native format */
   #define palette_convert()                       \
     mips_emit_andi(reg_temp, reg_a1, 0x7FFF);

@@ -219,7 +219,7 @@ else ifeq ($(platform), psp1)
 	CC = psp-gcc$(EXE_EXT)
 	CXX = psp-g++$(EXE_EXT)
 	AR = psp-ar$(EXE_EXT)
-	CFLAGS += -DPSP -G0 -DUSE_BGR_FORMAT -DMIPS_HAS_R2_INSTS -DSMALL_TRANSLATION_CACHE
+	CFLAGS += -DPSP -G0 -DMIPS_HAS_R2_INSTS -DSMALL_TRANSLATION_CACHE
 	CFLAGS += -I$(shell psp-config --pspsdk-path)/include
 	CFLAGS += -march=allegrex -mfp32 -mgp32 -mlong32 -mabi=eabi
 	CFLAGS += -fomit-frame-pointer -ffast-math
