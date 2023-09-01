@@ -90,6 +90,7 @@ bool main_read_savestate(const u8 *src);
 extern u32 num_skipped_frames;
 extern int dynarec_enable;
 extern boot_mode selected_boot_mode;
+extern int sprite_limit;
 
 #ifdef TRACE_REGISTERS
 void print_regs(void);

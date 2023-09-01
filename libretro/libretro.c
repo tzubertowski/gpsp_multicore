@@ -90,6 +90,7 @@ struct retro_perf_callback perf_cb;
 int dynarec_enable;
 int use_libretro_save_method = 0;
 boot_mode selected_boot_mode = boot_game;
+int sprite_limit = 1;
 
 u32 idle_loop_target_pc = 0xFFFFFFFF;
 u32 translation_gate_target_pc[MAX_TRANSLATION_GATES];
@@ -798,6 +799,17 @@ static void check_variables(int started_from_load)
         else if (!strcmp(var.value, "bios"))
            selected_boot_mode = boot_bios;
      }
+   }
+
+   var.key                = "gpsp_sprlim";
+   var.value              = 0;
+
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+   {
+      if (strcmp(var.value, "disabled") == 0)
+         sprite_limit = 1;
+      else if (strcmp(var.value, "enabled") == 0)
+         sprite_limit = 0;
    }
 
    var.key                = "gpsp_frameskip";

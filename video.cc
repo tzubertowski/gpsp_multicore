@@ -99,6 +99,7 @@ typedef struct
 #define tile_size_8bpp   64
 
 // Sprite rendering cycles
+#define REND_CYC_MAX          32768   /* Theoretical max is 17920 */
 #define REND_CYC_SCANLINE      1210
 #define REND_CYC_REDUCED        954
 
@@ -1515,6 +1516,11 @@ static void order_obj(u32 video_mode)
   t_oam *oam_base = (t_oam*)oam_ram;
   u16 rend_cycles[160];
 
+  bool hblank_free = read_ioreg(REG_DISPCNT) & 0x20;
+  u16 max_rend_cycles = !sprite_limit ? REND_CYC_MAX :
+                         hblank_free  ? REND_CYC_REDUCED :
+                                        REND_CYC_SCANLINE;
+
   memset(obj_priority_count, 0, sizeof(obj_priority_count));
   memset(obj_alpha_count, 0, sizeof(obj_alpha_count));
   memset(rend_cycles, 0, sizeof(rend_cycles));
@@ -1577,7 +1583,7 @@ static void order_obj(u32 video_mode)
         case OBJ_MOD_SEMITRAN:
           for(row = starty; row < endy; row++)
           {
-            if (rend_cycles[row] < REND_CYC_SCANLINE) {
+            if (rend_cycles[row] < max_rend_cycles) {
               u32 cur_cnt = obj_priority_count[obj_priority][row];
               obj_priority_list[obj_priority][row][cur_cnt] = obj_num;
               obj_priority_count[obj_priority][row] = cur_cnt + 1;
@@ -1594,7 +1600,7 @@ static void order_obj(u32 video_mode)
           // Add the object to the list.
           for(row = starty; row < endy; row++)
           {
-            if (rend_cycles[row] < REND_CYC_SCANLINE) {
+            if (rend_cycles[row] < max_rend_cycles) {
               u32 cur_cnt = obj_priority_count[obj_priority][row];
               obj_priority_list[obj_priority][row][cur_cnt] = obj_num;
               obj_priority_count[obj_priority][row] = cur_cnt + 1;

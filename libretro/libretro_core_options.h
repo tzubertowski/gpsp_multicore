@@ -77,6 +77,17 @@ struct retro_core_option_definition option_defs_us[] = {
       "game"
    },
    {
+      "gpsp_sprlim",
+      "No Sprite Limit",
+      "Removes the original sprite-per-scanline hardware limit. Some games might rely on the hardware limit for proper rendering (ie. hiding some sprites).",
+      {
+         { "disabled", NULL },
+         { "enabled",  NULL },
+         { NULL, NULL },
+      },
+      "disabled"
+   },
+   {
       "gpsp_frameskip",
       "Frameskip",
       "Skip frames to avoid audio buffer under-run (crackling). Improves performance at the expense of visual smoothness. 'Auto' skips frames when advised by the frontend. 'Auto (Threshold)' utilises the 'Frameskip Threshold (%)' setting. 'Fixed Interval' utilises the 'Frameskip Interval' setting.",
