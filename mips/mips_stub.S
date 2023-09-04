@@ -325,11 +325,13 @@ defsymbl(write_io_epilogue)
 
   andi $4, $19, CPU_ALERT_SMC     # check if SMC code happened
   beqz $4, 1f                     # skip if no SMC happened
+  nop
   cfncall flush_translation_cache_ram, 4
 
 1:
   andi $4, $19, CPU_ALERT_IRQ     # check if IRQ was raised
   beqz $4, 2f                     # skip if no IRQ was raised
+  nop
   cfncall check_and_raise_interrupts, 9
 
 2:
