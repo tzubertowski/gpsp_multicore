@@ -338,21 +338,18 @@ defsymbl(write_io_epilogue)
   andi $4, $19, CPU_ALERT_HALT    # check if CPU is halted
   beqz $4, lookup_pc              # continue running if not halted
 
-  # Purposely fallthrough to alert_loop, wait for CPU wakeup
+  # Purposely fallthrough to cpu_sleep_loop, wait for CPU wakeup
 
-alert_loop:
+cpu_sleep_loop:
   move $4, reg_cycles             # Remaining cycles as asg0
   cfncall update_gba, 0           # process the next event
-  and reg_cycles, $2, 0x7FFF      # update new cycle count (ret value)
 
   lw $1, COMPLETED_FRAME($16)     # Check whether we completed a frame
   bne $1, $0, return_to_main      # Return to main thread now
 
-  lw $1, CPU_HALT_STATE($16)      # check if CPU is sleeping
-  bne $1, $0, alert_loop          # see if it hasn't changed
-  nop
-
+  # since no frame was completed, this means CPU is active again.
   # Fall through to lookup_pc to resume execution
+  and reg_cycles, $2, 0x7FFF      # update new cycle count (ret value)
 
 lookup_pc:
   extract_flags                   # $1 contains CPSR now
@@ -536,7 +533,7 @@ defsymbl(execute_arm_translate_internal)
 
   # CPU might be sleeping, do not wake ip up!
   lw $1, CPU_HALT_STATE($16)      # check if CPU is sleeping
-  bne $1, $0, alert_loop          # see if it hasn't changed
+  bne $1, $0, cpu_sleep_loop      # see if it hasn't changed
 
   lw $1, REG_CPSR($16)
   and $1, $1, 0x20                # see if Thumb bit is set in flags

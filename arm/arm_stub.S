@@ -437,7 +437,7 @@ defsymbl(execute_arm_translate_internal)
   @ Check whether the CPU is sleeping already, we should just wait for IRQs
   ldr r1, [reg_base, #CPU_HALT_STATE]
   cmp r1, #0
-  bne alert_loop
+  bne cpu_sleep_loop
   b lookup_pc
 
 
@@ -692,11 +692,11 @@ write_epilogue:
   tst r2, #CPU_ALERT_HALT                 @ check for CPU halt bit
   beq lookup_pc                           @ Resume execution if not halted
 
-  @ Fallthrough to alert_loop on purpose (CPU is now halted)
+  @ Fallthrough to cpu_sleep_loop on purpose (CPU is now halted)
 
   mvn r0, reg_cycles                      @ setup for update_gba
 
-alert_loop:
+cpu_sleep_loop:
   call_c_function(update_gba)             @ update GBA until CPU isn't halted
   bic r0, r0, #0x80000000                 @ clear MSB, not part of count
 
@@ -704,10 +704,7 @@ alert_loop:
   cmp r1, #0
   bne return_to_main
 
-  ldr r1, [reg_base, #CPU_HALT_STATE]     @ Check whether the CPU is halted
-  cmp r1, #0
-  bne alert_loop                          @ Keep looping until it is
-
+  @ The cpu is active again, go ahead and resume execution at current PC
   mvn reg_cycles, r0                      @ load new cycle count
   ldr r0, [reg_base, #REG_PC]             @ load new PC
   ldr r1, [reg_base, #REG_CPSR]           @ r1 = flags

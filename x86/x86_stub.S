@@ -242,7 +242,7 @@ ext_store_backup8:
 # Handle I/O write side-effects:
 #  SMC: Flush RAM caches
 #  IRQ: Perform CPU mode change
-#  HLT: spin in the alert_loop until an IRQ is triggered
+#  HLT: spin in the cpu_sleep_loop until an IRQ is triggered
 write_epilogue:
   mov %eax, REG_SAVE(REG_BASE)# Save ret value for later use
   collapse_flags              # Consolidate CPSR
@@ -259,25 +259,20 @@ write_epilogue:
   testl $CPU_ALERT_HALT, REG_SAVE(REG_BASE) # Check for CPU_ALERT_HALT bit
   jz lookup_pc                # if not halt, continue executing
 
-  # explicit fallthrough to alert_loop, while CPU is halted
+  # explicit fallthrough to cpu_sleep_loop, while CPU is halted
 
-alert_loop:
+cpu_sleep_loop:
   mov REG_CYCLES, CARG1_REG   # Load remaining cycles as arg0
   CALL_FUNC(update_gba)       # process the next event
-  mov %eax, REG_CYCLES        # load new cycle count
-  and $0x7fff, REG_CYCLES     # (only lowest bits)
 
   # did we just complete a frame? go back to main then
   cmpl $0, COMPLETED_FRAME(REG_BASE)
   jne return_to_main
 
-  # see if the halt status has changed
-  mov CPU_HALT_STATE(REG_BASE), %edx
-
-  cmp $0, %edx                # 0 means it has
-  jnz alert_loop              # if not go again
-
-  jmp lookup_pc               # pc has definitely changed
+  // if we are out of update_gba and did not complete a frame, cpu is active
+  mov %eax, REG_CYCLES        # load new cycle count
+  and $0x7fff, REG_CYCLES     # (only lowest bits)
+  jmp lookup_pc               # pc changes after a halt
 
 
 ext_store_eeprom:
@@ -529,7 +524,7 @@ defsymbl(execute_arm_translate_internal)
   #  loop in the alert loop until it wakes up)
   cmpl $0, CPU_HALT_STATE(REG_BASE)
   je 1f
-  call alert_loop                   # Need to push something to the stack
+  call cpu_sleep_loop               # Need to push something to the stack
 
 1:
   call lookup_pc                    # Go fetch and execute PC

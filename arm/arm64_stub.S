@@ -354,7 +354,7 @@ defsymbl(execute_arm_translate_internal)
 
   // Check whether the CPU is sleeping already, we should just wait for IRQs
   ldr w1, [reg_base, #CPU_HALT_STATE]
-  cbnz w1, alert_loop
+  cbnz w1, cpu_sleep_loop
 
   ldr w0, [reg_base, #REG_PC]             // load current PC
 
@@ -708,19 +708,18 @@ write_epilogue:
   ldr w0, [reg_base, #REG_PC]             // load new PC
   tbz reg_save0, #CPU_ALERT_HALT_B, lookup_pc   // Resume execution if running
 
-  // explicit fallthrough to alert_loop, while CPU is halted
+  // explicit fallthrough to cpu_sleep_loop, while CPU is halted
 
-alert_loop:
+cpu_sleep_loop:
   mov w0, reg_cycles                      // load remaining cycles
   bl update_gba                           // update GBA until CPU isn't halted
-  and reg_cycles, w0, 0x7fff              // load new cycle count
 
   ldr w1, [reg_base, #COMPLETED_FRAME]    // Check whether a frame was completed
   cbnz w1, return_to_main                 // and return to caller function.
 
-  ldr w1, [reg_base, #CPU_HALT_STATE]     // Check whether the CPU is halted
-  cbnz w1, alert_loop                     // and keep looping until it is
+  // At this point the CPU must be active, otherwise we sping in update_gba
 
+  and reg_cycles, w0, 0x7fff              // load new cycle count
   ldr w0, [reg_base, #REG_PC]             // load new PC
   b lookup_pc                             // Resume execution at that PC
 
