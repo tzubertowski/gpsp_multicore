@@ -91,7 +91,7 @@ typedef enum
   REG_Z_FLAG        = 21,
   REG_C_FLAG        = 22,
   REG_V_FLAG        = 23,
-  COMPLETED_FRAME   = 24,
+  REG_UNUSED_1      = 24,
   OAM_UPDATED       = 25,
   REG_SAVE          = 26,
   REG_SAVE2         = 27,

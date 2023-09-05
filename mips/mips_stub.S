@@ -104,7 +104,7 @@ symbol:
 .equ REG_Z_FLAG,          (21 * 4)
 .equ REG_C_FLAG,          (22 * 4)
 .equ REG_V_FLAG,          (23 * 4)
-.equ COMPLETED_FRAME,     (24 * 4)
+.equ REG_UNUSED_1,        (24 * 4)
 .equ OAM_UPDATED,         (25 * 4)
 .equ REG_SAVE,            (26 * 4)
 .equ REG_SAVE2,           (27 * 4)
@@ -248,12 +248,12 @@ defsymbl(mips_update_gba)
   move $4, reg_cycles             # Remaining cycles as asg0
   cfncall update_gba, 0           # process the next event
 
-  lw $1, COMPLETED_FRAME($16)     # Check whether we completed a frame
-  bne $1, $0, return_to_main      # Return to main thread now
+  bltz $2, return_to_main         # Exit if a frame is complete (bit 31 is set)
 
   and reg_cycles, $2, 0x7FFF      # update new cycle count (ret value)
 
-  bltz $2, lookup_pc
+  sll $1, $2, 1                   # Check bit 30 now (PC changed)
+  bltz $1, lookup_pc
   lw $ra, REG_SAVE2($16)          # restore return address
 
   restore_registers
@@ -344,8 +344,7 @@ cpu_sleep_loop:
   move $4, reg_cycles             # Remaining cycles as asg0
   cfncall update_gba, 0           # process the next event
 
-  lw $1, COMPLETED_FRAME($16)     # Check whether we completed a frame
-  bne $1, $0, return_to_main      # Return to main thread now
+  bltz $2, return_to_main         # Exit if a frame is complete (bit 31 is set)
 
   # since no frame was completed, this means CPU is active again.
   # Fall through to lookup_pc to resume execution

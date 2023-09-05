@@ -39,7 +39,7 @@ _##symbol:
 #define REG_Z_FLAG        (21 * 4)
 #define REG_C_FLAG        (22 * 4)
 #define REG_V_FLAG        (23 * 4)
-#define COMPLETED_FRAME   (24 * 4)
+#define REG_UNUSED_1      (24 * 4)
 #define OAM_UPDATED       (25 * 4)
 
 #define CPU_ALERT_HALT    (1 << 0)
@@ -195,14 +195,13 @@ defsymbl(arm_update_gba_##name)                                              ;\
   cycles_##return_op()                    /* remaining cycles in arg0      */;\
   call_c_function(update_gba)             /* update GBA state              */;\
                                                                              ;\
-  ldr r1, [reg_base, #COMPLETED_FRAME]    /* return if new frame           */;\
-  cmp r1, #0                                                                 ;\
-  bne return_to_main                                                         ;\
+  cmp r0, #0                              /* check MSB for frame completion*/;\
+  blt return_to_main                                                         ;\
                                                                              ;\
-  bic reg_cycles, r0, #0x80000000         /* clear MSB, not part of count  */;\
+  bic reg_cycles, r0, #0xF0000000         /* clear MSB, not part of count  */;\
   mvn reg_cycles, reg_cycles              /* we count negative to zero     */;\
                                                                              ;\
-  tst r0, #0x80000000                     /* set if PC changed             */;\
+  tst r0, #0x40000000                     /* set if PC changed             */;\
   bne 1f                                  /* go jump/translate             */;\
                                                                              ;\
   load_registers_##mode()                 /* reload registers              */;\
@@ -698,11 +697,11 @@ write_epilogue:
 
 cpu_sleep_loop:
   call_c_function(update_gba)             @ update GBA until CPU isn't halted
-  bic r0, r0, #0x80000000                 @ clear MSB, not part of count
 
-  ldr r1, [reg_base, #COMPLETED_FRAME]    @ Check whether a frame was completed
-  cmp r1, #0
-  bne return_to_main
+  cmp r0, #0
+  blt return_to_main                      @ New frame if bit 31 is set. Exit
+
+  bic r0, r0, #0xF0000000                 @ clear MSB, not part of count
 
   @ The cpu is active again, go ahead and resume execution at current PC
   mvn reg_cycles, r0                      @ load new cycle count

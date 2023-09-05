@@ -95,7 +95,7 @@ _##symbol:
 .equ REG_Z_FLAG,        (21 * 4)
 .equ REG_C_FLAG,        (22 * 4)
 .equ REG_V_FLAG,        (23 * 4)
-.equ COMPLETED_FRAME,   (24 * 4)
+.equ REG_UNUSED_1,      (24 * 4)
 .equ OAM_UPDATED,       (25 * 4)
 .equ REG_SAVE,          (26 * 4)
 
@@ -170,17 +170,19 @@ defsymbl(x86_update_gba)
 
   mov REG_CYCLES, CARG1_REG           # Load remaining cycles as arg0
   CALL_FUNC(update_gba)               # process the next event
+
+  # did we just complete a frame? go back to main then
+  test %eax, %eax                     # Bit 31 set, means new frame completed
+  js return_to_main
+
+  # Load new cycle counter
   mov %eax, REG_CYCLES                # new cycle count
   and $0x7fff, REG_CYCLES             # in the lowest bits
 
-  # did we just complete a frame? go back to main then
-  cmpl $0, COMPLETED_FRAME(REG_BASE)
-  jne return_to_main
-
-  # did the PC change?
-  test %eax, %eax                     # Bit 31 set, means need to re-fetch
-  js lookup_pc
-  ret                                 # otherwise, go back to caller
+  # did the PC change? Bit 30 will be set
+  test $0x40000000, %eax
+  jne lookup_pc
+  ret                                 # otherwise, go back to caller (resume)
 
 # Perform this on an indirect branch that will definitely go to
 # ARM code, IE anything that changes the PC in ARM mode except
@@ -265,9 +267,9 @@ cpu_sleep_loop:
   mov REG_CYCLES, CARG1_REG   # Load remaining cycles as arg0
   CALL_FUNC(update_gba)       # process the next event
 
-  # did we just complete a frame? go back to main then
-  cmpl $0, COMPLETED_FRAME(REG_BASE)
-  jne return_to_main
+  # did we just complete a frame (MSB set)? go back to main then
+  test %eax, %eax
+  js return_to_main
 
   // if we are out of update_gba and did not complete a frame, cpu is active
   mov %eax, REG_CYCLES        # load new cycle count

@@ -57,7 +57,7 @@ _##symbol:
 #define REG_Z_FLAG        (21 * 4)
 #define REG_C_FLAG        (22 * 4)
 #define REG_V_FLAG        (23 * 4)
-#define COMPLETED_FRAME   (24 * 4)
+#define REG_UNUSED_1      (24 * 4)
 #define OAM_UPDATED       (25 * 4)
 #define REG_SAVE          (26 * 4)
 
@@ -153,14 +153,13 @@ defsymbl(a64_update_gba)
   mov w0, reg_cycles                      // load remaining cycles
   bl update_gba                           // update GBA state
 
-  ldr w1, [reg_base, #COMPLETED_FRAME]    // return to main if new frame
-  cbnz w1, return_to_main
+  tbnz w0, #31, return_to_main            // exit if a new frame is ready
 
   // Resume execution (perhaps from a new PC)
   and reg_cycles, w0, 0x7fff              // load new cycle count
   extract_flags(w2)                       // reload flag cache bits
 
-  tbnz w0, #31, 1f                        // check if PC changed
+  tbnz w0, #30, 1f                        // check if PC changed
 
   ldr lr, [reg_base, #REG_SAVE]           // Restore return point
   load_registers()                        // reload registers
@@ -714,8 +713,7 @@ cpu_sleep_loop:
   mov w0, reg_cycles                      // load remaining cycles
   bl update_gba                           // update GBA until CPU isn't halted
 
-  ldr w1, [reg_base, #COMPLETED_FRAME]    // Check whether a frame was completed
-  cbnz w1, return_to_main                 // and return to caller function.
+  tbnz w0, #31, return_to_main            // a frame has been completed -> exit
 
   // At this point the CPU must be active, otherwise we sping in update_gba
 

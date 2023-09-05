@@ -1535,6 +1535,7 @@ void execute_arm(u32 cycles)
   u8 *pc_address_block = memory_map_read[pc_region];
   u32 new_pc_region;
   s32 cycles_remaining;
+  u32 update_ret;
   cpu_alert_type cpu_alert;
 
   u32 old_pc;
@@ -1549,11 +1550,12 @@ void execute_arm(u32 cycles)
   while(1)
   {
     /* Do not execute until CPU is active */
-    while(reg[CPU_HALT_STATE] != CPU_ACTIVE) {
-       cycles_remaining = update_gba_cycles(cycles_remaining);
-
-       if (reg[COMPLETED_FRAME])
+    if (reg[CPU_HALT_STATE] != CPU_ACTIVE) {
+       u32 ret = update_gba(cycles_remaining);
+       if (completed_frame(ret))
           return;
+
+       cycles_remaining = cycles_to_run(ret);
     }
 
     cpu_alert = CPU_ALERT_NONE;
@@ -3146,9 +3148,10 @@ skip_instruction:
     } while(cycles_remaining > 0);
 
     collapse_flags();
-    cycles_remaining = update_gba_cycles(cycles_remaining);
-    if (reg[COMPLETED_FRAME])
+    update_ret = update_gba(cycles_remaining);
+    if (completed_frame(update_ret))
        return;
+    cycles_remaining = cycles_to_run(update_ret);
     continue;
 
     do
@@ -3665,9 +3668,10 @@ thumb_loop:
     } while(cycles_remaining > 0);
 
     collapse_flags();
-    cycles_remaining = update_gba_cycles(cycles_remaining);
-    if (reg[COMPLETED_FRAME])
-      return;
+    update_ret = update_gba(cycles_remaining);
+    if (completed_frame(update_ret))
+       return;
+    cycles_remaining = cycles_to_run(update_ret);
     continue;
 
     alert:

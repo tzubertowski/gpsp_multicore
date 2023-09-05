@@ -107,6 +107,7 @@ void init_main(void)
 u32 function_cc update_gba(int remaining_cycles)
 {
   u32 changed_pc = 0;
+  u32 frame_complete = 0;
   irq_type irq_raised = IRQ_NONE;
   int dma_cycles;
   trace_update_gba(remaining_cycles);
@@ -122,7 +123,6 @@ u32 function_cc update_gba(int remaining_cycles)
     cpu_ticks += completed_cycles;
 
     remaining_cycles = 0;
-    reg[COMPLETED_FRAME] = 0;
 
     // Timers can trigger DMA (usually sound) and consume cycles
     dma_cycles = update_timers(&irq_raised, completed_cycles);
@@ -217,7 +217,7 @@ u32 function_cc update_gba(int remaining_cycles)
           render_gbc_sound();
 
           // We completed a frame, tell the dynarec to exit to the main thread
-          reg[COMPLETED_FRAME] = 1;
+          frame_complete = 0x80000000;
         }
 
         // Vcount trigger (flag) and IRQ if enabled
@@ -241,7 +241,7 @@ u32 function_cc update_gba(int remaining_cycles)
 
     // Raise any pending interrupts. This changes the CPU mode.
     if (check_and_raise_interrupts())
-      changed_pc = 0x80000000;
+      changed_pc = 0x40000000;
 
     // Figure out when we need to stop CPU execution. The next event is
     // a video event or a timer event, whatever happens first.
@@ -253,13 +253,13 @@ u32 function_cc update_gba(int remaining_cycles)
            timer[i].count < execute_cycles)
           execute_cycles = timer[i].count;
     }
-  } while(reg[CPU_HALT_STATE] != CPU_ACTIVE && !reg[COMPLETED_FRAME]);
+  } while(reg[CPU_HALT_STATE] != CPU_ACTIVE && !frame_complete);
 
   // We voluntarily limit this. It is not accurate but it would be much harder.
   dma_cycles = MIN(64, dma_cycles);
   dma_cycles = MIN(execute_cycles, dma_cycles);
 
-  return (execute_cycles - dma_cycles) | changed_pc;
+  return (execute_cycles - dma_cycles) | changed_pc | frame_complete;
 }
 
 void reset_gba(void)
