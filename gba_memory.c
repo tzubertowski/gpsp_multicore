@@ -2524,6 +2524,58 @@ void memory_term(void)
   }
 }
 
+bool memory_check_savestate(const u8 *src)
+{
+  static const char *vars32[] = {
+    "backup-type", "sram-size",
+    "flash-mode", "flash-cmd-pos", "flash-bank-num", "flash-dev-id", "flash-size",
+    "eeprom-size", "eeprom-mode", "eeprom-addr", "eeprom-counter",
+    "rtc-state", "rtc-write-mode", "rtc-cmd", "rtc-status", "rtc-data-byte-cnt", "rtc-bit-cnt",
+  };
+  static const char *dmavars32[] = {
+    "src-addr", "dst-addr", "src-dir", "dst-dir",
+    "len", "size", "repeat", "start", "dsc", "irq"
+  };
+  int i;
+  const u8 *memdoc = bson_find_key(src, "memory");
+  const u8 *bakdoc = bson_find_key(src, "backup");
+  const u8 *dmadoc = bson_find_key(src, "dma");
+  if (!memdoc || !bakdoc || !dmadoc)
+    return false;
+
+  // Check memory buffers (TODO: check sizes!)
+  if (!bson_contains_key(memdoc, "iwram", BSON_TYPE_BIN) ||
+      !bson_contains_key(memdoc, "ewram", BSON_TYPE_BIN) ||
+      !bson_contains_key(memdoc, "vram", BSON_TYPE_BIN) ||
+      !bson_contains_key(memdoc, "oamram", BSON_TYPE_BIN) ||
+      !bson_contains_key(memdoc, "palram", BSON_TYPE_BIN) ||
+      !bson_contains_key(memdoc, "ioregs", BSON_TYPE_BIN))
+     return false;
+
+  // Check backup variables
+  for (i = 0; i < sizeof(vars32)/sizeof(vars32[0]); i++)
+    if (!bson_contains_key(bakdoc, vars32[i], BSON_TYPE_INT32))
+      return false;
+
+  if (!bson_contains_key(bakdoc, "rtc-regs", BSON_TYPE_BIN) ||
+      !bson_contains_key(bakdoc, "rtc-data-words", BSON_TYPE_ARR))
+      return false;
+
+  for (i = 0; i < DMA_CHAN_CNT; i++)
+  {
+    char tname[2] = {'0' + i, 0};
+    const u8 *dmastr = bson_find_key(dmadoc, tname);
+    if (!dmastr)
+      return false;
+
+    for (i = 0; i < sizeof(dmavars32)/sizeof(dmavars32[0]); i++)
+      if (!bson_contains_key(dmastr, dmavars32[i], BSON_TYPE_INT32))
+        return false;
+  }
+  return true;
+}
+
+
 bool memory_read_savestate(const u8 *src)
 {
   int i;

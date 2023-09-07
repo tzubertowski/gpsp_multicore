@@ -318,7 +318,8 @@ static inline void clear_gamepak_stickybits(void)
   memset(gamepak_sticky_bit, 0, sizeof(gamepak_sticky_bit));
 }
 
-unsigned memory_write_savestate(u8 *dst);
+bool memory_check_savestate(const u8*src);
 bool memory_read_savestate(const u8*src);
+unsigned memory_write_savestate(u8 *dst);
 
 #endif

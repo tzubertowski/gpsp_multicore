@@ -102,6 +102,8 @@ unsigned sound_timer(fixed8_24 frequency_step, u32 channel);
 void sound_reset_fifo(u32 channel);
 void render_gbc_sound();
 void init_sound();
+
+bool sound_check_savestate(const u8 *src);
 unsigned sound_write_savestate(u8 *dst);
 bool sound_read_savestate(const u8 *src);
 

@@ -3711,6 +3711,19 @@ void init_cpu(void)
   REG_MODE(MODE_SUPERVISOR)[5] = 0x03007FE0;
 }
 
+bool cpu_check_savestate(const u8 *src)
+{
+  const u8 *cpudoc = bson_find_key(src, "cpu");
+  if (!cpudoc)
+    return false;
+
+  return bson_contains_key(cpudoc, "bus-value", BSON_TYPE_INT32) &&
+         bson_contains_key(cpudoc, "regs", BSON_TYPE_ARR) &&
+         bson_contains_key(cpudoc, "spsr", BSON_TYPE_ARR) &&
+         bson_contains_key(cpudoc, "regmod", BSON_TYPE_ARR);
+}
+
+
 bool cpu_read_savestate(const u8 *src)
 {
   const u8 *cpudoc = bson_find_key(src, "cpu");

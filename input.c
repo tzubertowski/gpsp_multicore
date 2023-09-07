@@ -139,6 +139,12 @@ u32 update_input(void)
    return 0;
 }
 
+bool input_check_savestate(const u8 *src)
+{
+  const u8 *p = bson_find_key(src, "input");
+  return (p && bson_contains_key(p, "prevkey", BSON_TYPE_INT32));
+}
+
 bool input_read_savestate(const u8 *src)
 {
   const u8 *p = bson_find_key(src, "input");

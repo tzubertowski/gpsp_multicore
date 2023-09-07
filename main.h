@@ -85,6 +85,8 @@ void reset_gba(void);
 void init_main(void);
 
 void game_name_ext(char *src, char *buffer, char *extension);
+
+bool main_check_savestate(const u8 *src);
 unsigned main_write_savestate(u8* ptr);
 bool main_read_savestate(const u8 *src);
 

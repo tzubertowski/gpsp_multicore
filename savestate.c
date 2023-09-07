@@ -1,8 +1,47 @@
+/* gameplaySP
+ *
+ * Copyright (C) 2023 David Guillen Fandos <david@davidgf.net>
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 
 #include "common.h"
 
 const u8 *state_mem_read_ptr;
 u8 *state_mem_write_ptr;
+
+bool bson_contains_key(const u8 *srcp, const char *key, u8 keytype)
+{
+  unsigned keyl = strlen(key) + 1;
+  unsigned doclen = bson_read_u32(srcp);
+  const u8* p = &srcp[4];
+  while (*p != 0 && (p - srcp) < doclen) {
+    u8 tp = *p;
+    unsigned tlen = strlen((char*)&p[1]) + 1;
+    if (keyl == tlen && !memcmp(key, &p[1], tlen))
+      return tp == keytype;  // Found it, check type
+    p += 1 + tlen;
+    if (tp == BSON_TYPE_DOC || tp == BSON_TYPE_ARR)
+      p += bson_read_u32(p);
+    else if (tp == BSON_TYPE_BIN)
+      p += bson_read_u32(p) + 1 + 4;
+    else if (tp == BSON_TYPE_INT32)
+      p += 4;
+  }
+  return false;
+}
 
 const u8* bson_find_key(const u8 *srcp, const char *key)
 {
@@ -15,11 +54,11 @@ const u8* bson_find_key(const u8 *srcp, const char *key)
     if (keyl == tlen && !memcmp(key, &p[1], tlen))
       return &p[tlen + 1];
     p += 1 + tlen;
-    if (tp == 3 || tp == 4)
+    if (tp == BSON_TYPE_DOC || tp == BSON_TYPE_ARR)
       p += bson_read_u32(p);
-    else if (tp == 5)
+    else if (tp == BSON_TYPE_BIN)
       p += bson_read_u32(p) + 1 + 4;
-    else if (tp == 0x10)
+    else if (tp == BSON_TYPE_INT32)
       p += 4;
   }
   return NULL;
@@ -82,13 +121,21 @@ bool gba_load_state(const void* src)
   if (!bson_read_int32(srcptr, "info-version", &tmp) || tmp != GBA_STATE_VERSION)
     return false;
 
+  // Validate that the state file makes sense before unconditionally reading it.
+  if (!cpu_check_savestate(srcptr) ||
+      !input_check_savestate(srcptr) ||
+      !main_check_savestate(srcptr) ||
+      !memory_check_savestate(srcptr) ||
+      !sound_check_savestate(srcptr))
+     return false;
+
   if (!(cpu_read_savestate(srcptr) &&
       input_read_savestate(srcptr) &&
       main_read_savestate(srcptr) &&
       memory_read_savestate(srcptr) &&
       sound_read_savestate(srcptr)))
   {
-     // TODO: reset state instead! Should revert instead??
+     // TODO: this should not happen if the validation above is accurate.
      return false;
   }
 

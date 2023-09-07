@@ -284,6 +284,39 @@ void print_regs(void)
 }
 #endif
 
+bool main_check_savestate(const u8 *src)
+{
+  int i;
+  const u8 *p1 = bson_find_key(src, "emu");
+  const u8 *p2 = bson_find_key(src, "timers");
+  if (!p1 || !p2)
+    return false;
+
+  if (!bson_contains_key(p1, "cpu-ticks", BSON_TYPE_INT32) ||
+      !bson_contains_key(p1, "exec-cycles", BSON_TYPE_INT32) ||
+      !bson_contains_key(p1, "video-count", BSON_TYPE_INT32))
+    return false;
+
+  for (i = 0; i < 4; i++)
+  {
+    char tname[2] = {'0' + i, 0};
+    const u8 *p = bson_find_key(p2, tname);
+    if (!p)
+      return false;
+
+    if (!bson_contains_key(p, "count", BSON_TYPE_INT32) ||
+        !bson_contains_key(p, "reload", BSON_TYPE_INT32) ||
+        !bson_contains_key(p, "prescale", BSON_TYPE_INT32) ||
+        !bson_contains_key(p, "freq-step", BSON_TYPE_INT32) ||
+        !bson_contains_key(p, "dsc", BSON_TYPE_INT32) ||
+        !bson_contains_key(p, "irq", BSON_TYPE_INT32) ||
+        !bson_contains_key(p, "status", BSON_TYPE_INT32))
+      return false;
+  }
+
+  return true;
+}
+
 bool main_read_savestate(const u8 *src)
 {
   int i;
@@ -311,7 +344,7 @@ bool main_read_savestate(const u8 *src)
       bson_read_int32(p, "irq", &timer[i].irq) &&
       bson_read_int32(p, "status", &timer[i].status)))
       return false;
-  }  
+  }
 
   return true;
 }

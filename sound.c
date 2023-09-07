@@ -586,6 +586,67 @@ void init_sound()
   reset_sound();
 }
 
+
+bool sound_check_savestate(const u8 *src)
+{
+  static const char *gvars[] = {
+    "on", "buf-base", "gbc-buf-idx", "gbc-last-cpu-ticks",
+    "gbc-partial-ticks", "gbc-ms-vol-left", "gbc-ms-vol-right", "gbc-ms-vol"
+  };
+  static const char *dsvars[] = {
+    "status", "volume", "fifo-base", "fifo-top", "fifo-frac", "buf-idx"
+  };
+  static const char *gsvars[] = {
+    "status", "rate", "freq-step", "sample-idx", "tick-cnt", "volume",
+    "active", "enable", "env-vol0", "env-vol", "env-dir", "env-status",
+    "env-ticks0", "env-ticks", "sweep-status", "sweep-dir", "sweep-ticks0",
+    "sweep-ticks","sweep-shift", "wav-type", "wav-bank", "wav-vol",
+    "len-status", "len-ticks", "noise-type", "sample-tbl"
+  };
+
+  int i;
+  const u8 *snddoc = bson_find_key(src, "sound");
+  if (!snddoc)
+    return false;
+
+  for (i = 0; i < sizeof(gvars)/sizeof(gvars[0]); i++)
+    if (!bson_contains_key(snddoc, gvars[i], BSON_TYPE_INT32))
+      return false;
+  if (!bson_contains_key(snddoc, "wav-samples", BSON_TYPE_BIN))
+    return false;
+
+
+  for (i = 0; i < 2; i++)
+  {
+    char tn[4] = {'d', 's', '0' + i, 0};
+    const u8 *sndchan = bson_find_key(snddoc, tn);
+    if (!sndchan)
+      return false;
+
+    for (i = 0; i < sizeof(dsvars)/sizeof(dsvars[0]); i++)
+      if (!bson_contains_key(sndchan, dsvars[i], BSON_TYPE_INT32))
+        return false;
+
+    if (!bson_contains_key(sndchan, "fifo-bytes", BSON_TYPE_BIN))
+      return false;
+  }
+
+  for (i = 0; i < 4; i++)
+  {
+    char tn[4] = {'g', 's', '0' + i, 0};
+    const u8 *sndchan = bson_find_key(snddoc, tn);
+    if (!sndchan)
+      return false;
+
+    for (i = 0; i < sizeof(gsvars)/sizeof(gsvars[0]); i++)
+      if (!bson_contains_key(sndchan, gsvars[i], BSON_TYPE_INT32))
+        return false;
+  }
+
+  return true;
+}
+
+
 bool sound_read_savestate(const u8 *src)
 {
   int i;

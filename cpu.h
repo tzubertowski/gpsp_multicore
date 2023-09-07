@@ -125,6 +125,8 @@ void function_cc execute_store_u32(u32 address, u32 source);
 void function_cc execute_store_aligned_u32(u32 address, u32 source);
 u32 execute_arm_translate(u32 cycles);
 void init_translater(void);
+
+bool cpu_check_savestate(const u8 *src);
 unsigned cpu_write_savestate(u8* dst);
 bool cpu_read_savestate(const u8 *src);
 
