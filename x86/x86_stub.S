@@ -95,7 +95,7 @@ _##symbol:
 .equ REG_Z_FLAG,        (21 * 4)
 .equ REG_C_FLAG,        (22 * 4)
 .equ REG_V_FLAG,        (23 * 4)
-.equ REG_UNUSED_1,      (24 * 4)
+.equ REG_SLEEP_CYCLES,  (24 * 4)
 .equ OAM_UPDATED,       (25 * 4)
 .equ REG_SAVE,          (26 * 4)
 

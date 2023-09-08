@@ -247,6 +247,22 @@ u32 function_cc update_gba(int remaining_cycles)
     // a video event or a timer event, whatever happens first.
     execute_cycles = MAX(video_count, 0);
 
+    // If we are paused due to a DMA, cap the number of cyles to that amount.
+    if (reg[CPU_HALT_STATE] == CPU_DMA) {
+      u32 dma_cyc = reg[REG_SLEEP_CYCLES];
+      // The first iteration is marked by bit 31 set, just do nothing now.
+      if (dma_cyc & 0x80000000)
+        dma_cyc &= 0x7FFFFFFF;  // Start counting DMA cycles from now on.
+      else
+        dma_cyc -= MIN(dma_cyc, completed_cycles);  // Account DMA cycles.
+
+      reg[REG_SLEEP_CYCLES] = dma_cyc;
+      if (!dma_cyc)
+        reg[CPU_HALT_STATE] = CPU_ACTIVE;   // DMA finished, resume execution.
+      else
+        execute_cycles = MIN(execute_cycles, dma_cyc);  // Continue sleeping.
+    }
+
     for (i = 0; i < 4; i++)
     {
        if (timer[i].status == TIMER_PRESCALE &&
@@ -294,7 +310,8 @@ bool main_check_savestate(const u8 *src)
 
   if (!bson_contains_key(p1, "cpu-ticks", BSON_TYPE_INT32) ||
       !bson_contains_key(p1, "exec-cycles", BSON_TYPE_INT32) ||
-      !bson_contains_key(p1, "video-count", BSON_TYPE_INT32))
+      !bson_contains_key(p1, "video-count", BSON_TYPE_INT32) ||
+      !bson_contains_key(p1, "sleep-cycles", BSON_TYPE_INT32))
     return false;
 
   for (i = 0; i < 4; i++)
@@ -327,7 +344,8 @@ bool main_read_savestate(const u8 *src)
 
   if (!(bson_read_int32(p1, "cpu-ticks", &cpu_ticks) &&
          bson_read_int32(p1, "exec-cycles", &execute_cycles) &&
-         bson_read_int32(p1, "video-count", (u32*)&video_count)))
+         bson_read_int32(p1, "video-count", (u32*)&video_count) &&
+         bson_read_int32(p1, "sleep-cycles", &reg[REG_SLEEP_CYCLES])))
     return false;
 
   for (i = 0; i < 4; i++)
@@ -357,6 +375,7 @@ unsigned main_write_savestate(u8* dst)
   bson_write_int32(dst, "cpu-ticks", cpu_ticks);
   bson_write_int32(dst, "exec-cycles", execute_cycles);
   bson_write_int32(dst, "video-count", video_count);
+  bson_write_int32(dst, "sleep-cycles", reg[REG_SLEEP_CYCLES]);
   bson_finish_document(dst, wbptr);
 
   bson_start_document(dst, "timers", wbptr);

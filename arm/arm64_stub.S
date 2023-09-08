@@ -57,7 +57,7 @@ _##symbol:
 #define REG_Z_FLAG        (21 * 4)
 #define REG_C_FLAG        (22 * 4)
 #define REG_V_FLAG        (23 * 4)
-#define REG_UNUSED_1      (24 * 4)
+#define REG_SLEEP_CYCLES  (24 * 4)
 #define OAM_UPDATED       (25 * 4)
 #define REG_SAVE          (26 * 4)
 

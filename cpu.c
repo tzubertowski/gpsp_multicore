@@ -1489,7 +1489,12 @@ u32 check_and_raise_interrupts()
     reg[REG_PC] = 0x00000018;
 
     set_cpu_mode(MODE_IRQ);
-    reg[CPU_HALT_STATE] = CPU_ACTIVE;
+
+    // Wake up CPU if it is stopped/sleeping.
+    if (reg[CPU_HALT_STATE] == CPU_STOP ||
+        reg[CPU_HALT_STATE] == CPU_HALT)
+      reg[CPU_HALT_STATE] = CPU_ACTIVE;
+
     return 1;
   }
   return 0;
@@ -3690,6 +3695,7 @@ void init_cpu(void)
     spsr[i] = 0x00000010;
 
   reg[CPU_HALT_STATE] = CPU_ACTIVE;
+  reg[REG_SLEEP_CYCLES] = 0;
 
   if (selected_boot_mode == boot_game) {
     reg[REG_SP] = 0x03007F00;

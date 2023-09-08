@@ -761,8 +761,17 @@ static cpu_alert_type trigger_dma(u32 dma_number, u32 value)
       }
 
       write_dmareg(REG_DMA0CNT_H, dma_number, value);
-      if(start_type == DMA_START_IMMEDIATELY)
-        return dma_transfer(dma_number, NULL);
+      if(start_type == DMA_START_IMMEDIATELY) {
+        // Excutes the DMA now! Copies the data and returns side effects.
+        int dma_cycles = 0;
+        cpu_alert_type ret = dma_transfer(dma_number, &dma_cycles);
+        if (!dma_cycles)
+          return ret;
+        // Sleep CPU for N cycles and return HALT as side effect (so it does).
+        reg[CPU_HALT_STATE] = CPU_DMA;
+        reg[REG_SLEEP_CYCLES] = 0x80000000 | (u32)dma_cycles;
+        return CPU_ALERT_HALT | ret;
+      }
     }
   }
   else

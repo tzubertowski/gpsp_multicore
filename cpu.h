@@ -45,6 +45,7 @@ typedef u32 cpu_mode_type;
 #define CPU_ACTIVE          0
 #define CPU_HALT            1
 #define CPU_STOP            2
+#define CPU_DMA             3  /* CPU is idling due to DMA transfer */
 
 typedef u8 cpu_alert_type;
 
@@ -91,7 +92,7 @@ typedef enum
   REG_Z_FLAG        = 21,
   REG_C_FLAG        = 22,
   REG_V_FLAG        = 23,
-  REG_UNUSED_1      = 24,
+  REG_SLEEP_CYCLES  = 24,
   OAM_UPDATED       = 25,
   REG_SAVE          = 26,
   REG_SAVE2         = 27,
