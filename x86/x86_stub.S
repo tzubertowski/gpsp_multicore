@@ -223,6 +223,8 @@ ext_store_rtc8:               # No RTC writes on byte or word access
 ext_store_rtc32:
 ext_store_backup16:           # Backup (flash) accessed via byte writes
 ext_store_backup32:
+ext_store_eeprom8:            # EEPROM accesses are performed using 16 bit DMA
+ext_store_eeprom32:
 ext_store_ignore:
   ret                         # ignore these writes
 
@@ -277,7 +279,7 @@ cpu_sleep_loop:
   jmp lookup_pc               # pc changes after a halt
 
 
-ext_store_eeprom:
+ext_store_eeprom16:
   CALL_FUNC(write_eeprom)     # perform eeprom write
   ret
 
@@ -568,7 +570,7 @@ return_to_main:
   ADDR_TYPE ext_store_ignore              /* 0x0A gamepak, ignore          */;\
   ADDR_TYPE ext_store_ignore              /* 0x0B gamepak, ignore          */;\
   ADDR_TYPE ext_store_ignore              /* 0x0C gamepak, ignore          */;\
-  ADDR_TYPE ext_store_eeprom              /* 0x0D EEPROM (possibly)        */;\
+  ADDR_TYPE ext_store_eeprom##asize       /* 0x0D EEPROM (possibly)        */;\
   ADDR_TYPE ext_store_backup##asize       /* 0x0E Flash ROM/SRAM           */;\
   ADDR_TYPE ext_store_ignore              /* 0x0F ignore                   */;\
 
@@ -599,7 +601,7 @@ defsymbl(x86_table_data)
   ADDR_TYPE ext_store_ignore              # 0x0A gamepak, ignore
   ADDR_TYPE ext_store_ignore              # 0x0B gamepak, ignore
   ADDR_TYPE ext_store_ignore              # 0x0C gamepak, ignore
-  ADDR_TYPE ext_store_eeprom              # 0x0D EEPROM (possibly)
+  ADDR_TYPE ext_store_eeprom32            # 0x0D EEPROM (possibly)
   ADDR_TYPE ext_store_ignore              # 0x0E Flash ROM/SRAM must be 8bit
   ADDR_TYPE ext_store_ignore              # 0x0F ignore
 

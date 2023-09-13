@@ -469,6 +469,12 @@ u8 read_backup(u32 address)
 #define read_backup32()                                                       \
   value = 0                                                                   \
 
+#define write_eeprom8(addr, value)
+
+#define write_eeprom16(addr, value)                                           \
+  write_eeprom(addr, value)
+
+#define write_eeprom32(addr, value)
 
 // EEPROM is 512 bytes by default; it is autodetecte as 8KB if
 // 14bit address DMAs are made (this is done in the DMA handler).
@@ -560,6 +566,16 @@ void function_cc write_eeprom(u32 unused_address, u32 value)
     map = load_gamepak_page(gamepak_index & 0x3FF);                           \
                                                                               \
   value = readaddress##type(map, address & 0x7FFF)                            \
+
+
+#define unmapped_rom_read8(addr)                                              \
+  (((addr) >> 1) >> (((addr) & 1) * 8)) & 0xFF
+
+#define unmapped_rom_read16(addr)                                             \
+  ((addr) >> 1) & 0xFFFF
+
+#define unmapped_rom_read32(addr)                                             \
+  ((((addr) & ~3) >> 1) & 0xFFFF) | (((((addr) & ~3) + 2) >> 1) << 16)
 
 #define read_open8()                                                          \
   if(!(reg[REG_CPSR] & 0x20))                                                 \
@@ -671,6 +687,12 @@ u32 function_cc read_eeprom(void)
       value = readaddress##type(oam_ram, address & 0x3FF);                    \
       break;                                                                  \
                                                                               \
+    case 0x0D:                                                                \
+      if (backup_type == BACKUP_EEPROM) {                                     \
+        value = read_eeprom();                                                \
+        break;                                                                \
+      }                                                                       \
+      /* fallthrough */                                                       \
     case 0x08:                                                                \
     case 0x09:                                                                \
     case 0x0A:                                                                \
@@ -678,21 +700,11 @@ u32 function_cc read_eeprom(void)
     case 0x0C:                                                                \
       /* gamepak ROM */                                                       \
       if((address & 0x1FFFFFF) >= gamepak_size)                               \
-        value = 0;                                                            \
+        value = unmapped_rom_read##type(address);                             \
       else                                                                    \
       {                                                                       \
         read_memory_gamepak(type);                                            \
       }                                                                       \
-      break;                                                                  \
-                                                                              \
-    case 0x0D:                                                                \
-      if((address & 0x1FFFFFF) < gamepak_size)                                \
-      {                                                                       \
-        read_memory_gamepak(type);                                            \
-      }                                                                       \
-      else                                                                    \
-        value = read_eeprom();                                                \
-                                                                              \
       break;                                                                  \
                                                                               \
     case 0x0E:                                                                \
@@ -1464,7 +1476,7 @@ void function_cc write_rtc(u32 address, u32 value)
       break;                                                                  \
                                                                               \
     case 0x0D:                                                                \
-      write_eeprom(address, value);                                           \
+      write_eeprom##type(address, value);                                     \
       break;                                                                  \
                                                                               \
     case 0x0E:                                                                \
