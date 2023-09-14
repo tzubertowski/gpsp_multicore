@@ -1653,50 +1653,6 @@ void update_backup(void)
     save_backup(backup_filename);
 }
 
-#define CONFIG_FILENAME "game_config.txt"
-
-static char *skip_spaces(char *line_ptr)
-{
-  while(*line_ptr == ' ')
-    line_ptr++;
-
-  return line_ptr;
-}
-
-static s32 parse_config_line(char *current_line, char *current_variable, char *current_value)
-{
-  char *line_ptr = current_line;
-  char *line_ptr_new;
-
-  if((current_line[0] == 0) || (current_line[0] == '#'))
-    return -1;
-
-  line_ptr_new = strchr(line_ptr, ' ');
-  if(!line_ptr_new)
-    return -1;
-
-  *line_ptr_new = 0;
-  strcpy(current_variable, line_ptr);
-  line_ptr_new = skip_spaces(line_ptr_new + 1);
-
-  if(*line_ptr_new != '=')
-    return -1;
-
-  line_ptr_new = skip_spaces(line_ptr_new + 1);
-  strcpy(current_value, line_ptr_new);
-  line_ptr_new = current_value + strlen(current_value) - 1;
-  if(*line_ptr_new == '\n')
-  {
-    line_ptr_new--;
-    *line_ptr_new = 0;
-  }
-
-  if(*line_ptr_new == '\r')
-    *line_ptr_new = 0;
-
-  return 0;
-}
-
 typedef struct
 {
    char gamepak_title[13];
@@ -1721,7 +1677,7 @@ typedef struct
 
 #include "gba_over.h"
 
-static s32 load_game_config_over(gamepak_info_t *gpinfo)
+static void load_game_config_over(gamepak_info_t *gpinfo)
 {
   unsigned i = 0;
 
@@ -1766,95 +1722,7 @@ static s32 load_game_config_over(gamepak_info_t *gpinfo)
         translation_gate_target_pc[translation_gate_targets] = gbaover[i].translation_gate_target_3;
         translation_gate_targets++;
      }
-
-     printf("found entry in over ini file.\n");
-
-     return 0;
   }
-
-  return -1;
-}
-
-static s32 load_game_config(gamepak_info_t *gpinfo)
-{
-  char current_line[256];
-  char current_variable[256];
-  char current_value[256];
-  char config_path[512];
-  RFILE *config_file;
-
-  sprintf(config_path, "%s" PATH_SEPARATOR "%s", main_path, CONFIG_FILENAME);
-
-  printf("config_path is : %s\n", config_path);
-
-  config_file = filestream_open(config_path, RETRO_VFS_FILE_ACCESS_READ,
-                                RETRO_VFS_FILE_ACCESS_HINT_NONE);
-
-  if(config_file)
-  {
-    while(filestream_gets(config_file, current_line, 256))
-    {
-      if(parse_config_line(current_line, current_variable, current_value)
-       != -1)
-      {
-        if(strcmp(current_variable, "game_name") ||
-         strcmp(current_value, gpinfo->gamepak_title))
-          continue;
-
-        if(!filestream_gets(config_file, current_line, 256) ||
-         (parse_config_line(current_line, current_variable,
-           current_value) == -1) ||
-         strcmp(current_variable, "game_code") ||
-         strcmp(current_value, gpinfo->gamepak_code))
-          continue;
-
-        if(!filestream_gets(config_file, current_line, 256) ||
-         (parse_config_line(current_line, current_variable,
-           current_value) == -1) ||
-         strcmp(current_variable, "vender_code") ||
-          strcmp(current_value, gpinfo->gamepak_maker))
-          continue;
-
-        while(filestream_gets(config_file, current_line, 256))
-        {
-          if(parse_config_line(current_line, current_variable, current_value)
-           != -1)
-          {
-            if(!strcmp(current_variable, "game_name"))
-            {
-              filestream_close(config_file);
-              return 0;
-            }
-
-            if(!strcmp(current_variable, "idle_loop_eliminate_target"))
-               idle_loop_target_pc = strtol(current_value, NULL, 16);
-
-            if(!strcmp(current_variable, "translation_gate_target"))
-            {
-               if(translation_gate_targets < MAX_TRANSLATION_GATES)
-               {
-                  translation_gate_target_pc[translation_gate_targets] =
-                     strtol(current_value, NULL, 16);
-                  translation_gate_targets++;
-               }
-            }
-
-            if(!strcmp(current_variable, "flash_rom_type") &&
-              !strcmp(current_value, "128KB"))
-              flash_device_id = FLASH_DEVICE_MACRONIX_128KB;
-          }
-        }
-
-        filestream_close(config_file);
-        return 0;
-      }
-    }
-
-    filestream_close(config_file);
-  }
-
-  printf("game config missing\n");
-  return -1;
 }
 
 // DMA memory regions can be one of the following:
@@ -2801,8 +2669,7 @@ u32 load_gamepak(const struct retro_game_info* info, const char *name)
    flash_device_id = FLASH_DEVICE_MACRONIX_64KB;
    flash_bank_cnt = FLASH_SIZE_64KB;
 
-   if ((load_game_config_over(&gpinfo)) < 0)
-      load_game_config(&gpinfo);
+   load_game_config_over(&gpinfo);
 
    return 0;
 }
