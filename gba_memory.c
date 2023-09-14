@@ -1702,10 +1702,7 @@ typedef struct
    char gamepak_title[13];
    char gamepak_code[5];
    char gamepak_maker[3];
-   int flash_size;
-   u32 flash_device_id;
-   int save_type;
-   int rtc_enabled;
+   u16 flags;
    u32 idle_loop_target_pc;
    u32 translation_gate_target_1;
    u32 translation_gate_target_2;
@@ -1718,6 +1715,9 @@ typedef struct
    char gamepak_code[5];
    char gamepak_maker[3];
 } gamepak_info_t;
+
+#define FLAGS_FLASH_128KB    0x0001
+#define FLAGS_RUMBLE         0x0002
 
 #include "gba_over.h"
 
@@ -1744,9 +1744,10 @@ static s32 load_game_config_over(gamepak_info_t *gpinfo)
      if (gbaover[i].idle_loop_target_pc != 0)
         idle_loop_target_pc = gbaover[i].idle_loop_target_pc;
 
-     flash_device_id      = gbaover[i].flash_device_id;
-     if (flash_device_id == FLASH_DEVICE_MACRONIX_128KB)
+     if (gbaover[i].flags & FLAGS_FLASH_128KB) {
+       flash_device_id = FLASH_DEVICE_MACRONIX_128KB;
        flash_bank_cnt = FLASH_SIZE_128KB;
+     }
 
      if (gbaover[i].translation_gate_target_1 != 0)
      {

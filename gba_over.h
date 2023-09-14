@@ -4,10 +4,7 @@ static const ini_t gbaover[] = {
       "NIGHTFIRE",                 /* gamepak_title        */
       "A7OE",                      /* gamepak_code         */
       "69",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x80031d6,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -18,10 +15,7 @@ static const ini_t gbaover[] = {
       "ADVANCEWARSP",              /* gamepak_title        */
       "AWRP",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x803880a,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -32,10 +26,7 @@ static const ini_t gbaover[] = {
       "ADVANCEWARS",               /* gamepak_title        */
       "AWRE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x803880a,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -46,10 +37,7 @@ static const ini_t gbaover[] = {
       "ADVANCEWARS2",              /* gamepak_title        */
       "AW2P",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8036e2a,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -60,10 +48,7 @@ static const ini_t gbaover[] = {
       "ADVANCEWARS2",              /* gamepak_title        */
       "AW2E",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8036e2a,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -74,10 +59,7 @@ static const ini_t gbaover[] = {
       "ANIYOKO2",                  /* gamepak_title        */
       "BAXJ",                      /* gamepak_code         */
       "A4",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0x3000f1c,                   /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -88,10 +70,7 @@ static const ini_t gbaover[] = {
       "FoxAnWorld",                /* gamepak_title        */
       "Home",                      /* gamepak_code         */
       "00",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0x3000f1c,                   /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -102,10 +81,7 @@ static const ini_t gbaover[] = {
       "ASTERIX",                   /* gamepak_title        */
       "BLXP",                      /* gamepak_code         */
       "70",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x846d060,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -116,10 +92,7 @@ static const ini_t gbaover[] = {
       "ROCKMAN_EXE",               /* gamepak_title        */
       "AREJ",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8000338,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -130,10 +103,7 @@ static const ini_t gbaover[] = {
       "BLEACH ADV1",               /* gamepak_title        */
       "BLEJ",                      /* gamepak_code         */
       "6L",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -144,10 +114,7 @@ static const ini_t gbaover[] = {
       "BOMBERMANJGC",              /* gamepak_title        */
       "BOMJ",                      /* gamepak_code         */
       "18",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -158,10 +125,7 @@ static const ini_t gbaover[] = {
       "BOMSTORYUSA",               /* gamepak_title        */
       "ABSE",                      /* gamepak_code         */
       "52",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8000526,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -172,10 +136,7 @@ static const ini_t gbaover[] = {
       "BOOKWORM",                  /* gamepak_title        */
       "BKWE",                      /* gamepak_code         */
       "5G",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x800397c,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -186,10 +147,7 @@ static const ini_t gbaover[] = {
       "BROKENSWORD",               /* gamepak_title        */
       "ABJE",                      /* gamepak_code         */
       "6L",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8000a26,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -200,10 +158,7 @@ static const ini_t gbaover[] = {
       "CALCIOBIT01",               /* gamepak_title        */
       "BIXJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -214,10 +169,7 @@ static const ini_t gbaover[] = {
       "DRACULA AGB1",              /* gamepak_title        */
       "AAMP",                      /* gamepak_code         */
       "A4",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x80003d2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -228,10 +180,7 @@ static const ini_t gbaover[] = {
       "DRACULA AGB1",              /* gamepak_title        */
       "AAME",                      /* gamepak_code         */
       "A4",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x80003d2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -242,10 +191,7 @@ static const ini_t gbaover[] = {
       "CLITTLEJ",                  /* gamepak_title        */
       "BCHJ",                      /* gamepak_code         */
       "G9",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -256,10 +202,7 @@ static const ini_t gbaover[] = {
       "DOTC",                      /* gamepak_title        */
       "ADHE",                      /* gamepak_code         */
       "5N",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x80007ec,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -270,10 +213,7 @@ static const ini_t gbaover[] = {
       "DIGIMON BTSP",              /* gamepak_title        */
       "A8SE",                      /* gamepak_code         */
       "B2",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8011208,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -284,10 +224,7 @@ static const ini_t gbaover[] = {
       "DIGIMON BS2",               /* gamepak_title        */
       "BDSE",                      /* gamepak_code         */
       "B2",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8010eb0,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -298,10 +235,7 @@ static const ini_t gbaover[] = {
       "ALADDIN",                   /* gamepak_title        */
       "AJ6J",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -312,10 +246,7 @@ static const ini_t gbaover[] = {
       "ALADDIN",                   /* gamepak_title        */
       "BADP",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -326,10 +257,7 @@ static const ini_t gbaover[] = {
       "ALADDIN",                   /* gamepak_title        */
       "BADE",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -340,10 +268,7 @@ static const ini_t gbaover[] = {
       "DOOM II",                   /* gamepak_title        */
       "A9DE",                      /* gamepak_code         */
       "52",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0x30041c8,                   /* translation_gate_target_1 */
       0x3004fa0,                   /* translation_gate_target_2 */
@@ -354,10 +279,7 @@ static const ini_t gbaover[] = {
       "DISNEY'S DON",              /* gamepak_title        */
       "ADKE",                      /* gamepak_code         */
       "41",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8002f30,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -368,10 +290,7 @@ static const ini_t gbaover[] = {
       "DRILL DOZER",               /* gamepak_title        */
       "V49E",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_RUMBLE,                /* flags                */
       0x80006c2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -382,10 +301,7 @@ static const ini_t gbaover[] = {
       "F-ZERO ADVAN",              /* gamepak_title        */
       "AFZJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8000c2e,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -396,10 +312,7 @@ static const ini_t gbaover[] = {
       "F-ZERO ADVAN",              /* gamepak_title        */
       "AFZE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8000c2e,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -410,10 +323,7 @@ static const ini_t gbaover[] = {
       "F-ZEROCLIMAX",              /* gamepak_title        */
       "BFTJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -424,10 +334,7 @@ static const ini_t gbaover[] = {
       "FF4ADVANCE",                /* gamepak_title        */
       "BZ4E",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x800fabe,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -438,10 +345,7 @@ static const ini_t gbaover[] = {
       "FFTA_USVER.",               /* gamepak_title        */
       "AFXE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x800041e,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -452,10 +356,7 @@ static const ini_t gbaover[] = {
       "FINAL FIGHT",               /* gamepak_title        */
       "AFFP",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x800b428,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -466,10 +367,7 @@ static const ini_t gbaover[] = {
       "FINAL FIGHT",               /* gamepak_title        */
       "AFFE",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x800b428,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -480,10 +378,7 @@ static const ini_t gbaover[] = {
       "GBWARS1+2",                 /* gamepak_title        */
       "BGWJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -494,10 +389,7 @@ static const ini_t gbaover[] = {
       "Golden_Sun_A",              /* gamepak_title        */
       "AGSE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0x3000820,                   /* translation_gate_target_1 */
       0x30009ac,                   /* translation_gate_target_2 */
@@ -509,10 +401,7 @@ static const ini_t gbaover[] = {
       "GOLDEN_SUN_B",              /* gamepak_title        */
       "AGFE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x08013542,                  /* idle_loop_target_pc  */
       0x30009ac,                   /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -526,10 +415,7 @@ static const ini_t gbaover[] = {
       "GRADIUSGALAX",              /* gamepak_title        */
       "AGAE",                      /* gamepak_code         */
       "A4",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8013844,                   /* idle_loop_target_pc  */
       0x30009ac,                   /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -540,10 +426,7 @@ static const ini_t gbaover[] = {
       "AGB KIRBY DX",              /* gamepak_title        */
       "A7KJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8000f92,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -554,10 +437,7 @@ static const ini_t gbaover[] = {
       "SAKATUKUADV",               /* gamepak_title        */
       "AC2J",                      /* gamepak_code         */
       "8P",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -568,10 +448,7 @@ static const ini_t gbaover[] = {
       "KIMPOSSIBLE2",              /* gamepak_title        */
       "BKME",                      /* gamepak_code         */
       "4Q",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x80008a2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -582,10 +459,7 @@ static const ini_t gbaover[] = {
       "KIMPOSSIBLE2",              /* gamepak_title        */
       "BKMP",                      /* gamepak_code         */
       "4Q",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x80008a2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -596,10 +470,7 @@ static const ini_t gbaover[] = {
       "AGB KIRBY DX",              /* gamepak_title        */
       "A7KP",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8000fae,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -610,10 +481,7 @@ static const ini_t gbaover[] = {
       "AGB KIRBY DX",              /* gamepak_title        */
       "A7KE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8000fae,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -624,10 +492,7 @@ static const ini_t gbaover[] = {
       "OSANPO",                    /* gamepak_title        */
       "BISJ",                      /* gamepak_code         */
       "IQ",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -638,10 +503,7 @@ static const ini_t gbaover[] = {
       "M HOUSHIN",                 /* gamepak_title        */
       "AJOJ",                      /* gamepak_code         */
       "C8",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -652,10 +514,7 @@ static const ini_t gbaover[] = {
       "M&M MAGICAL2",              /* gamepak_title        */
       "AQME",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x801d340,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -666,10 +525,7 @@ static const ini_t gbaover[] = {
       "M&D MAGICAL3",              /* gamepak_title        */
       "BMQE",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8016064,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -680,10 +536,7 @@ static const ini_t gbaover[] = {
       "MARIOGOLFGBA",              /* gamepak_title        */
       "BMGE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8014e0a,                   /* idle_loop_target_pc  */
       0x3000d00,                   /* translation_gate_target_1 */
       0x3000a30,                   /* translation_gate_target_2 */
@@ -694,10 +547,7 @@ static const ini_t gbaover[] = {
       "MARIOGOLFGBA",              /* gamepak_title        */
       "BMGJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8014e0a,                   /* idle_loop_target_pc  */
       0x3000d00,                   /* translation_gate_target_1 */
       0x3000a30,                   /* translation_gate_target_2 */
@@ -708,10 +558,7 @@ static const ini_t gbaover[] = {
       "MARIOGOLFGBA",              /* gamepak_title        */
       "BMGP",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8014e0a,                   /* idle_loop_target_pc  */
       0x3000d00,                   /* translation_gate_target_1 */
       0x3000a30,                   /* translation_gate_target_2 */
@@ -722,10 +569,7 @@ static const ini_t gbaover[] = {
       "MARIOGOLFGBA",              /* gamepak_title        */
       "BMGS",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8014e0a,                   /* idle_loop_target_pc  */
       0x3000d00,                   /* translation_gate_target_1 */
       0x3000a30,                   /* translation_gate_target_2 */
@@ -736,10 +580,7 @@ static const ini_t gbaover[] = {
       "MARIOGOLFGBA",              /* gamepak_title        */
       "BMGF",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8014e0a,                   /* idle_loop_target_pc  */
       0x3000d00,                   /* translation_gate_target_1 */
       0x3000a30,                   /* translation_gate_target_2 */
@@ -750,10 +591,7 @@ static const ini_t gbaover[] = {
       "MARIOGOLFGBA",              /* gamepak_title        */
       "BMGI",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8014e0a,                   /* idle_loop_target_pc  */
       0x3000d00,                   /* translation_gate_target_1 */
       0x3000a30,                   /* translation_gate_target_2 */
@@ -764,10 +602,7 @@ static const ini_t gbaover[] = {
       "MARIOGOLFGBA",              /* gamepak_title        */
       "BMGD",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8014e0a,                   /* idle_loop_target_pc  */
       0x3000d00,                   /* translation_gate_target_1 */
       0x3000a30,                   /* translation_gate_target_2 */
@@ -778,10 +613,7 @@ static const ini_t gbaover[] = {
       "MARIOGOLFGBA",              /* gamepak_title        */
       "BMGU",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8014e0a,                   /* idle_loop_target_pc  */
       0x3000d00,                   /* translation_gate_target_1 */
       0x3000a30,                   /* translation_gate_target_2 */
@@ -792,10 +624,7 @@ static const ini_t gbaover[] = {
       "MARIOVSDK",                 /* gamepak_title        */
       "BM5E",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8033eec,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -806,10 +635,7 @@ static const ini_t gbaover[] = {
       "MARIOPARTYUS",              /* gamepak_title        */
       "B8ME",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -820,10 +646,7 @@ static const ini_t gbaover[] = {
       "MARIOPARTYJA",              /* gamepak_title        */
       "B8MJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -834,10 +657,7 @@ static const ini_t gbaover[] = {
       "MARIOPARTYEU",              /* gamepak_title        */
       "B8MP",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -848,10 +668,7 @@ static const ini_t gbaover[] = {
       "INFILTRATOR",               /* gamepak_title        */
       "BMHJ",                      /* gamepak_code         */
       "13",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -862,10 +679,7 @@ static const ini_t gbaover[] = {
       "MEGAMANEXEBN",              /* gamepak_title        */
       "AREP",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8000338,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -876,10 +690,7 @@ static const ini_t gbaover[] = {
       "MEGAMAN_BN",                /* gamepak_title        */
       "AREE",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8000338,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -890,10 +701,7 @@ static const ini_t gbaover[] = {
       "MEGAMAN_EXE2",              /* gamepak_title        */
       "AE2E",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8000358,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -904,10 +712,7 @@ static const ini_t gbaover[] = {
       "MEGA_EXE3_WH",              /* gamepak_title        */
       "A6BE",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x800036c,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -918,10 +723,7 @@ static const ini_t gbaover[] = {
       "MEGA_EXE3_BL",              /* gamepak_title        */
       "A3XE",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x800036c,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -932,10 +734,7 @@ static const ini_t gbaover[] = {
       "MEGAMANBN4RS",              /* gamepak_title        */
       "B4WE",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x80003a6,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -946,10 +745,7 @@ static const ini_t gbaover[] = {
       "MEGAMANBN4BM",              /* gamepak_title        */
       "B4BE",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x80003a6,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -960,10 +756,7 @@ static const ini_t gbaover[] = {
       "MEGAMAN5_TP_",              /* gamepak_title        */
       "BRBE",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x80003ca,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -974,10 +767,7 @@ static const ini_t gbaover[] = {
       "MEGAMAN5_TC_",              /* gamepak_title        */
       "BRKE",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x80003ca,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -988,10 +778,7 @@ static const ini_t gbaover[] = {
       "MEGAMAN6_GXX",              /* gamepak_title        */
       "BR5E",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x80003da,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1002,10 +789,7 @@ static const ini_t gbaover[] = {
       "BATTLECHIPGP",              /* gamepak_title        */
       "A89E",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8000544,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1016,10 +800,7 @@ static const ini_t gbaover[] = {
       "MEGAMAN ZERO",              /* gamepak_title        */
       "AZCE",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x80004ee,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1030,10 +811,7 @@ static const ini_t gbaover[] = {
       "MEGAMANZERO2",              /* gamepak_title        */
       "A62E",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8000664,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1044,10 +822,7 @@ static const ini_t gbaover[] = {
       "MEGAMANZERO3",              /* gamepak_title        */
       "BZ3E",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8001a08,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1058,10 +833,7 @@ static const ini_t gbaover[] = {
       "MEGAMANZERO4",              /* gamepak_title        */
       "B4ZP",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x800090c,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1072,10 +844,7 @@ static const ini_t gbaover[] = {
       "METAL SLUG",                /* gamepak_title        */
       "BSME",                      /* gamepak_code         */
       "B7",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8000298,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1086,10 +855,7 @@ static const ini_t gbaover[] = {
       "MOMOTETSU-G",              /* gamepak_title        */
       "BM2J",                      /* gamepak_code         */
       "18",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1100,10 +866,7 @@ static const ini_t gbaover[] = {
       "MONSTERFORCE",              /* gamepak_title        */
       "AM8E",                      /* gamepak_code         */
       "7D",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8000b00,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1114,10 +877,7 @@ static const ini_t gbaover[] = {
       "MONSRANCHERA",              /* gamepak_title        */
       "AMFE",                      /* gamepak_code         */
       "9B",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x809f394,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1128,10 +888,7 @@ static const ini_t gbaover[] = {
       "MONSTERRANC2",              /* gamepak_title        */
       "A2QE",                      /* gamepak_code         */
       "9B",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x81c7290,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1142,10 +899,7 @@ static const ini_t gbaover[] = {
       "MOTORACERADV",              /* gamepak_title        */
       "A9MP",                      /* gamepak_code         */
       "41",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x3001cf8,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1156,10 +910,7 @@ static const ini_t gbaover[] = {
       "NINJA COP",              /* gamepak_title        */
       "ANXP",                      /* gamepak_code         */
       "A4",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1170,10 +921,7 @@ static const ini_t gbaover[] = {
       "NINJA FIVE 0",              /* gamepak_title        */
       "ANXE",                      /* gamepak_code         */
       "A4",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1184,10 +932,7 @@ static const ini_t gbaover[] = {
       "DENDOHMAJANG",              /* gamepak_title        */
       "ASMJ",                      /* gamepak_code         */
       "AG",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1198,10 +943,7 @@ static const ini_t gbaover[] = {
       "OPEN SEASON",               /* gamepak_title        */
       "BOAE",                      /* gamepak_code         */
       "41",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8066378,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1212,10 +954,7 @@ static const ini_t gbaover[] = {
       "ORIENTALBLUE",              /* gamepak_title        */
       "AORJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x3001cf8,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1226,10 +965,7 @@ static const ini_t gbaover[] = {
       "PINBALL CHAL",              /* gamepak_title        */
       "APLP",                      /* gamepak_code         */
       "41",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x80075a6,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1240,10 +976,7 @@ static const ini_t gbaover[] = {
       "POKEMON EMER",              /* gamepak_title        */
       "BPEE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0x80008ce,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1254,10 +987,7 @@ static const ini_t gbaover[] = {
       "POKEMON EMER",              /* gamepak_title        */
       "BPEJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0x80008ce,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1268,10 +998,7 @@ static const ini_t gbaover[] = {
       "POKEMON EMER",              /* gamepak_title        */
       "BPED",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0x80008ce,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1282,10 +1009,7 @@ static const ini_t gbaover[] = {
       "POKEMON EMER",              /* gamepak_title        */
       "BPEF",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0x80008ce,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1296,10 +1020,7 @@ static const ini_t gbaover[] = {
       "POKEMON EMER",              /* gamepak_title        */
       "BPES",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0x80008ce,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1310,10 +1031,7 @@ static const ini_t gbaover[] = {
       "POKEMON EMER",              /* gamepak_title        */
       "BPEI",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0x80008ce,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1324,10 +1042,7 @@ static const ini_t gbaover[] = {
       "POKEMON SAPP",              /* gamepak_title        */
       "AXPE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1338,10 +1053,7 @@ static const ini_t gbaover[] = {
       "POKEMON SAPP",              /* gamepak_title        */
       "AXPJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1352,10 +1064,7 @@ static const ini_t gbaover[] = {
       "POKEMON SAPP",              /* gamepak_title        */
       "AXPD",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1366,10 +1075,7 @@ static const ini_t gbaover[] = {
       "POKEMON SAPP",              /* gamepak_title        */
       "AXPI",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1380,10 +1086,7 @@ static const ini_t gbaover[] = {
       "POKEMON SAPP",              /* gamepak_title        */
       "AXPS",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1394,10 +1097,7 @@ static const ini_t gbaover[] = {
       "POKEMON SAPP",              /* gamepak_title        */
       "AXPF",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1408,10 +1108,7 @@ static const ini_t gbaover[] = {
       "POKEMON RUBY",              /* gamepak_title        */
       "AXVE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1422,10 +1119,7 @@ static const ini_t gbaover[] = {
       "POKEMON RUBY",              /* gamepak_title        */
       "AXVJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1436,10 +1130,7 @@ static const ini_t gbaover[] = {
       "POKEMON RUBY",              /* gamepak_title        */
       "AXVD",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1450,10 +1141,7 @@ static const ini_t gbaover[] = {
       "POKEMON RUBY",              /* gamepak_title        */
       "AXVI",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1464,10 +1152,7 @@ static const ini_t gbaover[] = {
       "POKEMON RUBY",              /* gamepak_title        */
       "AXVS",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1478,10 +1163,7 @@ static const ini_t gbaover[] = {
       "POKEMON RUBY",              /* gamepak_title        */
       "AXVF",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1492,10 +1174,7 @@ static const ini_t gbaover[] = {
       "POKEMON FIRE",              /* gamepak_title        */
       "BPRJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0x80008b2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1506,10 +1185,7 @@ static const ini_t gbaover[] = {
       "POKEMON FIRE",              /* gamepak_title        */
       "BPRE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0x80008b2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1520,10 +1196,7 @@ static const ini_t gbaover[] = {
       "POKEMON FIRE",              /* gamepak_title        */
       "BPRS",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0x80008b2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1534,10 +1207,7 @@ static const ini_t gbaover[] = {
       "POKEMON FIRE",              /* gamepak_title        */
       "BPRD",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0x80008b2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1548,10 +1218,7 @@ static const ini_t gbaover[] = {
       "POKEMON FIRE",              /* gamepak_title        */
       "BPRI",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0x80008b2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1562,10 +1229,7 @@ static const ini_t gbaover[] = {
       "POKEMON FIRE",              /* gamepak_title        */
       "BPRF",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0x80008b2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1577,10 +1241,7 @@ static const ini_t gbaover[] = {
       "POKEMON LEAF",              /* gamepak_title        */
       "BPGE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0x80008b2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1591,10 +1252,7 @@ static const ini_t gbaover[] = {
       "POKEMON LEAF",              /* gamepak_title        */
       "BPGS",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0x80008b6,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1605,10 +1263,7 @@ static const ini_t gbaover[] = {
       "POKEMON LEAF",              /* gamepak_title        */
       "BPGD",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0x80008b6,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1619,10 +1274,7 @@ static const ini_t gbaover[] = {
       "POKEMON LEAF",              /* gamepak_title        */
       "BPGI",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0x80008b6,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1633,10 +1285,7 @@ static const ini_t gbaover[] = {
       "POKEMON LEAF",              /* gamepak_title        */
       "BPGF",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0x80008b6,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1647,10 +1296,7 @@ static const ini_t gbaover[] = {
       "POKEMON LEAF",              /* gamepak_title        */
       "BPGJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1661,10 +1307,7 @@ static const ini_t gbaover[] = {
       "POKE DUNGEON",              /* gamepak_title        */
       "B24J",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1675,10 +1318,7 @@ static const ini_t gbaover[] = {
       "POKE DUNGEON",              /* gamepak_title        */
       "B24E",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1689,10 +1329,7 @@ static const ini_t gbaover[] = {
       "POKE DUNGEON",              /* gamepak_title        */
       "B24P",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1703,10 +1340,7 @@ static const ini_t gbaover[] = {
       "PRINCEPERSIA",              /* gamepak_title        */
       "BPYE",                      /* gamepak_code         */
       "41",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x808ff3a,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1722,10 +1356,7 @@ static const ini_t gbaover[] = {
       "REBELSTAR",                 /* gamepak_title        */
       "BRLE",                      /* gamepak_code         */
       "AF",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x800041a,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1736,10 +1367,7 @@ static const ini_t gbaover[] = {
       "DOWNTOWN",                  /* gamepak_title        */
       "BDTJ",                      /* gamepak_code         */
       "EB",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x800065a,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1750,10 +1378,7 @@ static const ini_t gbaover[] = {
       "RIVERCRANSOM",              /* gamepak_title        */
       "BDTE",                      /* gamepak_code         */
       "EB",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x800065a,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1764,10 +1389,7 @@ static const ini_t gbaover[] = {
       "RHYTHMTENGOK",              /* gamepak_title        */
       "BRIJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x80013d4,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1778,10 +1400,7 @@ static const ini_t gbaover[] = {
       "ROCKMAN ZERO",              /* gamepak_title        */
       "ARZJ",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x80004ee,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1792,11 +1411,8 @@ static const ini_t gbaover[] = {
       "ROBOPON2CROS",              /* gamepak_title        */
       "ACVE",                      /* gamepak_code         */
       "EB",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
       /* Has a 512K flash */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1807,11 +1423,8 @@ static const ini_t gbaover[] = {
       "ROBOPON2RING",              /* gamepak_title        */
       "ARPE",                      /* gamepak_code         */
       "EB",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
       /* Has a 512K flash */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1822,10 +1435,7 @@ static const ini_t gbaover[] = {
       "ROBOPON2CROS",              /* gamepak_title        */
       "ACVJ",                      /* gamepak_code         */
       "18",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1836,10 +1446,7 @@ static const ini_t gbaover[] = {
       "ROBOPON2RING",              /* gamepak_title        */
       "ARPJ",                      /* gamepak_code         */
       "18",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1850,10 +1457,7 @@ static const ini_t gbaover[] = {
       "SENNENKAZOKU",              /* gamepak_title        */
       "BKAJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1864,10 +1468,7 @@ static const ini_t gbaover[] = {
       "SHINING SOUL",              /* gamepak_title        */
       "AHUJ",                      /* gamepak_code         */
       "8P",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1878,10 +1479,7 @@ static const ini_t gbaover[] = {
       "SHINING SOUL",              /* gamepak_title        */
       "AHUE",                      /* gamepak_code         */
       "EB",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1892,10 +1490,7 @@ static const ini_t gbaover[] = {
       "SHINING SOUL",              /* gamepak_title        */
       "AHUP",                      /* gamepak_code         */
       "8P",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1906,10 +1501,7 @@ static const ini_t gbaover[] = {
       "SHININGSOUL2",              /* gamepak_title        */
       "AU2J",                      /* gamepak_code         */
       "8P",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1920,10 +1512,7 @@ static const ini_t gbaover[] = {
       "SHININGSOUL2",              /* gamepak_title        */
       "AU2E",                      /* gamepak_code         */
       "EB",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1934,10 +1523,7 @@ static const ini_t gbaover[] = {
       "SHININGSOUL2",              /* gamepak_title        */
       "AU2P",                      /* gamepak_code         */
       "EB",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1948,10 +1534,7 @@ static const ini_t gbaover[] = {
       "SUPER MARIOA",              /* gamepak_title        */
       "AMZE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8001cf2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1962,10 +1545,7 @@ static const ini_t gbaover[] = {
       "SUPER MARIOA",              /* gamepak_title        */
       "AMAE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8001cf2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1976,10 +1556,7 @@ static const ini_t gbaover[] = {
       "SUPER MARIOB",              /* gamepak_title        */
       "AA2P",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8000534,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1990,10 +1567,7 @@ static const ini_t gbaover[] = {
       "SUPER MARIOB",              /* gamepak_title        */
       "AA2E",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8000534,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2004,10 +1578,7 @@ static const ini_t gbaover[] = {
       "SUPER MARIOC",              /* gamepak_title        */
       "A3AJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8002ba4,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2018,10 +1589,7 @@ static const ini_t gbaover[] = {
       "SUPER MARIOC",              /* gamepak_title        */
       "A3AE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8002ba4,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2032,10 +1600,7 @@ static const ini_t gbaover[] = {
       "SUPER MARIOD",              /* gamepak_title        */
       "AX4J",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0x8000732,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2046,10 +1611,7 @@ static const ini_t gbaover[] = {
       "SUPER MARIOD",              /* gamepak_title        */
       "AX4P",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0x8000732,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2060,10 +1622,7 @@ static const ini_t gbaover[] = {
       "SUPER MARIOD",              /* gamepak_title        */
       "AX4E",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_MACRONIX_128KB, /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      FLAGS_FLASH_128KB,           /* flags                */
       0x8000732,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2074,10 +1633,7 @@ static const ini_t gbaover[] = {
       "PUZZLEFIGHT2",              /* gamepak_title        */
       "AZ8P",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8002b5e,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2088,10 +1644,7 @@ static const ini_t gbaover[] = {
       "PUZZLEFIGHT2",              /* gamepak_title        */
       "AZ8E",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8002b5e,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2102,10 +1655,7 @@ static const ini_t gbaover[] = {
       "PHANTASIA",                 /* gamepak_title        */
       "AN8E",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2116,10 +1666,7 @@ static const ini_t gbaover[] = {
       "PHANTASIA",                 /* gamepak_title        */
       "AN8J",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2130,10 +1677,7 @@ static const ini_t gbaover[] = {
       "PHANTASIA",                 /* gamepak_title        */
       "AN8P",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2144,10 +1688,7 @@ static const ini_t gbaover[] = {
       "PINBALL DEAD",              /* gamepak_title        */
       "APDE",                      /* gamepak_code         */
       "78",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x800030,                    /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2158,10 +1699,7 @@ static const ini_t gbaover[] = {
       "SPLINTERCELL",              /* gamepak_title        */
       "A04E",                      /* gamepak_code         */
       "41",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x807a0c4,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2172,10 +1710,7 @@ static const ini_t gbaover[] = {
       "TOM CLANCY'S",              /* gamepak_title        */
       "BSLE",                      /* gamepak_code         */
       "41",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x807785e,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2186,10 +1721,7 @@ static const ini_t gbaover[] = {
       "HAMSPORTS",                 /* gamepak_title        */
       "B85A",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2200,10 +1732,7 @@ static const ini_t gbaover[] = {
       "TRINGO",                    /* gamepak_title        */
       "BTJE",                      /* gamepak_code         */
       "42",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x80009a4,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2214,10 +1743,7 @@ static const ini_t gbaover[] = {
       "UEKIJINGIBTL",              /* gamepak_title        */
       "BUHJ",                      /* gamepak_code         */
       "D9",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2228,10 +1754,7 @@ static const ini_t gbaover[] = {
       "V_RALLY 3",                 /* gamepak_title        */
       "AVRP",                      /* gamepak_code         */
       "70",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x80aa920,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2242,10 +1765,7 @@ static const ini_t gbaover[] = {
       "VIRTKASPAROV",              /* gamepak_title        */
       "AVKE",                      /* gamepak_code         */
       "60",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x800093a,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2256,10 +1776,7 @@ static const ini_t gbaover[] = {
       "WARIOWAREINC",              /* gamepak_title        */
       "AZWE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8000f66,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2270,10 +1787,7 @@ static const ini_t gbaover[] = {
       "YU-GI-OH DDM",              /* gamepak_title        */
       "AYDE",                      /* gamepak_code         */
       "A4",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x802cc6a,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2284,10 +1798,7 @@ static const ini_t gbaover[] = {
       "YU-GI-OH!EDS",              /* gamepak_title        */
       "AY5E",                      /* gamepak_code         */
       "A4",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8075d96,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2298,10 +1809,7 @@ static const ini_t gbaover[] = {
       "YUGIOH DM7",                /* gamepak_title        */
       "AY7E",                      /* gamepak_code         */
       "A4",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8003bd6,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2312,10 +1820,7 @@ static const ini_t gbaover[] = {
       "YWCT2004USA",               /* gamepak_title        */
       "BYWE",                      /* gamepak_code         */
       "A4",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x80831da,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2326,10 +1831,7 @@ static const ini_t gbaover[] = {
       "YUGIOHWWE",                 /* gamepak_title        */
       "AYWE",                      /* gamepak_code         */
       "A4",                        /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0x8089792,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -2341,10 +1843,7 @@ static const ini_t gbaover[] = {
       "",                          /* gamepak_title        */
       "",                          /* gamepak_code         */
       "",                          /* gamepak_maker        */
-      0,                           /* flash_size           */
-      FLASH_DEVICE_UNDEFINED,      /* flash_device_id      */
-      0,                           /* save_type            */
-      0,                           /* rtc_enabled          */
+      0,                           /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
