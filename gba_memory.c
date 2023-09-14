@@ -384,7 +384,6 @@ u32 gbc_sound_wave_update = 0;
 // Keep it 32KB until the upper 64KB is accessed, then make it 64KB.
 
 u32 backup_type = BACKUP_NONE;
-u32 sram_bankcount = SRAM_SIZE_32KB;
 
 u32 flash_mode = FLASH_BASE_MODE;
 u32 flash_command_position = 0;
@@ -1032,7 +1031,6 @@ void function_cc write_backup(u32 address, u32 value)
   if(backup_type == BACKUP_NONE)
     backup_type = BACKUP_SRAM;
 
-
   // gamepak SRAM or Flash ROM
   if((address == 0x5555) && (flash_mode != FLASH_WRITE_MODE))
   {
@@ -1085,7 +1083,7 @@ void function_cc write_backup(u32 address, u32 value)
           // Erase chip
           if(flash_mode == FLASH_ERASE_MODE)
           {
-            memset(gamepak_backup, 0xFF, 1024 * 64 * flash_bank_cnt);
+            memset(gamepak_backup, 0xFF, 1024 * 128);
             flash_mode = FLASH_BASE_MODE;
           }
           break;
@@ -1137,9 +1135,6 @@ void function_cc write_backup(u32 address, u32 value)
     if(backup_type == BACKUP_SRAM)
     {
       // Write value to SRAM
-      // Hit 64KB territory?
-      if(address >= 0x8000)
-        sram_bankcount = SRAM_SIZE_64KB;
       gamepak_backup[address] = value;
     }
   }
@@ -1553,104 +1548,6 @@ cpu_alert_type function_cc write_memory32(u32 address, u32 value)
 {
   write_memory(32);
   return CPU_ALERT_NONE;
-}
-
-char backup_filename[512];
-
-u32 load_backup(char *name)
-{
-  RFILE *fd = filestream_open(name, RETRO_VFS_FILE_ACCESS_READ,
-                              RETRO_VFS_FILE_ACCESS_HINT_NONE);
-
-  if(fd)
-  {
-    int64_t backup_size = filestream_get_size(fd);
-
-    filestream_read(fd, gamepak_backup, backup_size);
-    filestream_close(fd);
-
-    // The size might give away what kind of backup it is.
-    switch(backup_size)
-    {
-      case 0x200:
-        backup_type = BACKUP_EEPROM;
-        eeprom_size = EEPROM_512_BYTE;
-        break;
-
-      case 0x2000:
-        backup_type = BACKUP_EEPROM;
-        eeprom_size = EEPROM_8_KBYTE;
-        break;
-
-      case 0x8000:
-        backup_type = BACKUP_SRAM;
-        sram_bankcount = SRAM_SIZE_32KB;
-        break;
-
-      // Could be either flash or SRAM, go with flash
-      case 0x10000:
-        backup_type = BACKUP_FLASH;
-        sram_bankcount = SRAM_SIZE_64KB;
-        break;
-
-      case 0x20000:
-        backup_type = BACKUP_FLASH;
-        flash_bank_cnt = FLASH_SIZE_128KB;
-        break;
-    }
-    return 1;
-  }
-  else
-  {
-    backup_type = BACKUP_NONE;
-    memset(gamepak_backup, 0xFF, 1024 * 128);
-  }
-
-  return 0;
-}
-
-u32 save_backup(char *name)
-{
-  if(backup_type != BACKUP_NONE)
-  {
-    RFILE *fd = filestream_open(name, RETRO_VFS_FILE_ACCESS_WRITE,
-                                RETRO_VFS_FILE_ACCESS_HINT_NONE);
-
-    if(fd)
-    {
-      u32 backup_size = 0;
-
-      switch(backup_type)
-      {
-        case BACKUP_SRAM:
-          backup_size = 0x8000 * sram_bankcount;
-          break;
-
-        case BACKUP_FLASH:
-          backup_size = 0x10000 * flash_bank_cnt;
-          break;
-
-        case BACKUP_EEPROM:
-          backup_size = 0x200 * eeprom_size;
-          break;
-
-        default:
-          break;
-      }
-
-      filestream_write(fd, gamepak_backup, backup_size);
-      filestream_close(fd);
-      return 1;
-    }
-  }
-
-  return 0;
-}
-
-void update_backup(void)
-{
-  if (!use_libretro_save_method)
-    save_backup(backup_filename);
 }
 
 typedef struct
@@ -2383,7 +2280,6 @@ void init_memory(void)
 
   backup_type = BACKUP_NONE;
 
-  sram_bankcount = SRAM_SIZE_32KB;
   //flash_size = FLASH_SIZE_64KB;
 
   flash_bank_num = 0;
@@ -2417,9 +2313,8 @@ void memory_term(void)
 bool memory_check_savestate(const u8 *src)
 {
   static const char *vars32[] = {
-    "backup-type", "sram-size",
-    "flash-mode", "flash-cmd-pos", "flash-bank-num", "flash-dev-id", "flash-size",
-    "eeprom-size", "eeprom-mode", "eeprom-addr", "eeprom-counter",
+    "backup-type","flash-mode", "flash-cmd-pos", "flash-bank-num", "flash-dev-id",
+    "flash-size", "eeprom-size", "eeprom-mode", "eeprom-addr", "eeprom-counter",
     "rtc-state", "rtc-write-mode", "rtc-cmd", "rtc-status", "rtc-data-byte-cnt", "rtc-bit-cnt",
   };
   static const char *dmavars32[] = {
@@ -2484,7 +2379,6 @@ bool memory_read_savestate(const u8 *src)
     bson_read_bytes(memdoc, "ioregs", io_registers, sizeof(io_registers)) &&
 
     bson_read_int32(bakdoc, "backup-type", &backup_type) &&
-    bson_read_int32(bakdoc, "sram-size", &sram_bankcount) &&
 
     bson_read_int32(bakdoc, "flash-mode", &flash_mode) &&
     bson_read_int32(bakdoc, "flash-cmd-pos", &flash_command_position) &&
@@ -2544,7 +2438,6 @@ unsigned memory_write_savestate(u8 *dst)
 
   bson_start_document(dst, "backup", wbptr);
   bson_write_int32(dst, "backup-type", (u32)backup_type);
-  bson_write_int32(dst, "sram-size", sram_bankcount);
 
   bson_write_int32(dst, "flash-mode", flash_mode);
   bson_write_int32(dst, "flash-cmd-pos", flash_command_position);
@@ -2634,29 +2527,10 @@ static s32 load_gamepak_raw(const char *name)
 
 u32 load_gamepak(const struct retro_game_info* info, const char *name)
 {
-   char *p;
-   char gamepak_filename[512];
    gamepak_info_t gpinfo;
 
    if (load_gamepak_raw(name))
       return -1;
-
-   strncpy(gamepak_filename, name, sizeof(gamepak_filename));
-   gamepak_filename[sizeof(gamepak_filename) - 1] = 0;
-
-   p = strrchr(gamepak_filename, PATH_SEPARATOR_CHAR);
-   if (p)
-      p++;
-   else
-      p = gamepak_filename;
-
-   snprintf(backup_filename, sizeof(backup_filename), "%s%c%s", save_path, PATH_SEPARATOR_CHAR, p);
-   p = strrchr(backup_filename, '.');
-   if (p)
-      strcpy(p, ".sav");
-
-   if (!use_libretro_save_method)
-     load_backup(backup_filename);
 
    // Buffer 0 always has the first 1MB chunk of the ROM
    memset(&gpinfo, 0, sizeof(gpinfo));

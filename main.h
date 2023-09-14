@@ -75,7 +75,6 @@ extern u32 skip_next_frame;
 extern u32 flush_ram_count;
 
 extern char main_path[512];
-extern char save_path[512];
 
 #define cycles_to_run(c) ((c) & 0x7FFF)
 #define completed_frame(c) ((c) & 0x80000000)

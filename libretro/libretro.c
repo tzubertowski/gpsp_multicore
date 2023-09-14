@@ -88,7 +88,6 @@ static retro_environment_t environ_cb;
 struct retro_perf_callback perf_cb;
 
 int dynarec_enable;
-int use_libretro_save_method = 0;
 boot_mode selected_boot_mode = boot_game;
 int sprite_limit = 1;
 
@@ -676,7 +675,6 @@ void retro_set_controller_port_device(unsigned port, unsigned device) {}
 
 void retro_reset(void)
 {
-   update_backup();
    reset_gba();
 }
 
@@ -875,19 +873,6 @@ static void check_variables(int started_from_load)
        (post_process_mix != post_process_mix_prev))
       init_post_processing();
 
-   if (started_from_load)
-   {
-      var.key = "gpsp_save_method";
-      var.value = NULL;
-      if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-      {
-         if (!strcmp(var.value, "libretro"))
-            use_libretro_save_method = 1;
-         else
-            use_libretro_save_method = 0;
-      }
-   }
-
    var.key           = "gpsp_turbo_period";
    var.value         = NULL;
    turbo_period      = TURBO_PERIOD_MIN;
@@ -971,7 +956,6 @@ bool retro_load_game(const struct retro_game_info* info)
    if (!info)
       return false;
 
-   use_libretro_save_method = 0;
    check_variables(1);
    set_input_descriptors();
 
@@ -983,11 +967,6 @@ bool retro_load_game(const struct retro_game_info* info)
       info_msg("RGB565 is not supported.");
 
    extract_directory(main_path, info->path, sizeof(main_path));
-
-   if (environ_cb(RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY, &dir) && dir)
-      strcpy(save_path, dir);
-   else
-      strcpy(save_path, main_path);
 
    if (environ_cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &dir) && dir)
       strcpy(filename_bios, dir);
@@ -1020,7 +999,7 @@ bool retro_load_game(const struct retro_game_info* info)
      memcpy(bios_rom, open_gba_bios_rom, sizeof(bios_rom));
    }
 
-   memset(gamepak_backup, -1, sizeof(gamepak_backup));
+   memset(gamepak_backup, 0xff, sizeof(gamepak_backup));
    if (load_gamepak(info, info->path) != 0)
    {
       error_msg("Could not load the game file.");
@@ -1042,8 +1021,6 @@ bool retro_load_game_special(unsigned game_type,
 
 void retro_unload_game(void)
 {
-   update_backup();
-
    if (libretro_ff_enabled)
       set_fastforward_override(false);
 
@@ -1065,50 +1042,16 @@ unsigned retro_get_region(void)
 
 void* retro_get_memory_data(unsigned id)
 {
-   switch (id)
-   {
-   case RETRO_MEMORY_SAVE_RAM:
-      if (use_libretro_save_method)
-         return gamepak_backup;
-      break;
-   default:
-      break;
-   }
+   if (id == RETRO_MEMORY_SAVE_RAM)
+      return gamepak_backup;
 
-   return 0;
+   return NULL;
 }
 
 size_t retro_get_memory_size(unsigned id)
 {
-   switch (id)
-   {
-   case RETRO_MEMORY_SAVE_RAM:
-      if (use_libretro_save_method)
-      {
-         switch(backup_type)
-         {
-         case BACKUP_SRAM:
-            return sram_bankcount * 0x8000;
-
-         case BACKUP_FLASH:
-            return 0x10000 * flash_bank_cnt;
-
-         case BACKUP_EEPROM:
-            return 0x200 * eeprom_size;
-
-         // assume 128KB save, regardless if rom supports battery saves
-         // this is needed because gba cannot provide initially the backup save size 
-         // until a few cycles has passed (unless provided by a database)
-         case BACKUP_NONE:
-         default:
-            return (1024 * 128);
-            break;
-         }
-      }
-      break;
-   default:
-      break;
-   }
+   if (id == RETRO_MEMORY_SAVE_RAM)
+      return 0x20000;  /* Assume 128KiB, biggest possible save */
 
    return 0;
 }

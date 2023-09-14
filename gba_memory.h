@@ -21,7 +21,6 @@
 #define MEMORY_H
 
 #include "libretro.h"
-extern int use_libretro_save_method;
 
 #define DMA_CHAN_CNT   4
 
@@ -239,9 +238,7 @@ extern char gamepak_filename[512];
 cpu_alert_type dma_transfer(unsigned dma_chan, int *cycles);
 u8 *memory_region(u32 address, u32 *memory_limit);
 u32 load_gamepak(const struct retro_game_info* info, const char *name);
-u32 load_backup(char *name);
 s32 load_bios(char *name);
-void update_backup(void);
 void init_memory(void);
 void init_gamepak_buffer(void);
 bool gamepak_must_swap(void);
