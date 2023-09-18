@@ -2190,10 +2190,13 @@ static void render_window_n_pass(u16 *scanline, u32 start, u32 end)
   u32 win_bot = read_ioreg(REG_WINxV(winnum)) & 0xFF;
   // Check the X coordinates and generate up to three segments
   // Clip the coordinates to the [start, end) range.
-  u32 win_l = MAX(start, MIN(end, read_ioreg(REG_WINxH(winnum)) >> 8));
-  u32 win_r = MAX(start, MIN(end, read_ioreg(REG_WINxH(winnum)) & 0xFF));
+  u32 win_lraw = read_ioreg(REG_WINxH(winnum)) >> 8;
+  u32 win_rraw = read_ioreg(REG_WINxH(winnum)) & 0xFF;
+  u32 win_l = MAX(start, MIN(end, win_lraw));
+  u32 win_r = MAX(start, MIN(end, win_rraw));
+  bool goodwin = win_lraw < win_rraw;
 
-  if (!in_window_y(vcount, win_top, win_bot) || (win_l == win_r))
+  if (!in_window_y(vcount, win_top, win_bot) || (win_lraw == win_rraw))
     // WindowN is completely out, just render all out.
     outfn(scanline, start, end);
   else {
@@ -2203,7 +2206,7 @@ static void render_window_n_pass(u16 *scanline, u32 start, u32 end)
     u32 wndn_enable = (winin >> (8 * winnum)) & 0x3F;
 
     // If the window is defined upside down, the areas are inverted.
-    if (win_l < win_r) {
+    if (goodwin) {
       // Render [start, win_l) range (which is outside the window)
       if (win_l != start)
         outfn(scanline, start, win_l);
