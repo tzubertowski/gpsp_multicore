@@ -22,6 +22,10 @@
 
 #include "libretro.h"
 
+#define FEAT_AUTODETECT  -1
+#define FEAT_DISABLE      0
+#define FEAT_ENABLE       1
+
 #define DMA_CHAN_CNT   4
 
 #define DMA_START_IMMEDIATELY         0
@@ -221,7 +225,10 @@ u32 function_cc read_eeprom(void);
 void function_cc write_eeprom(u32 address, u32 value);
 u8 read_backup(u32 address);
 void function_cc write_backup(u32 address, u32 value);
-void function_cc write_rtc(u32 address, u32 value);
+void function_cc write_gpio(u32 address, u32 value);
+
+void rumble_frame_reset();
+float rumble_active_pct();
 
 /* EDIT: Shouldn't this be extern ?! */
 extern const u32 def_seq_cycles[16][2];
@@ -237,7 +244,8 @@ extern char gamepak_filename[512];
 
 cpu_alert_type dma_transfer(unsigned dma_chan, int *cycles);
 u8 *memory_region(u32 address, u32 *memory_limit);
-u32 load_gamepak(const struct retro_game_info* info, const char *name);
+u32 load_gamepak(const struct retro_game_info* info, const char *name,
+                 int force_rtc, int force_rumble);
 s32 load_bios(char *name);
 void init_memory(void);
 void init_gamepak_buffer(void);

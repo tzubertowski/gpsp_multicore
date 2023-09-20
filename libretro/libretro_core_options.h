@@ -88,6 +88,30 @@ struct retro_core_option_definition option_defs_us[] = {
       "disabled"
    },
    {
+      "gpsp_rtc",
+      "RTC support",
+      "Sets the RTC support for the emulated cartridge. Autodetect uses a ROM database that works with most commercial titles. You might need to force RTC when using homebrew or ROM hacks.",
+      {
+         { "auto", NULL },
+         { "enabled",  NULL },
+         { "disabled", NULL },
+         { NULL, NULL },
+      },
+      "auto"
+   },
+   {
+      "gpsp_rumble",
+      "Rumble support",
+      "Sets the Rumble support for the emulated cartridge. Autodetect uses a ROM database that works with most commercial titles. You might want to force Rumble when using homebrew or ROM hacks that support it. You can also force-disable it if you don't like it.",
+      {
+         { "auto", NULL },
+         { "enabled",  NULL },
+         { "disabled", NULL },
+         { NULL, NULL },
+      },
+      "auto"
+   },
+   {
       "gpsp_frameskip",
       "Frameskip",
       "Skip frames to avoid audio buffer under-run (crackling). Improves performance at the expense of visual smoothness. 'Auto' skips frames when advised by the frontend. 'Auto (Threshold)' utilises the 'Frameskip Threshold (%)' setting. 'Fixed Interval' utilises the 'Frameskip Interval' setting.",

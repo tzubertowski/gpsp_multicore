@@ -110,6 +110,17 @@ static const ini_t gbaover[] = {
       0,                           /* translation_gate_target_3 */
    },
    {
+      // Shin Bokura no Taiyou: Gyakushuu no Sabata (J)
+      "BOKTAI3",                   /* gamepak_title        */
+      "U33J",                      /* gamepak_code         */
+      "A4",                        /* gamepak_maker        */
+      FLAGS_RTC,                   /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
       // Bomberman Jetters Game Collection (J)
       "BOMBERMANJGC",              /* gamepak_title        */
       "BOMJ",                      /* gamepak_code         */
@@ -493,6 +504,39 @@ static const ini_t gbaover[] = {
       "BISJ",                      /* gamepak_code         */
       "IQ",                        /* gamepak_maker        */
       0,                           /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
+      // Legendz - Sign of Nekuromu (J)
+      "LEGENDZSON__",              /* gamepak_title        */
+      "BLVJ",                      /* gamepak_code         */
+      "B2",                        /* gamepak_maker        */
+      FLAGS_RTC,                   /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
+      // Legendz - Yomigaeru Shiren no Shima (J)
+      "LEGENDZSHIMA",              /* gamepak_title        */
+      "BLJJ",                      /* gamepak_code         */
+      "B2",                        /* gamepak_maker        */
+      FLAGS_RTC,                   /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
+      // Legendz - Buhwarhaneun Siryeonyi Seom (K)
+      "LEGENDZSHIMA",              /* gamepak_title        */
+      "BLJK",                      /* gamepak_code         */
+      "B2",                        /* gamepak_maker        */
+      FLAGS_RTC,                   /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -976,7 +1020,7 @@ static const ini_t gbaover[] = {
       "POKEMON EMER",              /* gamepak_title        */
       "BPEE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
       0x80008ce,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -987,7 +1031,7 @@ static const ini_t gbaover[] = {
       "POKEMON EMER",              /* gamepak_title        */
       "BPEJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
       0x80008ce,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -998,7 +1042,7 @@ static const ini_t gbaover[] = {
       "POKEMON EMER",              /* gamepak_title        */
       "BPED",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
       0x80008ce,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1009,7 +1053,7 @@ static const ini_t gbaover[] = {
       "POKEMON EMER",              /* gamepak_title        */
       "BPEF",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
       0x80008ce,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1020,7 +1064,7 @@ static const ini_t gbaover[] = {
       "POKEMON EMER",              /* gamepak_title        */
       "BPES",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
       0x80008ce,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1031,7 +1075,7 @@ static const ini_t gbaover[] = {
       "POKEMON EMER",              /* gamepak_title        */
       "BPEI",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
       0x80008ce,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1042,7 +1086,7 @@ static const ini_t gbaover[] = {
       "POKEMON SAPP",              /* gamepak_title        */
       "AXPE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1053,7 +1097,7 @@ static const ini_t gbaover[] = {
       "POKEMON SAPP",              /* gamepak_title        */
       "AXPJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1064,7 +1108,7 @@ static const ini_t gbaover[] = {
       "POKEMON SAPP",              /* gamepak_title        */
       "AXPD",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1075,7 +1119,7 @@ static const ini_t gbaover[] = {
       "POKEMON SAPP",              /* gamepak_title        */
       "AXPI",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1086,7 +1130,7 @@ static const ini_t gbaover[] = {
       "POKEMON SAPP",              /* gamepak_title        */
       "AXPS",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1097,7 +1141,7 @@ static const ini_t gbaover[] = {
       "POKEMON SAPP",              /* gamepak_title        */
       "AXPF",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1108,7 +1152,7 @@ static const ini_t gbaover[] = {
       "POKEMON RUBY",              /* gamepak_title        */
       "AXVE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1119,7 +1163,7 @@ static const ini_t gbaover[] = {
       "POKEMON RUBY",              /* gamepak_title        */
       "AXVJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1130,7 +1174,7 @@ static const ini_t gbaover[] = {
       "POKEMON RUBY",              /* gamepak_title        */
       "AXVD",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1141,7 +1185,7 @@ static const ini_t gbaover[] = {
       "POKEMON RUBY",              /* gamepak_title        */
       "AXVI",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1152,7 +1196,7 @@ static const ini_t gbaover[] = {
       "POKEMON RUBY",              /* gamepak_title        */
       "AXVS",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1163,7 +1207,7 @@ static const ini_t gbaover[] = {
       "POKEMON RUBY",              /* gamepak_title        */
       "AXVF",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1453,11 +1497,22 @@ static const ini_t gbaover[] = {
       0,                           /* translation_gate_target_3 */
    },
    {
+      // RockMan EXE 4.5 - Real Operation (J)
+      "ROCKEXE4.5RO",              /* gamepak_title        */
+      "BR4J",                      /* gamepak_code         */
+      "08",                        /* gamepak_maker        */
+      FLAGS_RTC,                   /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
       // Sennen Kazoku (J)
       "SENNENKAZOKU",              /* gamepak_title        */
       "BKAJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1778,6 +1833,39 @@ static const ini_t gbaover[] = {
       "01",                        /* gamepak_maker        */
       0,                           /* flags                */
       0x8000f66,                   /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
+      // Wario Ware, Twisted (U)
+      "WARIOTWISTED",              /* gamepak_title        */
+      "RZWE",                      /* gamepak_code         */
+      "01",                        /* gamepak_maker        */
+      FLAGS_RUMBLE,                /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
+      // Wario Ware, Twisted (E)
+      "WARIOTWISTED",              /* gamepak_title        */
+      "RZWP",                      /* gamepak_code         */
+      "01",                        /* gamepak_maker        */
+      FLAGS_RUMBLE,                /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
+      // Wario Ware, Twisted (J)
+      "MAWARUWARIO",               /* gamepak_title        */
+      "RZWJ",                      /* gamepak_code         */
+      "01",                        /* gamepak_maker        */
+      FLAGS_RUMBLE,                /* flags                */
+      0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
       0,                           /* translation_gate_target_3 */

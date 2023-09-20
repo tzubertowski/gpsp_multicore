@@ -84,12 +84,15 @@ static retro_video_refresh_t video_cb;
 static retro_audio_sample_batch_t audio_batch_cb;
 static retro_input_poll_t input_poll_cb;
 static retro_environment_t environ_cb;
+static retro_set_rumble_state_t rumble_cb;
 
 struct retro_perf_callback perf_cb;
 
 int dynarec_enable;
 boot_mode selected_boot_mode = boot_game;
 int sprite_limit = 1;
+
+static int rtc_mode = FEAT_AUTODETECT, rumble_mode = FEAT_AUTODETECT;
 
 u32 idle_loop_target_pc = 0xFFFFFFFF;
 u32 translation_gate_target_pc[MAX_TRANSLATION_GATES];
@@ -744,7 +747,7 @@ static void extract_directory(char* buf, const char* path, size_t size)
       strncpy(buf, ".", size);
 }
 
-static void check_variables(int started_from_load)
+static void check_variables(bool started_from_load)
 {
    struct retro_variable var;
    bool frameskip_type_prev;
@@ -776,7 +779,6 @@ static void check_variables(int started_from_load)
    if (started_from_load) {
      var.key                = "gpsp_bios";
      var.value              = 0;
-
      if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
      {
         if (!strcmp(var.value, "auto"))
@@ -789,13 +791,36 @@ static void check_variables(int started_from_load)
 
      var.key                = "gpsp_boot_mode";
      var.value              = 0;
-
      if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
      {
         if (!strcmp(var.value, "game"))
            selected_boot_mode = boot_game;
         else if (!strcmp(var.value, "bios"))
            selected_boot_mode = boot_bios;
+     }
+
+     var.key                = "gpsp_rtc";
+     var.value              = 0;
+     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+     {
+        if (!strcmp(var.value, "disabled"))
+           rtc_mode = FEAT_DISABLE;
+        else if (!strcmp(var.value, "enabled"))
+           rtc_mode = FEAT_ENABLE;
+        else
+           rtc_mode = FEAT_AUTODETECT;
+     }
+
+     var.key                = "gpsp_rumble";
+     var.value              = 0;
+     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+     {
+        if (!strcmp(var.value, "disabled"))
+           rumble_mode = FEAT_DISABLE;
+        else if (!strcmp(var.value, "enabled"))
+           rumble_mode = FEAT_ENABLE;
+        else
+           rumble_mode = FEAT_AUTODETECT;
      }
    }
 
@@ -956,7 +981,7 @@ bool retro_load_game(const struct retro_game_info* info)
    if (!info)
       return false;
 
-   check_variables(1);
+   check_variables(true);
    set_input_descriptors();
 
    char filename_bios[MAX_PATH];
@@ -1000,11 +1025,17 @@ bool retro_load_game(const struct retro_game_info* info)
    }
 
    memset(gamepak_backup, 0xff, sizeof(gamepak_backup));
-   if (load_gamepak(info, info->path) != 0)
+   if (load_gamepak(info, info->path, rtc_mode, rumble_mode) != 0)
    {
       error_msg("Could not load the game file.");
       return false;
    }
+
+   struct retro_rumble_interface rumbleif;
+   if (environ_cb(RETRO_ENVIRONMENT_GET_RUMBLE_INTERFACE, &rumbleif))
+      rumble_cb = rumbleif.set_rumble_state;
+   else
+      rumble_cb = NULL;
 
    reset_gba();
 
@@ -1062,6 +1093,8 @@ void retro_run(void)
 
    input_poll_cb();
    update_input();
+
+   rumble_frame_reset();
 
    /* Check whether current frame should
     * be skipped */
@@ -1145,11 +1178,18 @@ void retro_run(void)
       execute_arm(execute_cycles);
    }
 
+   if (rumble_cb) {
+     // TODO: Add some user-option to select a rumble policy
+     u32 strength = 0xffff * rumble_active_pct();
+     rumble_cb(0, RETRO_RUMBLE_WEAK,   MIN(strength, 0xffff));
+     rumble_cb(0, RETRO_RUMBLE_STRONG, MIN(strength, 0xffff) / 2);
+   }
+
    audio_run();
    video_run();
 
    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
-      check_variables(0);
+      check_variables(false);
 }
 
 unsigned retro_api_version(void)

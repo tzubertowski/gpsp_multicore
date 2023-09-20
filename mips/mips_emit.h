@@ -2471,7 +2471,7 @@ static void emit_saveaccess_stub(u8 **tr_ptr) {
 
   // Writes to region 8 are directed to RTC (only 16 bit ones though)
   tmemld[1][8] = (u32)translation_ptr;
-  emit_mem_call(&write_rtc, 0xFE);
+  emit_mem_call(&write_gpio, 0xFE);
 
   // These are for region 0xD where EEPROM is mapped. Addr is ignored
   // Value is limited to one bit (both reading and writing!)
@@ -2524,7 +2524,7 @@ static void emit_saveaccess_stub(u8 **tr_ptr) {
     mips_emit_xori(reg_rv, reg_temp, 0x08);
     mips_emit_b(bne, reg_rv, reg_zero, st_phndlr_branch(strop));
     if (strop == 1) {
-      emit_mem_call(&write_rtc, 0xFF);  // Addr
+      emit_mem_call(&write_gpio, 0xFF);  // Addr
     } else {
       mips_emit_nop();
       mips_emit_jr(mips_reg_ra);   // Do nothing

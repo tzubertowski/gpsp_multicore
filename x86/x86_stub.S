@@ -219,8 +219,8 @@ defsymbl(x86_indirect_branch_dual)
 
 # General ext memory routines
 
-ext_store_rtc8:               # No RTC writes on byte or word access
-ext_store_rtc32:
+ext_store_gpio8:              # No GPIO/RTC writes on byte or word access
+ext_store_gpio32:
 ext_store_backup16:           # Backup (flash) accessed via byte writes
 ext_store_backup32:
 ext_store_eeprom8:            # EEPROM accesses are performed using 16 bit DMA
@@ -228,11 +228,11 @@ ext_store_eeprom32:
 ext_store_ignore:
   ret                         # ignore these writes
 
-ext_store_rtc16:
+ext_store_gpio16:
   and $0xFFFF, %edx           # make value 16bit
   and $0xFF, %eax             # mask address
   SETUP_ARGS                  # Setup addr, value
-  CALL_FUNC(write_rtc)        # write out RTC register
+  CALL_FUNC(write_gpio)       # write out RTC register
   ret
 
 ext_store_backup8:
@@ -565,7 +565,7 @@ return_to_main:
   ADDR_TYPE ext_store_palette##asize      /* 0x05 Palette RAM              */;\
   ADDR_TYPE ext_store_vram##asize         /* 0x06 VRAM                     */;\
   ADDR_TYPE ext_store_oam##asize          /* 0x07 OAM RAM                  */;\
-  ADDR_TYPE ext_store_rtc##asize          /* 0x08 gamepak (RTC or ignore)  */;\
+  ADDR_TYPE ext_store_gpio##asize         /* 0x08 gamepak (RTC or ignore)  */;\
   ADDR_TYPE ext_store_ignore              /* 0x09 gamepak, ignore          */;\
   ADDR_TYPE ext_store_ignore              /* 0x0A gamepak, ignore          */;\
   ADDR_TYPE ext_store_ignore              /* 0x0B gamepak, ignore          */;\
