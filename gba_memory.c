@@ -381,10 +381,8 @@ RFILE *gamepak_file_large = NULL;
 // If the GBC audio waveform is modified:
 u32 gbc_sound_wave_update = 0;
 
-// Keep it 32KB until the upper 64KB is accessed, then make it 64KB.
-
-u32 backup_type = BACKUP_NONE;
-
+u32 backup_type = BACKUP_UNKN;
+u32 backup_type_reset = BACKUP_UNKN;
 u32 flash_mode = FLASH_BASE_MODE;
 u32 flash_command_position = 0;
 u32 flash_bank_num;  // 0 or 1
@@ -424,7 +422,10 @@ u8 read_backup(u32 address)
 {
   u8 value = 0;
 
-  if(backup_type == BACKUP_NONE)
+  if(backup_type == BACKUP_EEPROM)
+    return 0xff;
+
+  if(backup_type == BACKUP_UNKN)
     backup_type = BACKUP_SRAM;
 
   if(backup_type == BACKUP_SRAM)
@@ -1028,7 +1029,10 @@ void function_cc write_backup(u32 address, u32 value)
 {
   value &= 0xFF;
 
-  if(backup_type == BACKUP_NONE)
+  if(backup_type == BACKUP_EEPROM)
+    return;
+
+  if(backup_type == BACKUP_UNKN)
     backup_type = BACKUP_SRAM;
 
   // gamepak SRAM or Flash ROM
@@ -1545,6 +1549,7 @@ typedef struct
 #define FLAGS_FLASH_128KB    0x0001
 #define FLAGS_RUMBLE         0x0002
 #define FLAGS_RTC            0x0004
+#define FLAGS_EEPROM         0x0010
 
 #include "gba_over.h"
 
@@ -1581,6 +1586,9 @@ static void load_game_config_over(gamepak_info_t *gpinfo)
 
      if (gbaover[i].flags & FLAGS_RUMBLE)
        rumble_enabled = true;
+
+     if (gbaover[i].flags & FLAGS_EEPROM)
+       backup_type_reset = BACKUP_EEPROM;
 
      if (gbaover[i].translation_gate_target_1 != 0)
      {
@@ -2255,10 +2263,7 @@ void init_memory(void)
 
   reload_timing_info();
 
-  backup_type = BACKUP_NONE;
-
-  //flash_size = FLASH_SIZE_64KB;
-
+  backup_type = backup_type_reset;
   flash_bank_num = 0;
   flash_command_position = 0;
   eeprom_size = EEPROM_512_BYTE;
@@ -2528,6 +2533,7 @@ u32 load_gamepak(const struct retro_game_info* info, const char *name,
    flash_bank_cnt = FLASH_SIZE_64KB;
    rtc_enabled = false;
    rumble_enabled = false;
+   backup_type_reset = BACKUP_UNKN;
 
    load_game_config_over(&gpinfo);
 

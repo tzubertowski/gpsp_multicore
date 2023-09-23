@@ -297,6 +297,61 @@ static const ini_t gbaover[] = {
       0,                           /* translation_gate_target_3 */
    },
    {
+      // Dragon Ball Z - The Legacy of Goku (E)
+      "DRAGONBALL Z",              /* gamepak_title        */
+      "ALGP",                      /* gamepak_code         */
+      "70",                        /* gamepak_maker        */
+      FLAGS_EEPROM,                /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
+      // Dragon Ball Z - The Legacy of Goku II (U)
+      "DBZLGCYGOKU2",              /* gamepak_title        */
+      "ALFE",                      /* gamepak_code         */
+      "70",                        /* gamepak_maker        */
+      FLAGS_EEPROM,                /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
+      // Dragon Ball Z - The Legacy of Goku II (E)
+      "DBZLGCYGOKU2",              /* gamepak_title        */
+      "ALFP",                      /* gamepak_code         */
+      "70",                        /* gamepak_maker        */
+      FLAGS_EEPROM,                /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
+      // Dragon Ball Z - Taiketsu (U)
+      "DBZ TAIKETSU",              /* gamepak_title        */
+      "BDBE",                      /* gamepak_code         */
+      "70",                        /* gamepak_maker        */
+      FLAGS_EEPROM,                /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
+      // Dragon Ball Z - Taiketsu (E)
+      "DBZ TAIKETSU",              /* gamepak_title        */
+      "BDBP",                      /* gamepak_code         */
+      "70",                        /* gamepak_maker        */
+      FLAGS_EEPROM,                /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
       // Drill Dozer (U)
       "DRILL DOZER",               /* gamepak_title        */
       "V49E",                      /* gamepak_code         */
