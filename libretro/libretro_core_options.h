@@ -191,17 +191,6 @@ struct retro_core_option_definition option_defs_us[] = {
       },
       "disabled"
    },
-   {
-      "gpsp_save_method",
-      "Backup Save Method (Restart)",
-      "Choose the data format used for cartridge save files. 'gpSP' can be used for compatibility with the stand-alone version of gpSP. 'libretro' provides better integration with the frontend.",
-      {
-         { "gpSP",     NULL },
-         { "libretro", NULL },
-         { NULL, NULL },
-      },
-      "gpSP"
-   },
 #if defined(HAVE_DYNAREC)
    {
       "gpsp_drc",
