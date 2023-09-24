@@ -76,6 +76,19 @@ struct retro_core_option_definition option_defs_us[] = {
       },
       "game"
    },
+#if defined(HAVE_DYNAREC)
+   {
+      "gpsp_drc",
+      "Dynamic Recompiler",
+      "Dynamically recompile CPU instructions to native instructions. Greatly improves performance, but may reduce accuracy.",
+      {
+         { "enabled",  NULL },
+         { "disabled", NULL },
+         { NULL, NULL },
+      },
+      "enabled"
+   },
+#endif
    {
       "gpsp_sprlim",
       "No Sprite Limit",
@@ -191,19 +204,6 @@ struct retro_core_option_definition option_defs_us[] = {
       },
       "disabled"
    },
-#if defined(HAVE_DYNAREC)
-   {
-      "gpsp_drc",
-      "Dynamic Recompiler",
-      "Dynamically recompile CPU instructions to native instructions. Greatly improves performance, but may reduce accuracy.",
-      {
-         { "enabled",  NULL },
-         { "disabled", NULL },
-         { NULL, NULL },
-      },
-      "enabled"
-   },
-#endif
    {
       "gpsp_turbo_period",
       "Turbo Button Period",
@@ -393,10 +393,10 @@ static INLINE void libretro_set_core_options(retro_environment_t environ_cb)
    {
       /* Critical error - dynarec is force
        * disabled, so remove 'gpsp_drc' option */
-      option_defs_us[6].key           = NULL;
-      option_defs_us[6].desc          = NULL;
-      option_defs_us[6].info          = NULL;
-      option_defs_us[6].default_value = NULL;
+      option_defs_us[2].key           = NULL;
+      option_defs_us[2].desc          = NULL;
+      option_defs_us[2].info          = NULL;
+      option_defs_us[2].default_value = NULL;
    }
 #endif
 
