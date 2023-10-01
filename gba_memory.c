@@ -342,6 +342,7 @@ u8 bios_rom[1024 * 16];
 // Up to 128kb, store SRAM, flash ROM, or EEPROM here.
 u8 gamepak_backup[1024 * 128];
 
+u32 dma_bus_val;
 dma_transfer_type dma[4];
 
 // ROM memory is allocated in blocks of 1MB to better map the native block
@@ -461,13 +462,16 @@ u8 read_backup(u32 address)
 }
 
 #define read_backup8()                                                        \
-  value = read_backup(address & 0xFFFF)                                       \
+  value = read_backup(address & 0xFFFF);                                      \
 
 #define read_backup16()                                                       \
-  value = 0                                                                   \
+  value = read_backup(address & 0xFFFF);                                      \
+  value = value | (value << 8);
 
 #define read_backup32()                                                       \
-  value = 0                                                                   \
+  value = read_backup(address & 0xFFFF);                                      \
+  value = value | (value << 8);                                               \
+  value = value | (value << 16);
 
 #define write_eeprom8(addr, value)
 
@@ -1635,14 +1639,14 @@ typedef enum
   DMA_REGION_IO           = 5,
   DMA_REGION_EXT          = 6,
   DMA_REGION_GAMEPAK      = 7,
-  DMA_REGION_BIOS         = 8,
-  DMA_REGION_NULL         = 9
+  DMA_REGION_BUS          = 8,
+  DMA_REGION_COUNT        = 9
 } dma_region_type;
 
 const dma_region_type dma_region_map[17] =
 {
-  DMA_REGION_BIOS,          // 0x00 - BIOS
-  DMA_REGION_NULL,          // 0x01 - Nothing
+  DMA_REGION_BUS,           // 0x00 - BUS
+  DMA_REGION_BUS,           // 0x01 - BUS
   DMA_REGION_EWRAM,         // 0x02 - EWRAM
   DMA_REGION_IWRAM,         // 0x03 - IWRAM
   DMA_REGION_IO,            // 0x04 - I/O registers
@@ -1657,7 +1661,7 @@ const dma_region_type dma_region_map[17] =
   DMA_REGION_EXT,           // 0x0D - EEPROM
   DMA_REGION_EXT,           // 0x0E - gamepak SRAM/flash ROM
   DMA_REGION_EXT,           // 0x0F - gamepak SRAM/flash ROM
-  DMA_REGION_NULL           // 0x10 - Not possible (undefined?)
+  DMA_REGION_BUS            // 0x10 - Out of region (assuming open bus)
 };
 
 #define dma_print(src_op, dest_op, tfsize)                                    \
@@ -1676,7 +1680,7 @@ const dma_region_type dma_region_map[17] =
 #define dma_vars_io(type)
 #define dma_vars_vram(type)
 #define dma_vars_palette_ram(type)
-#define dma_vars_bios(type)
+#define dma_vars_bus(type)
 #define dma_vars_ext(type)
 
 #define dma_oam_ram_src()
@@ -1734,10 +1738,9 @@ const dma_region_type dma_region_map[17] =
   read_value = readaddress##tfsize(type##_address_block,                      \
    type##_ptr & 0x7FFF)                                                       \
 
-// DMAing from the BIOS is funny, just returns 0..
+// DMAing from the BIOS/open zone causes previous DMA values to be read
 
-#define dma_read_bios(type, tfsize)                                           \
-  read_value = 0                                                              \
+#define dma_read_bus(type, tfsize)
 
 #define dma_read_ext(type, tfsize)                                            \
   read_value = read_memory##tfsize(type##_ptr)                                \
@@ -1796,208 +1799,211 @@ cpu_alert_type dma_tf_loop##tfsize(                                           \
   bool wb, u32 length, dma_transfer_type *dma)                                \
 {                                                                             \
   u32 i;                                                                      \
-  u32 read_value;                                                             \
+  u32 read_value = dma_bus_val;                                               \
   cpu_alert_type alerts = CPU_ALERT_NONE;                                     \
   u32 src_region = MIN(src_ptr >> 24, 16);                                    \
   u32 dest_region = MIN(dest_ptr >> 24, 16);                                  \
   dma_region_type src_region_type = dma_region_map[src_region];               \
   dma_region_type dest_region_type = dma_region_map[dest_region];             \
                                                                               \
-  switch(src_region_type | (dest_region_type << 4))                           \
+  switch(src_region_type + dest_region_type * DMA_REGION_COUNT)               \
   {                                                                           \
     default:                                                                  \
       /* Do nothing (read-only destination or unmapped area...) */            \
       return CPU_ALERT_NONE;                                                  \
                                                                               \
-    case (DMA_REGION_BIOS | (DMA_REGION_IWRAM << 4)):                         \
-      dma_tfloop(bios, iwram, src_strd, dest_strd, tfsize);                   \
+    case DMA_REGION_BUS + DMA_REGION_IWRAM * DMA_REGION_COUNT:                \
+      dma_tfloop(bus, iwram, src_strd, dest_strd, tfsize);                    \
                                                                               \
-    case (DMA_REGION_IWRAM | (DMA_REGION_IWRAM << 4)):                        \
+    case DMA_REGION_IWRAM + DMA_REGION_IWRAM * DMA_REGION_COUNT:              \
       dma_tfloop(iwram, iwram, src_strd, dest_strd, tfsize);                  \
                                                                               \
-    case (DMA_REGION_EWRAM | (DMA_REGION_IWRAM << 4)):                        \
+    case DMA_REGION_EWRAM + DMA_REGION_IWRAM * DMA_REGION_COUNT:              \
       dma_tfloop(ewram, iwram, src_strd, dest_strd, tfsize);                  \
                                                                               \
-    case (DMA_REGION_VRAM | (DMA_REGION_IWRAM << 4)):                         \
+    case DMA_REGION_VRAM + DMA_REGION_IWRAM * DMA_REGION_COUNT:               \
       dma_tfloop(vram, iwram, src_strd, dest_strd, tfsize);                   \
                                                                               \
-    case (DMA_REGION_PALETTE_RAM | (DMA_REGION_IWRAM << 4)):                  \
+    case DMA_REGION_PALETTE_RAM + DMA_REGION_IWRAM * DMA_REGION_COUNT:        \
       dma_tfloop(palette_ram, iwram, src_strd, dest_strd, tfsize);            \
                                                                               \
-    case (DMA_REGION_OAM_RAM | (DMA_REGION_IWRAM << 4)):                      \
+    case DMA_REGION_OAM_RAM + DMA_REGION_IWRAM * DMA_REGION_COUNT:            \
       dma_tfloop(oam_ram, iwram, src_strd, dest_strd, tfsize);                \
                                                                               \
-    case (DMA_REGION_IO | (DMA_REGION_IWRAM << 4)):                           \
+    case DMA_REGION_IO + DMA_REGION_IWRAM * DMA_REGION_COUNT:                 \
       dma_tfloop(io, iwram, src_strd, dest_strd, tfsize);                     \
                                                                               \
-    case (DMA_REGION_GAMEPAK | (DMA_REGION_IWRAM << 4)):                      \
+    case DMA_REGION_GAMEPAK + DMA_REGION_IWRAM * DMA_REGION_COUNT:            \
       dma_tfloop(gamepak, iwram, src_strd, dest_strd, tfsize);                \
                                                                               \
-    case (DMA_REGION_EXT | (DMA_REGION_IWRAM << 4)):                          \
+    case DMA_REGION_EXT + DMA_REGION_IWRAM * DMA_REGION_COUNT:                \
       dma_tfloop(ext, iwram, src_strd, dest_strd, tfsize);                    \
                                                                               \
-    case (DMA_REGION_BIOS | (DMA_REGION_EWRAM << 4)):                         \
-      dma_tfloop(bios, ewram, src_strd, dest_strd, tfsize);                   \
+    case DMA_REGION_BUS + DMA_REGION_EWRAM * DMA_REGION_COUNT:                \
+      dma_tfloop(bus, ewram, src_strd, dest_strd, tfsize);                    \
                                                                               \
-    case (DMA_REGION_IWRAM | (DMA_REGION_EWRAM << 4)):                        \
+    case DMA_REGION_IWRAM + DMA_REGION_EWRAM * DMA_REGION_COUNT:              \
       dma_tfloop(iwram, ewram, src_strd, dest_strd, tfsize);                  \
                                                                               \
-    case (DMA_REGION_EWRAM | (DMA_REGION_EWRAM << 4)):                        \
+    case DMA_REGION_EWRAM + DMA_REGION_EWRAM * DMA_REGION_COUNT:              \
       dma_tfloop(ewram, ewram, src_strd, dest_strd, tfsize);                  \
                                                                               \
-    case (DMA_REGION_VRAM | (DMA_REGION_EWRAM << 4)):                         \
+    case DMA_REGION_VRAM + DMA_REGION_EWRAM * DMA_REGION_COUNT:               \
       dma_tfloop(vram, ewram, src_strd, dest_strd, tfsize);                   \
                                                                               \
-    case (DMA_REGION_PALETTE_RAM | (DMA_REGION_EWRAM << 4)):                  \
+    case DMA_REGION_PALETTE_RAM + DMA_REGION_EWRAM * DMA_REGION_COUNT:        \
       dma_tfloop(palette_ram, ewram, src_strd, dest_strd, tfsize);            \
                                                                               \
-    case (DMA_REGION_OAM_RAM | (DMA_REGION_EWRAM << 4)):                      \
+    case DMA_REGION_OAM_RAM + DMA_REGION_EWRAM * DMA_REGION_COUNT:            \
       dma_tfloop(oam_ram, ewram, src_strd, dest_strd, tfsize);                \
                                                                               \
-    case (DMA_REGION_IO | (DMA_REGION_EWRAM << 4)):                           \
+    case DMA_REGION_IO + DMA_REGION_EWRAM * DMA_REGION_COUNT:                 \
       dma_tfloop(io, ewram, src_strd, dest_strd, tfsize);                     \
                                                                               \
-    case (DMA_REGION_GAMEPAK | (DMA_REGION_EWRAM << 4)):                      \
+    case DMA_REGION_GAMEPAK + DMA_REGION_EWRAM * DMA_REGION_COUNT:            \
       dma_tfloop(gamepak, ewram, src_strd, dest_strd, tfsize);                \
                                                                               \
-    case (DMA_REGION_EXT | (DMA_REGION_EWRAM << 4)):                          \
+    case DMA_REGION_EXT + DMA_REGION_EWRAM * DMA_REGION_COUNT:                \
       dma_tfloop(ext, ewram, src_strd, dest_strd, tfsize);                    \
                                                                               \
-    case (DMA_REGION_BIOS | (DMA_REGION_VRAM << 4)):                          \
-      dma_tfloop(bios, vram, src_strd, dest_strd, tfsize);                    \
+    case DMA_REGION_BUS + DMA_REGION_VRAM * DMA_REGION_COUNT:                 \
+      dma_tfloop(bus, vram, src_strd, dest_strd, tfsize);                     \
                                                                               \
-    case (DMA_REGION_IWRAM | (DMA_REGION_VRAM << 4)):                         \
+    case DMA_REGION_IWRAM + DMA_REGION_VRAM * DMA_REGION_COUNT:               \
       dma_tfloop(iwram, vram, src_strd, dest_strd, tfsize);                   \
                                                                               \
-    case (DMA_REGION_EWRAM | (DMA_REGION_VRAM << 4)):                         \
+    case DMA_REGION_EWRAM + DMA_REGION_VRAM * DMA_REGION_COUNT:               \
       dma_tfloop(ewram, vram, src_strd, dest_strd, tfsize);                   \
                                                                               \
-    case (DMA_REGION_VRAM | (DMA_REGION_VRAM << 4)):                          \
+    case DMA_REGION_VRAM + DMA_REGION_VRAM * DMA_REGION_COUNT:                \
       dma_tfloop(vram, vram, src_strd, dest_strd, tfsize);                    \
                                                                               \
-    case (DMA_REGION_PALETTE_RAM | (DMA_REGION_VRAM << 4)):                   \
+    case DMA_REGION_PALETTE_RAM + DMA_REGION_VRAM * DMA_REGION_COUNT:         \
       dma_tfloop(palette_ram, vram, src_strd, dest_strd, tfsize);             \
                                                                               \
-    case (DMA_REGION_OAM_RAM | (DMA_REGION_VRAM << 4)):                       \
+    case DMA_REGION_OAM_RAM + DMA_REGION_VRAM * DMA_REGION_COUNT:             \
       dma_tfloop(oam_ram, vram, src_strd, dest_strd, tfsize);                 \
                                                                               \
-    case (DMA_REGION_IO | (DMA_REGION_VRAM << 4)):                            \
+    case DMA_REGION_IO + DMA_REGION_VRAM * DMA_REGION_COUNT:                  \
       dma_tfloop(io, vram, src_strd, dest_strd, tfsize);                      \
                                                                               \
-    case (DMA_REGION_GAMEPAK | (DMA_REGION_VRAM << 4)):                       \
+    case DMA_REGION_GAMEPAK + DMA_REGION_VRAM * DMA_REGION_COUNT:             \
       dma_tfloop(gamepak, vram, src_strd, dest_strd,tfsize);                  \
                                                                               \
-    case (DMA_REGION_EXT | (DMA_REGION_VRAM << 4)):                           \
+    case DMA_REGION_EXT + DMA_REGION_VRAM * DMA_REGION_COUNT:                 \
       dma_tfloop(ext, vram, src_strd, dest_strd, tfsize);                     \
                                                                               \
-    case (DMA_REGION_BIOS | (DMA_REGION_PALETTE_RAM << 4)):                   \
-      dma_tfloop(bios, palette_ram, src_strd, dest_strd, tfsize);             \
+    case DMA_REGION_BUS + DMA_REGION_PALETTE_RAM * DMA_REGION_COUNT:          \
+      dma_tfloop(bus, palette_ram, src_strd, dest_strd, tfsize);              \
                                                                               \
-    case (DMA_REGION_IWRAM | (DMA_REGION_PALETTE_RAM << 4)):                  \
+    case DMA_REGION_IWRAM + DMA_REGION_PALETTE_RAM * DMA_REGION_COUNT:        \
       dma_tfloop(iwram, palette_ram, src_strd, dest_strd, tfsize);            \
                                                                               \
-    case (DMA_REGION_EWRAM | (DMA_REGION_PALETTE_RAM << 4)):                  \
+    case DMA_REGION_EWRAM + DMA_REGION_PALETTE_RAM * DMA_REGION_COUNT:        \
       dma_tfloop(ewram, palette_ram, src_strd, dest_strd, tfsize);            \
                                                                               \
-    case (DMA_REGION_VRAM | (DMA_REGION_PALETTE_RAM << 4)):                   \
+    case DMA_REGION_VRAM + DMA_REGION_PALETTE_RAM * DMA_REGION_COUNT:         \
       dma_tfloop(vram, palette_ram, src_strd, dest_strd, tfsize);             \
                                                                               \
-    case (DMA_REGION_PALETTE_RAM | (DMA_REGION_PALETTE_RAM << 4)):            \
+    case DMA_REGION_PALETTE_RAM + DMA_REGION_PALETTE_RAM * DMA_REGION_COUNT:  \
       dma_tfloop(palette_ram, palette_ram, src_strd, dest_strd, tfsize);      \
                                                                               \
-    case (DMA_REGION_OAM_RAM | (DMA_REGION_PALETTE_RAM << 4)):                \
+    case DMA_REGION_OAM_RAM + DMA_REGION_PALETTE_RAM * DMA_REGION_COUNT:      \
       dma_tfloop(oam_ram, palette_ram, src_strd, dest_strd, tfsize);          \
                                                                               \
-    case (DMA_REGION_IO | (DMA_REGION_PALETTE_RAM << 4)):                     \
+    case DMA_REGION_IO + DMA_REGION_PALETTE_RAM * DMA_REGION_COUNT:           \
       dma_tfloop(io, palette_ram, src_strd, dest_strd, tfsize);               \
                                                                               \
-    case (DMA_REGION_GAMEPAK | (DMA_REGION_PALETTE_RAM << 4)):                \
+    case DMA_REGION_GAMEPAK + DMA_REGION_PALETTE_RAM * DMA_REGION_COUNT:      \
       dma_tfloop(gamepak, palette_ram, src_strd, dest_strd, tfsize);          \
                                                                               \
-    case (DMA_REGION_EXT | (DMA_REGION_PALETTE_RAM << 4)):                    \
+    case DMA_REGION_EXT + DMA_REGION_PALETTE_RAM * DMA_REGION_COUNT:          \
       dma_tfloop(ext, palette_ram, src_strd, dest_strd, tfsize);              \
                                                                               \
-    case (DMA_REGION_BIOS | (DMA_REGION_OAM_RAM << 4)):                       \
-      dma_tfloop(bios, oam_ram, src_strd, dest_strd, tfsize);                 \
+    case DMA_REGION_BUS + DMA_REGION_OAM_RAM * DMA_REGION_COUNT:              \
+      dma_tfloop(bus, oam_ram, src_strd, dest_strd, tfsize);                  \
                                                                               \
-    case (DMA_REGION_IWRAM | (DMA_REGION_OAM_RAM << 4)):                      \
+    case DMA_REGION_IWRAM + DMA_REGION_OAM_RAM * DMA_REGION_COUNT:            \
       dma_tfloop(iwram, oam_ram, src_strd, dest_strd, tfsize);                \
                                                                               \
-    case (DMA_REGION_EWRAM | (DMA_REGION_OAM_RAM << 4)):                      \
+    case DMA_REGION_EWRAM + DMA_REGION_OAM_RAM * DMA_REGION_COUNT:            \
       dma_tfloop(ewram, oam_ram, src_strd, dest_strd, tfsize);                \
                                                                               \
-    case (DMA_REGION_VRAM | (DMA_REGION_OAM_RAM << 4)):                       \
+    case DMA_REGION_VRAM + DMA_REGION_OAM_RAM * DMA_REGION_COUNT:             \
       dma_tfloop(vram, oam_ram, src_strd, dest_strd, tfsize);                 \
                                                                               \
-    case (DMA_REGION_PALETTE_RAM | (DMA_REGION_OAM_RAM << 4)):                \
+    case DMA_REGION_PALETTE_RAM + DMA_REGION_OAM_RAM * DMA_REGION_COUNT:      \
       dma_tfloop(palette_ram, oam_ram, src_strd, dest_strd, tfsize);          \
                                                                               \
-    case (DMA_REGION_OAM_RAM | (DMA_REGION_OAM_RAM << 4)):                    \
+    case DMA_REGION_OAM_RAM + DMA_REGION_OAM_RAM * DMA_REGION_COUNT:          \
       dma_tfloop(oam_ram, oam_ram, src_strd, dest_strd, tfsize);              \
                                                                               \
-    case (DMA_REGION_IO | (DMA_REGION_OAM_RAM << 4)):                         \
+    case DMA_REGION_IO + DMA_REGION_OAM_RAM * DMA_REGION_COUNT:               \
       dma_tfloop(io, oam_ram, src_strd, dest_strd, tfsize);                   \
                                                                               \
-    case (DMA_REGION_GAMEPAK | (DMA_REGION_OAM_RAM << 4)):                    \
+    case DMA_REGION_GAMEPAK + DMA_REGION_OAM_RAM * DMA_REGION_COUNT:          \
       dma_tfloop(gamepak, oam_ram, src_strd, dest_strd, tfsize);              \
                                                                               \
-    case (DMA_REGION_EXT | (DMA_REGION_OAM_RAM << 4)):                        \
+    case DMA_REGION_EXT + DMA_REGION_OAM_RAM * DMA_REGION_COUNT:              \
       dma_tfloop(ext, oam_ram, src_strd, dest_strd, tfsize);                  \
                                                                               \
-    case (DMA_REGION_BIOS | (DMA_REGION_IO << 4)):                            \
-      dma_tfloop(bios, io, src_strd, dest_strd, tfsize);                      \
+    case DMA_REGION_BUS + DMA_REGION_IO * DMA_REGION_COUNT:                   \
+      dma_tfloop(bus, io, src_strd, dest_strd, tfsize);                       \
                                                                               \
-    case (DMA_REGION_IWRAM | (DMA_REGION_IO << 4)):                           \
+    case DMA_REGION_IWRAM + DMA_REGION_IO * DMA_REGION_COUNT:                 \
       dma_tfloop(iwram, io, src_strd, dest_strd, tfsize);                     \
                                                                               \
-    case (DMA_REGION_EWRAM | (DMA_REGION_IO << 4)):                           \
+    case DMA_REGION_EWRAM + DMA_REGION_IO * DMA_REGION_COUNT:                 \
       dma_tfloop(ewram, io, src_strd, dest_strd, tfsize);                     \
                                                                               \
-    case (DMA_REGION_VRAM | (DMA_REGION_IO << 4)):                            \
+    case DMA_REGION_VRAM + DMA_REGION_IO * DMA_REGION_COUNT:                  \
       dma_tfloop(vram, io, src_strd, dest_strd, tfsize);                      \
                                                                               \
-    case (DMA_REGION_PALETTE_RAM | (DMA_REGION_IO << 4)):                     \
+    case DMA_REGION_PALETTE_RAM + DMA_REGION_IO * DMA_REGION_COUNT:           \
       dma_tfloop(palette_ram, io, src_strd, dest_strd, tfsize);               \
                                                                               \
-    case (DMA_REGION_OAM_RAM | (DMA_REGION_IO << 4)):                         \
+    case DMA_REGION_OAM_RAM + DMA_REGION_IO * DMA_REGION_COUNT:               \
       dma_tfloop(oam_ram, io, src_strd, dest_strd, tfsize);                   \
                                                                               \
-    case (DMA_REGION_IO | (DMA_REGION_IO << 4)):                              \
+    case DMA_REGION_IO + DMA_REGION_IO * DMA_REGION_COUNT:                    \
       dma_tfloop(io, io, src_strd, dest_strd, tfsize);                        \
                                                                               \
-    case (DMA_REGION_GAMEPAK | (DMA_REGION_IO << 4)):                         \
+    case DMA_REGION_GAMEPAK + DMA_REGION_IO * DMA_REGION_COUNT:               \
       dma_tfloop(gamepak, io, src_strd, dest_strd, tfsize);                   \
                                                                               \
-    case (DMA_REGION_EXT | (DMA_REGION_IO << 4)):                             \
+    case DMA_REGION_EXT + DMA_REGION_IO * DMA_REGION_COUNT:                   \
       dma_tfloop(ext, io, src_strd, dest_strd, tfsize);                       \
                                                                               \
-    case (DMA_REGION_BIOS | (DMA_REGION_EXT << 4)):                           \
-      dma_tfloop(bios, ext, src_strd, dest_strd, tfsize);                     \
+    case DMA_REGION_BUS + DMA_REGION_EXT * DMA_REGION_COUNT:                  \
+      dma_tfloop(bus, ext, src_strd, dest_strd, tfsize);                      \
                                                                               \
-    case (DMA_REGION_IWRAM | (DMA_REGION_EXT << 4)):                          \
+    case DMA_REGION_IWRAM + DMA_REGION_EXT * DMA_REGION_COUNT:                \
       dma_tfloop(iwram, ext, src_strd, dest_strd, tfsize);                    \
                                                                               \
-    case (DMA_REGION_EWRAM | (DMA_REGION_EXT << 4)):                          \
+    case DMA_REGION_EWRAM + DMA_REGION_EXT * DMA_REGION_COUNT:                \
       dma_tfloop(ewram, ext, src_strd, dest_strd, tfsize);                    \
                                                                               \
-    case (DMA_REGION_VRAM | (DMA_REGION_EXT << 4)):                           \
+    case DMA_REGION_VRAM + DMA_REGION_EXT * DMA_REGION_COUNT:                 \
       dma_tfloop(vram, ext, src_strd, dest_strd, tfsize);                     \
                                                                               \
-    case (DMA_REGION_PALETTE_RAM | (DMA_REGION_EXT << 4)):                    \
+    case DMA_REGION_PALETTE_RAM + DMA_REGION_EXT * DMA_REGION_COUNT:          \
       dma_tfloop(palette_ram, ext, src_strd, dest_strd, tfsize);              \
                                                                               \
-    case (DMA_REGION_OAM_RAM | (DMA_REGION_EXT << 4)):                        \
+    case DMA_REGION_OAM_RAM + DMA_REGION_EXT * DMA_REGION_COUNT:              \
       dma_tfloop(oam_ram, ext, src_strd, dest_strd, tfsize);                  \
                                                                               \
-    case (DMA_REGION_IO | (DMA_REGION_EXT << 4)):                             \
+    case DMA_REGION_IO + DMA_REGION_EXT * DMA_REGION_COUNT:                   \
       dma_tfloop(io, ext, src_strd, dest_strd, tfsize);                       \
                                                                               \
-    case (DMA_REGION_GAMEPAK | (DMA_REGION_EXT << 4)):                        \
+    case DMA_REGION_GAMEPAK + DMA_REGION_EXT * DMA_REGION_COUNT:              \
       dma_tfloop(gamepak, ext, src_strd, dest_strd, tfsize);                  \
                                                                               \
-    case (DMA_REGION_EXT | (DMA_REGION_EXT << 4)):                            \
+    case DMA_REGION_EXT + DMA_REGION_EXT * DMA_REGION_COUNT:                  \
       dma_tfloop(ext, ext, src_strd, dest_strd, tfsize);                      \
   }                                                                           \
+                                                                              \
+  /* Remember the last value copied in case we read from a bad zone */        \
+  dma_bus_val = read_value;                                                   \
                                                                               \
   dma->source_address = src_ptr;                                              \
   if (wb)   /* Update destination pointer if requested */                     \
@@ -2032,9 +2038,9 @@ static cpu_alert_type dma_transfer_copy(
 cpu_alert_type dma_transfer(unsigned dma_chan, int *usedcycles)
 {
   dma_transfer_type *dmach = &dma[dma_chan];
-  u32 src_ptr = dmach->source_address & (
+  u32 src_ptr = 0x0FFFFFFF & dmach->source_address & (
                    dmach->length_type == DMA_16BIT ? ~1U : ~3U);
-  u32 dst_ptr = dmach->dest_address & (
+  u32 dst_ptr = 0x0FFFFFFF & dmach->dest_address & (
                    dmach->length_type == DMA_16BIT ? ~1U : ~3U);
   cpu_alert_type ret = CPU_ALERT_NONE;
   u32 tfsizes = dmach->length_type == DMA_16BIT ? 1 : 2;
@@ -2272,6 +2278,7 @@ void init_memory(void)
   eeprom_counter = 0;
   rumble_enable_tick = 0;
   rumble_ticks = 0;
+  dma_bus_val = 0;
 
   flash_mode = FLASH_BASE_MODE;
 
@@ -2318,7 +2325,8 @@ bool memory_check_savestate(const u8 *src)
       !bson_contains_key(memdoc, "vram", BSON_TYPE_BIN) ||
       !bson_contains_key(memdoc, "oamram", BSON_TYPE_BIN) ||
       !bson_contains_key(memdoc, "palram", BSON_TYPE_BIN) ||
-      !bson_contains_key(memdoc, "ioregs", BSON_TYPE_BIN))
+      !bson_contains_key(memdoc, "ioregs", BSON_TYPE_BIN) ||
+      !bson_contains_key(memdoc, "dma-bus", BSON_TYPE_INT32))
      return false;
 
   // Check backup variables
@@ -2362,6 +2370,7 @@ bool memory_read_savestate(const u8 *src)
     bson_read_bytes(memdoc, "oamram", oam_ram, sizeof(oam_ram)) &&
     bson_read_bytes(memdoc, "palram", palette_ram, sizeof(palette_ram)) &&
     bson_read_bytes(memdoc, "ioregs", io_registers, sizeof(io_registers)) &&
+    bson_read_int32(memdoc, "dma-bus", &dma_bus_val) &&
 
     bson_read_int32(bakdoc, "backup-type", &backup_type) &&
 
@@ -2423,6 +2432,7 @@ unsigned memory_write_savestate(u8 *dst)
   bson_write_bytes(dst, "oamram", oam_ram, sizeof(oam_ram));
   bson_write_bytes(dst, "palram", palette_ram, sizeof(palette_ram));
   bson_write_bytes(dst, "ioregs", io_registers, sizeof(io_registers));
+  bson_write_int32(dst, "dma-bus", dma_bus_val);
   bson_finish_document(dst, wbptr);
 
   bson_start_document(dst, "backup", wbptr);
