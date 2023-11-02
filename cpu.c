@@ -25,23 +25,6 @@
 
 #include "cpu_instrument.h"
 
-u32 memory_region_access_read_u8[16];
-u32 memory_region_access_read_s8[16];
-u32 memory_region_access_read_u16[16];
-u32 memory_region_access_read_s16[16];
-u32 memory_region_access_read_u32[16];
-u32 memory_region_access_write_u8[16];
-u32 memory_region_access_write_u16[16];
-u32 memory_region_access_write_u32[16];
-u32 memory_reads_u8;
-u32 memory_reads_s8;
-u32 memory_reads_u16;
-u32 memory_reads_s16;
-u32 memory_reads_u32;
-u32 memory_writes_u8;
-u32 memory_writes_u16;
-u32 memory_writes_u32;
-
 const u8 bit_count[256] =
 {
   0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 1, 2, 2, 3, 2, 3, 3,
@@ -866,8 +849,7 @@ const u32 spsr_masks[4] = { 0x00000000, 0x000000EF, 0xF0000000, 0xF00000EF };
     /* Account for cycles and other stats */                                  \
     u8 region = _address >> 24;                                               \
     cycles_remaining -= ws_cyc_nseq[region][(size - 8) / 16];                 \
-    memory_region_access_read_##type[region]++;                               \
-    memory_reads_##type++;                                                    \
+    STATS_MEMORY_ACCESS(read, type, region);                                  \
   }                                                                           \
                                                                               \
   if (                                                                        \
@@ -892,8 +874,7 @@ const u32 spsr_masks[4] = { 0x00000000, 0x000000EF, 0xF0000000, 0xF00000EF };
   {                                                                           \
     u8 region = _address >> 24;                                               \
     cycles_remaining -= ws_cyc_nseq[region][(size - 8) / 16];                 \
-    memory_region_access_write_##type[region]++;                              \
-    memory_writes_##type++;                                                   \
+    STATS_MEMORY_ACCESS(write, type, region);                                 \
   }                                                                           \
                                                                               \
   cpu_alert = write_memory##size(_address, value);                            \
@@ -908,8 +889,7 @@ const u32 spsr_masks[4] = { 0x00000000, 0x000000EF, 0xF0000000, 0xF00000EF };
     /* Account for cycles and other stats */                                  \
     u8 region = _address >> 24;                                               \
     cycles_remaining -= ws_cyc_seq[region][1];                                \
-    memory_region_access_read_u32[region]++;                                  \
-    memory_reads_u32++;                                                       \
+    STATS_MEMORY_ACCESS(read, u32, region);                                   \
   }                                                                           \
   if(_address < 0x10000000 && map)                                            \
   {                                                                           \
@@ -929,8 +909,7 @@ const u32 spsr_masks[4] = { 0x00000000, 0x000000EF, 0xF0000000, 0xF00000EF };
     /* Account for cycles and other stats */                                  \
     u8 region = _address >> 24;                                               \
     cycles_remaining -= ws_cyc_seq[region][1];                                \
-    memory_region_access_write_u32[region]++;                                 \
-    memory_writes_u32++;                                                      \
+    STATS_MEMORY_ACCESS(write, u32, region);                                  \
   }                                                                           \
   cpu_alert = write_memory32(_address, value);                                \
 }                                                                             \

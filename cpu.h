@@ -179,23 +179,6 @@ extern const u32 cpu_modes[16];
 extern const u32 cpsr_masks[4][2];
 extern const u32 spsr_masks[4];
 
-extern u32 memory_region_access_read_u8[16];
-extern u32 memory_region_access_read_s8[16];
-extern u32 memory_region_access_read_u16[16];
-extern u32 memory_region_access_read_s16[16];
-extern u32 memory_region_access_read_u32[16];
-extern u32 memory_region_access_write_u8[16];
-extern u32 memory_region_access_write_u16[16];
-extern u32 memory_region_access_write_u32[16];
-extern u32 memory_reads_u8;
-extern u32 memory_reads_s8;
-extern u32 memory_reads_u16;
-extern u32 memory_reads_s16;
-extern u32 memory_reads_u32;
-extern u32 memory_writes_u8;
-extern u32 memory_writes_u16;
-extern u32 memory_writes_u32;
-
 void init_cpu(void);
 void move_reg();
 

@@ -4,6 +4,27 @@
 // Also provides some tracing capabilities
 
 
+#ifdef MEMORY_STATS_ANALYZE
+  // Collects memory stats by region, access type, etc.
+
+  u32 memory_region_access_read_u8[16];
+  u32 memory_region_access_read_s8[16];
+  u32 memory_region_access_read_u16[16];
+  u32 memory_region_access_read_s16[16];
+  u32 memory_region_access_read_u32[16];
+  u32 memory_region_access_write_u8[16];
+  u32 memory_region_access_write_u16[16];
+  u32 memory_region_access_write_u32[16];
+
+  #define STATS_MEMORY_ACCESS(op, size, region) \
+    memory_region_access_##op##_##size[region]++;
+
+#else
+
+  #define STATS_MEMORY_ACCESS(write, u32, region)
+
+#endif
+
 #ifdef REGISTER_USAGE_ANALYZE
 
   u64 instructions_total = 0;
