@@ -566,7 +566,7 @@ const u8 bit_count[256] =
    (v_flag << 28) | (reg[REG_CPSR] & 0xFF)                                    \
 
 #define check_pc_region()                                                     \
-  new_pc_region = (pc >> 15);                                                 \
+  new_pc_region = (reg[REG_PC] >> 15);                                        \
   if(new_pc_region != pc_region)                                              \
   {                                                                           \
     pc_region = new_pc_region;                                                \
@@ -578,20 +578,8 @@ const u8 bit_count[256] =
   }                                                                           \
 
 
-#define arm_update_pc()                                                       \
-  pc = reg[REG_PC]                                                            \
-
 #define arm_pc_offset(val)                                                    \
-  pc += val;                                                                  \
-  reg[REG_PC] = pc                                                            \
-
-#define arm_pc_offset_update(val)                                             \
-  pc += val;                                                                  \
-  reg[REG_PC] = pc                                                            \
-
-#define arm_pc_offset_update_direct(val)                                      \
-  pc = val;                                                                   \
-  reg[REG_PC] = pc                                                            \
+  reg[REG_PC] += val                                                          \
 
 
 // It should be okay to still generate result flags, spsr will overwrite them.
@@ -606,7 +594,6 @@ const u8 bit_count[256] =
     REG_SPSR(MODE_IRQ) = reg[REG_CPSR];                                       \
     reg[REG_CPSR] = 0xD2;                                                     \
     reg[REG_PC] = 0x00000018;                                                 \
-    arm_update_pc();                                                          \
     set_cpu_mode(MODE_IRQ);                                                   \
     goto arm_loop;                                                            \
   }                                                                           \
@@ -621,7 +608,6 @@ const u8 bit_count[256] =
       set_cpu_mode(cpu_modes[reg[REG_CPSR] & 0xF]);                           \
       check_for_interrupts();                                                 \
     }                                                                         \
-    arm_update_pc();                                                          \
                                                                               \
     if(reg[REG_CPSR] & 0x20)                                                  \
       goto thumb_loop;                                                        \
@@ -651,11 +637,6 @@ const u8 bit_count[256] =
   dest = expr;                                                                \
   arm_pc_offset(-4);                                                          \
   reg[rd] = dest;                                                             \
-                                                                              \
-  if(rd == 15)                                                                \
-  {                                                                           \
-    arm_update_pc();                                                          \
-  }                                                                           \
 }                                                                             \
 
 #define flags_vars(src_a, src_b)                                              \
@@ -854,7 +835,7 @@ const u32 spsr_masks[4] = { 0x00000000, 0x000000EF, 0xF0000000, 0xF00000EF };
   }                                                                           \
                                                                               \
   if (                                                                        \
-     (((_address >> 24) == 0) && (pc >= 0x4000)) ||  /* BIOS reading */       \
+     (((_address >> 24) == 0) && (reg[REG_PC] >= 0x4000)) ||  /* BIOS read */ \
      (_address & aligned_address_mask##size) ||      /* Unaligned access */   \
      !(map = memory_map_read[_address >> 15])        /* Unmapped memory */    \
   )                                                                           \
@@ -953,11 +934,6 @@ const u32 spsr_masks[4] = { 0x00000000, 0x000000EF, 0xF0000000, 0xF00000EF };
   if(rd == 15)                                                                \
     reg_op += 4                                                               \
 
-#define arm_access_memory_pc_postadjust_load()                                \
-  arm_update_pc()                                                             \
-
-#define arm_access_memory_pc_postadjust_store()                               \
-
 #define load_reg_op reg[rd]                                                   \
 
 #define store_reg_op reg_op                                                   \
@@ -973,7 +949,6 @@ const u32 spsr_masks[4] = { 0x00000000, 0x000000EF, 0xF0000000, 0xF00000EF };
   arm_pc_offset(-4);                                                          \
   arm_access_memory_writeback_##wb(wb_off_op);                                \
   access_type##_memory_##mem_type(address, access_type##_reg_op);             \
-  arm_access_memory_pc_postadjust_##access_type();                            \
 }                                                                             \
 
 #define word_bit_count(word)                                                  \
@@ -1020,11 +995,10 @@ const u32 spsr_masks[4] = { 0x00000000, 0x000000EF, 0xF0000000, 0xF00000EF };
 #define arm_block_memory_writeback_no()                                       \
 
 #define arm_block_memory_load_pc()                                            \
-  load_aligned32(address, pc);                                                \
-  reg[REG_PC] = pc                                                            \
+  load_aligned32(address, reg[REG_PC]);                                       \
 
 #define arm_block_memory_store_pc()                                           \
-  store_aligned32(address, pc + 4)                                            \
+  store_aligned32(address, reg[REG_PC] + 4)                                   \
 
 #define arm_block_memory(access_type, offset_type, writeback_type, s_bit)     \
 {                                                                             \
@@ -1067,20 +1041,8 @@ const u32 spsr_masks[4] = { 0x00000000, 0x000000EF, 0xF0000000, 0xF00000EF };
   goto skip_instruction;                                                      \
 }                                                                             \
 
-#define thumb_update_pc()                                                     \
-  pc = reg[REG_PC]                                                            \
-
 #define thumb_pc_offset(val)                                                  \
-  pc += val;                                                                  \
-  reg[REG_PC] = pc                                                            \
-
-#define thumb_pc_offset_update(val)                                           \
-  pc += val;                                                                  \
-  reg[REG_PC] = pc                                                            \
-
-#define thumb_pc_offset_update_direct(val)                                    \
-  pc = val;                                                                   \
-  reg[REG_PC] = pc                                                            \
+  reg[REG_PC] += val                                                          \
 
 // Types: add_sub, add_sub_imm, alu_op, imm
 // Affects N/Z/C/V flags
@@ -1298,7 +1260,6 @@ const u32 spsr_masks[4] = { 0x00000000, 0x000000EF, 0xF0000000, 0xF00000EF };
   if(rd == 15)                                                                \
   {                                                                           \
     reg[REG_PC] = dest & ~0x01;                                               \
-    thumb_update_pc();                                                        \
   }                                                                           \
   else                                                                        \
   {                                                                           \
@@ -1336,9 +1297,8 @@ const u32 spsr_masks[4] = { 0x00000000, 0x000000EF, 0xF0000000, 0xF00000EF };
   address -= offset                                                           \
 
 #define thumb_block_address_postadjust_pop_pc()                               \
-  load_memory_u32(address + offset, pc);                                      \
-  pc &= ~0x01;                                                                \
-  reg[REG_PC] = pc;                                                           \
+  load_memory_u32(address + offset, reg[REG_PC]);                             \
+  reg[REG_PC] &= ~0x01;                                                       \
   address += offset + 4                                                       \
 
 #define thumb_block_address_postadjust_push_lr()                              \
@@ -1388,7 +1348,7 @@ const u32 spsr_masks[4] = { 0x00000000, 0x000000EF, 0xF0000000, 0xF00000EF };
   {                                                                           \
     thumb_pc_offset(2);                                                       \
   }                                                                           \
-  cycles_remaining -= ws_cyc_nseq[pc >> 24][0];                               \
+  cycles_remaining -= ws_cyc_nseq[reg[REG_PC] >> 24][0];                      \
 }                                                                             \
 
 // When a mode change occurs from non-FIQ to non-FIQ retire the current
@@ -1511,20 +1471,15 @@ u16 io_registers[512];
 
 void execute_arm(u32 cycles)
 {
-  u32 pc = reg[REG_PC];
   u32 opcode;
   u32 condition;
   u32 n_flag, z_flag, c_flag, v_flag;
-  u32 pc_region = (pc >> 15);
+  u32 pc_region = (reg[REG_PC] >> 15);
   u8 *pc_address_block = memory_map_read[pc_region];
   u32 new_pc_region;
   s32 cycles_remaining;
   u32 update_ret;
   cpu_alert_type cpu_alert;
-
-  u32 old_pc;
-
-  (void)old_pc;
 
   if(!pc_address_block)
     pc_address_block = load_gamepak_page(pc_region & 0x3FF);
@@ -1543,7 +1498,6 @@ void execute_arm(u32 cycles)
     }
 
     cpu_alert = CPU_ALERT_NONE;
-    pc = reg[REG_PC];
     extract_flags();
 
     if(reg[REG_CPSR] & 0x20)
@@ -1556,16 +1510,14 @@ arm_loop:
        collapse_flags();
 
        /* Process cheats if we are about to execute the cheat hook */
-       if (pc == cheat_master_hook)
+       if (reg[REG_PC] == cheat_master_hook)
           process_cheats();
-
-       old_pc = pc;
 
        /* Execute ARM instruction */
        using_instruction(arm);
        check_pc_region();
-       pc &= ~0x03;
-       opcode = readaddress32(pc_address_block, (pc & 0x7FFF));
+       reg[REG_PC] &= ~0x03;
+       opcode = readaddress32(pc_address_block, (reg[REG_PC] & 0x7FFF));
        condition = opcode >> 28;
 
        switch(condition)
@@ -2136,16 +2088,15 @@ arm_loop:
                    u32 src = reg[rn];
                    if(src & 0x01)
                    {
-                      src -= 1;
-                      arm_pc_offset_update_direct(src);
+                      reg[REG_PC] = src - 1;
                       reg[REG_CPSR] |= 0x20;
                       goto thumb_loop;
                    }
                    else
                    {
-                      arm_pc_offset_update_direct(src);
+                      reg[REG_PC] = src;
                    }
-                   cycles_remaining -= ws_cyc_nseq[pc >> 24][1];
+                   cycles_remaining -= ws_cyc_nseq[reg[REG_PC] >> 24][1];
                 }
                 else
                 {
@@ -3073,8 +3024,8 @@ arm_loop:
              {
                 /* B offset */
                 arm_decode_branch();
-                arm_pc_offset_update(offset + 8);
-                cycles_remaining -= ws_cyc_nseq[pc >> 24][1];
+                reg[REG_PC] += offset + 8;
+                cycles_remaining -= ws_cyc_nseq[reg[REG_PC] >> 24][1];
                 break;
              }
 
@@ -3082,9 +3033,9 @@ arm_loop:
              {
                 /* BL offset */
                 arm_decode_branch();
-                reg[REG_LR] = pc + 4;
-                arm_pc_offset_update(offset + 8);
-                cycles_remaining -= ws_cyc_nseq[pc >> 24][1];
+                reg[REG_LR] = reg[REG_PC] + 4;
+                reg[REG_PC] += offset + 8;
+                cycles_remaining -= ws_cyc_nseq[reg[REG_PC] >> 24][1];
                 break;
              }
 
@@ -3105,11 +3056,10 @@ arm_loop:
                    default:
                       // After SWI, we read bios[0xE4]
                       reg[REG_BUS_VALUE] = 0xe3a02004;
-                      REG_MODE(MODE_SUPERVISOR)[6] = pc + 4;
+                      REG_MODE(MODE_SUPERVISOR)[6] = reg[REG_PC] + 4;
                       collapse_flags();
                       REG_SPSR(MODE_SUPERVISOR) = reg[REG_CPSR];
                       reg[REG_PC] = 0x00000008;
-                      arm_update_pc();
                       // Move to ARM mode, Supervisor mode and disable IRQs
                       reg[REG_CPSR] = (reg[REG_CPSR] & ~0x3F) | 0x13 | 0x80;
                       set_cpu_mode(MODE_SUPERVISOR);
@@ -3122,9 +3072,9 @@ arm_loop:
 skip_instruction:
 
        /* End of Execute ARM instruction */
-       cycles_remaining -= ws_cyc_seq[(pc >> 24) & 0xF][1];
+       cycles_remaining -= ws_cyc_seq[(reg[REG_PC] >> 24) & 0xF][1];
 
-       if (pc == idle_loop_target_pc && cycles_remaining > 0) cycles_remaining = 0;
+       if (reg[REG_PC] == idle_loop_target_pc && cycles_remaining > 0) cycles_remaining = 0;
 
        if (cpu_alert & (CPU_ALERT_HALT | CPU_ALERT_IRQ))
          goto alert;
@@ -3145,17 +3095,15 @@ thumb_loop:
        collapse_flags();
 
        /* Process cheats if we are about to execute the cheat hook */
-       if (pc == cheat_master_hook)
+       if (reg[REG_PC] == cheat_master_hook)
           process_cheats();
-
-       old_pc = pc;
 
        /* Execute THUMB instruction */
 
        using_instruction(thumb);
        check_pc_region();
-       pc &= ~0x01;
-       opcode = readaddress16(pc_address_block, (pc & 0x7FFF));
+       reg[REG_PC] &= ~0x01;
+       opcode = readaddress16(pc_address_block, (reg[REG_PC] & 0x7FFF));
 
        #ifdef TRACE_INSTRUCTIONS
        interp_trace_instruction(pc, 0);
@@ -3354,13 +3302,12 @@ thumb_loop:
                 src = reg[rs];
                 if(src & 0x01)
                 {
-                   src -= 1;
-                   thumb_pc_offset_update_direct(src);
+                   reg[REG_PC] = src - 1;
                 }
                 else
                 {
                    /* Switch to ARM mode */
-                   thumb_pc_offset_update_direct(src);
+                   reg[REG_PC] = src;
                    reg[REG_CPSR] &= ~0x20;
                    collapse_flags();
                    goto arm_loop;
@@ -3370,7 +3317,7 @@ thumb_loop:
 
           case 0x48 ... 0x4F:
              /* LDR r0..7, [pc + imm] */
-             thumb_access_memory(load, imm, ((pc-2) & ~2) + (imm * 4) + 4, reg[(opcode >> 8) & 7], u32);
+             thumb_access_memory(load, imm, ((reg[REG_PC] - 2) & ~2) + (imm * 4) + 4, reg[(opcode >> 8) & 7], u32);
              break;
 
           case 0x50:
@@ -3463,7 +3410,7 @@ thumb_loop:
 
           case 0xA0 ... 0xA7:
              /* ADD r0..7, pc, +imm */
-             thumb_add_noflags(imm, ((opcode >> 8) & 7), (pc & ~2) + 4, (imm * 4));
+             thumb_add_noflags(imm, ((opcode >> 8) & 7), (reg[REG_PC] & ~2) + 4, (imm * 4));
              break;
 
           case 0xA8 ... 0xAF:
@@ -3597,10 +3544,9 @@ thumb_loop:
                    default:
                       // After SWI, we read bios[0xE4]
                       reg[REG_BUS_VALUE] = 0xe3a02004;
-                      REG_MODE(MODE_SUPERVISOR)[6] = pc + 2;
+                      REG_MODE(MODE_SUPERVISOR)[6] = reg[REG_PC] + 2;
                       REG_SPSR(MODE_SUPERVISOR) = reg[REG_CPSR];
                       reg[REG_PC] = 0x00000008;
-                      thumb_update_pc();
                       // Move to ARM mode, Supervisor mode and disable IRQs
                       reg[REG_CPSR] = (reg[REG_CPSR] & ~0x3F) | 0x13 | 0x80;
                       set_cpu_mode(MODE_SUPERVISOR);
@@ -3614,8 +3560,9 @@ thumb_loop:
              {
                 /* B label */
                 thumb_decode_branch();
-                thumb_pc_offset_update(((s32)(offset << 21) >> 20) + 4);
-                cycles_remaining -= ws_cyc_nseq[pc >> 24][0];
+                s32 br_offset = ((s32)(offset << 21) >> 20) + 4;
+                reg[REG_PC] += br_offset;
+                cycles_remaining -= ws_cyc_nseq[reg[REG_PC] >> 24][0];
                 break;
              }
 
@@ -3623,7 +3570,7 @@ thumb_loop:
              {
                 /* (low word) BL label */
                 thumb_decode_branch();
-                reg[REG_LR] = pc + 4 + ((s32)(offset << 21) >> 9);
+                reg[REG_LR] = reg[REG_PC] + 4 + ((s32)(offset << 21) >> 9);
                 thumb_pc_offset(2);
                 break;
              }
@@ -3632,19 +3579,19 @@ thumb_loop:
              {
                 /* (high word) BL label */
                 thumb_decode_branch();
-                u32 lr = (pc + 2) | 0x01;
-                pc = reg[REG_LR] + (offset * 2);
-                reg[REG_LR] = lr;
-                reg[REG_PC] = pc;
-                cycles_remaining -= ws_cyc_nseq[pc >> 24][0];
+                u32 newlr = (reg[REG_PC] + 2) | 0x01;
+                u32 newpc = reg[REG_LR] + (offset * 2);
+                reg[REG_LR] = newlr;
+                reg[REG_PC] = newpc;
+                cycles_remaining -= ws_cyc_nseq[newpc >> 24][0];
                 break;
              }
        }
 
        /* End of Execute THUMB instruction */
-       cycles_remaining -= ws_cyc_seq[(pc >> 24) & 0xF][0];
+       cycles_remaining -= ws_cyc_seq[(reg[REG_PC] >> 24) & 0xF][0];
 
-       if (pc == idle_loop_target_pc && cycles_remaining > 0) cycles_remaining = 0;
+       if (reg[REG_PC] == idle_loop_target_pc && cycles_remaining > 0) cycles_remaining = 0;
 
        if (cpu_alert & (CPU_ALERT_HALT | CPU_ALERT_IRQ))
           goto alert;
