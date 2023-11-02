@@ -91,8 +91,6 @@ typedef struct
   u8 *branch_source;
 } block_exit_type;
 
-extern u8 bit_count[256];
-
 // Div (6) and DivArm (7)
 #define is_div_swi(swinum) (((swinum) & 0xFE) == 0x06)
 

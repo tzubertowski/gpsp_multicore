@@ -182,4 +182,6 @@ extern const u32 spsr_masks[4];
 void init_cpu(void);
 void move_reg();
 
+extern const u8 bit_count[256];
+
 #endif

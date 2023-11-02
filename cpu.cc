@@ -21,9 +21,10 @@
 // - stm reglist writeback when base is in the list needs adjustment
 // - block memory needs psr swapping and user mode reg swapping
 
-#include "common.h"
-
-#include "cpu_instrument.h"
+extern "C" {
+  #include "common.h"
+  #include "cpu_instrument.h"
+}
 
 const u8 bit_count[256] =
 {
@@ -1411,7 +1412,6 @@ u32 instruction_count = 0;
 
 void set_cpu_mode(cpu_mode_type new_mode)
 {
-  u32 i;
   cpu_mode_type cpu_mode = reg[CPU_MODE];
 
   if(cpu_mode == new_mode)
@@ -1419,7 +1419,7 @@ void set_cpu_mode(cpu_mode_type new_mode)
 
   if(new_mode == MODE_FIQ)
   {
-     for(i = 8; i < 15; i++)
+     for (u32 i = 8; i < 15; i++)
         REG_MODE(cpu_mode)[i - 8] = reg[i];
   }
   else
@@ -1430,7 +1430,7 @@ void set_cpu_mode(cpu_mode_type new_mode)
 
   if(cpu_mode == MODE_FIQ)
   {
-     for(i = 8; i < 15; i++)
+     for (u32 i = 8; i < 15; i++)
         reg[i] = REG_MODE(new_mode)[i - 8];
   }
   else
@@ -3667,10 +3667,9 @@ thumb_loop:
 void init_cpu(void)
 {
   // Initialize CPU registers
-  int i;
   memset(reg, 0, REG_USERDEF * sizeof(u32));
   memset(reg_mode, 0, sizeof(reg_mode));
-  for (i = 0; i < sizeof(spsr)/sizeof(spsr[0]); i++)
+  for (u32 i = 0; i < sizeof(spsr)/sizeof(spsr[0]); i++)
     spsr[i] = 0x00000010;
 
   reg[CPU_HALT_STATE] = CPU_ACTIVE;

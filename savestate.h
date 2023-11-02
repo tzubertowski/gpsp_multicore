@@ -50,13 +50,16 @@
 
 #define bson_write_int32array(p, key, arr, cnt) \
 {                                               \
+  u32 _n;                                       \
   u32 *arrptr = (u32*)(arr);                    \
-  int _n;                                       \
   *p++ = 0x4;                                   \
   bson_write_cstring(p, key);                   \
   bson_write_u32(p, 5 + (cnt) * 8);             \
   for (_n = 0; _n < (cnt); _n++) {              \
-    char ak[3] = {'0'+(_n/10), '0'+(_n%10), 0}; \
+    char ak[3] = {                              \
+      (char)('0' + (_n/10)),                    \
+      (char)('0' + (_n%10)),                    \
+       0 };                                     \
     bson_write_int32(p, ak, arrptr[_n]);        \
   }                                             \
   *p++ = 0;                                     \
