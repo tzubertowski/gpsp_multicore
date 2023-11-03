@@ -1613,7 +1613,7 @@ arm_loop:
        }
 
        #ifdef TRACE_INSTRUCTIONS
-       interp_trace_instruction(pc, 1);
+       interp_trace_instruction(reg[REG_PC], 1);
        #endif
 
        switch((opcode >> 20) & 0xFF)
@@ -3106,7 +3106,7 @@ thumb_loop:
        opcode = readaddress16(pc_address_block, (reg[REG_PC] & 0x7FFF));
 
        #ifdef TRACE_INSTRUCTIONS
-       interp_trace_instruction(pc, 0);
+       interp_trace_instruction(reg[REG_PC], 0);
        #endif
 
        switch((opcode >> 8) & 0xFF)
