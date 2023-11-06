@@ -17,10 +17,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// Important todo:
-// - stm reglist writeback when base is in the list needs adjustment
-// - block memory needs psr swapping and user mode reg swapping
-
 extern "C" {
   #include "common.h"
   #include "cpu_instrument.h"
@@ -951,79 +947,74 @@ const u32 spsr_masks[4] = { 0x00000000, 0x000000EF, 0xF0000000, 0xF00000EF };
   access_type##_memory_##mem_type(address, access_type##_reg_op);             \
 }                                                                             \
 
-#define word_bit_count(word)                                                  \
-  (bit_count[word >> 8] + bit_count[word & 0xFF])                             \
+// Excutes an LDM/STM instruction
 
-#define arm_block_writeback_load()                                            \
-  if(!((reg_list >> rn) & 0x01))                                              \
-  {                                                                           \
-    reg[rn] = address;                                                        \
-  }                                                                           \
+typedef enum { AccLoad, AccStore } AccMode;
+typedef enum { AddrInc, AddrDec } AddrMode;
+typedef enum { AddrUpdPre, AddrUpdPost } AddrUpMode;
 
-#define arm_block_writeback_store()                                           \
-  reg[rn] = address                                                           \
+template<AccMode mode, bool writeback, bool sbit, AddrMode addr_mode, AddrUpMode updm>
+inline cpu_alert_type exec_arm_block_mem(u32 rn, u32 reglist, s32 &cycles_remaining) {
+  cpu_alert_type cpu_alert = CPU_ALERT_NONE;
+  // Register register usage stats.
+  using_register(arm, rn, memory_base);
+  using_register_list(arm, reglist, 16);
 
-#define arm_block_writeback_yes(access_type)                                  \
-  arm_block_writeback_##access_type()                                         \
+  // Calcualte base address.
+  u32 numops = (bit_count[reglist >> 8] + bit_count[reglist & 0xFF]);
+  u32 base = reg[rn];
+  u32 address = base & ~3U;
+  s32 addr_off = (addr_mode == AddrInc) ? 4 : -4;  // Address incr/decr amount.
+  u32 endaddr = base + addr_off * numops;
 
-#define arm_block_writeback_no(access_type)                                   \
+  // If sbit is set, change to user mode and back, so to write the user regs.
+  // However for LDM {PC} we restore CPSR from SPSR.
+  // TODO: implement CPSR restore, only USER mode is now implemented.
+  u32 old_cpsr = reg[REG_CPSR];
+  if (sbit)
+    set_cpu_mode(MODE_USER);
 
-#define load_block_memory(address, dest)                                      \
-  dest = readaddress32(address_region, (address + offset) & 0x7FFF)           \
+  // If base is in the reglist and writeback is enabled, the value of the
+  // written register depends on the write cycle (ARM7TDM manual 4.11.6).
+  // If the register is the first, the written value is the original value,
+  // otherwise the update base register is written. For LDM loaded date
+  // takes always precendence.
+  bool wrbck_base = (1 << rn) & reglist;
+  bool base_first = (((1 << rn) - 1) & reglist) == 0;
+  bool writeback_first = (mode == AccLoad) || !(wrbck_base && base_first);
 
-#define store_block_memory(address, dest)                                     \
-  address32(address_region, (address + offset) & 0x7FFF) = eswap32(dest)      \
+  if (writeback && writeback_first)
+    reg[rn] = endaddr;
 
-#define arm_block_memory_offset_down_a()                                      \
-  (base - (word_bit_count(reg_list) * 4) + 4)                                 \
+  arm_pc_offset(4);  // Advance PC
 
-#define arm_block_memory_offset_down_b()                                      \
-  (base - (word_bit_count(reg_list) * 4))                                     \
+  for (u32 i = 0; i < 16; i++)  {
+    u32 regnum = (addr_mode == AddrInc) ? i : 15 - i;
+    if ((reglist >> regnum) & 0x01) {
+      // Update address for pre-update mode.
+      if (updm == AddrUpdPre)
+        address += addr_off;
 
-#define arm_block_memory_offset_no()                                          \
-  (base)                                                                      \
+      if (mode == AccLoad) {
+        load_aligned32(address, reg[regnum]);
+      } else {
+        store_aligned32(address, (regnum == REG_PC) ? reg[REG_PC] + 4 : reg[regnum]);
+      }
 
-#define arm_block_memory_offset_up()                                          \
-  (base + 4)                                                                  \
+      // Update address for post-update mode.
+      if (updm == AddrUpdPost)
+        address += addr_off;
+    }
+  }
 
-#define arm_block_memory_writeback_down()                                     \
-  reg[rn] = base - (word_bit_count(reg_list) * 4)                             \
+  if (writeback && !writeback_first)
+    reg[rn] = endaddr;
 
-#define arm_block_memory_writeback_up()                                       \
-  reg[rn] = base + (word_bit_count(reg_list) * 4)                             \
+  if (sbit)
+    set_cpu_mode(cpu_modes[old_cpsr & 0xF]);
 
-#define arm_block_memory_writeback_no()                                       \
-
-#define arm_block_memory_load_pc()                                            \
-  load_aligned32(address, reg[REG_PC]);                                       \
-
-#define arm_block_memory_store_pc()                                           \
-  store_aligned32(address, reg[REG_PC] + 4)                                   \
-
-#define arm_block_memory(access_type, offset_type, writeback_type, s_bit)     \
-{                                                                             \
-  arm_decode_block_trans();                                                   \
-  u32 base = reg[rn];                                                         \
-  u32 address = arm_block_memory_offset_##offset_type() & 0xFFFFFFFC;         \
-  u32 i;                                                                      \
-                                                                              \
-  arm_block_memory_writeback_##writeback_type();                              \
-                                                                              \
-  for(i = 0; i < 15; i++)                                                     \
-  {                                                                           \
-    if((reg_list >> i) & 0x01)                                                \
-    {                                                                         \
-      access_type##_aligned32(address, reg[i]);                               \
-      address += 4;                                                           \
-    }                                                                         \
-  }                                                                           \
-                                                                              \
-  arm_pc_offset(4);                                                           \
-  if(reg_list & 0x8000)                                                       \
-  {                                                                           \
-    arm_block_memory_##access_type##_pc();                                    \
-  }                                                                           \
-}                                                                             \
+  return cpu_alert;
+}
 
 #define arm_swap(type)                                                        \
 {                                                                             \
@@ -2860,165 +2851,147 @@ arm_loop:
              arm_access_memory(load, + reg_offset, reg, u8, yes, no_op);
              break;
 
-          case 0x80:
-             /* STMDA rn, rlist */
-             arm_block_memory(store, down_a, no, no);
-             break;
+          /* STM instructions: STMDA, STMIA, STMDB, STMIB */
 
-          case 0x81:
-             /* LDMDA rn, rlist */
-             arm_block_memory(load, down_a, no, no);
-             break;
+          case 0x80:   /* STMDA rn, rlist */
+            cpu_alert |= exec_arm_block_mem<AccStore, false, false, AddrDec, AddrUpdPost>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x82:   /* STMDA rn!, rlist */
+            cpu_alert |= exec_arm_block_mem<AccStore, true, false, AddrDec, AddrUpdPost>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x84:   /* STMDA rn, rlist^ */
+            cpu_alert |= exec_arm_block_mem<AccStore, false, true, AddrDec, AddrUpdPost>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x86:   /* STMDA rn!, rlist^ */
+            cpu_alert |= exec_arm_block_mem<AccStore, true, true, AddrDec, AddrUpdPost>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
 
-          case 0x82:
-             /* STMDA rn!, rlist */
-             arm_block_memory(store, down_a, down, no);
-             break;
+          case 0x88:   /* STMIA rn, rlist */
+            cpu_alert |= exec_arm_block_mem<AccStore, false, false, AddrInc, AddrUpdPost>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x8A:   /* STMIA rn!, rlist */
+            cpu_alert |= exec_arm_block_mem<AccStore, true, false, AddrInc, AddrUpdPost>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x8C:   /* STMIA rn, rlist^ */
+            cpu_alert |= exec_arm_block_mem<AccStore, false, true, AddrInc, AddrUpdPost>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x8E:   /* STMIA rn!, rlist^ */
+            cpu_alert |= exec_arm_block_mem<AccStore, true, true, AddrInc, AddrUpdPost>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
 
-          case 0x83:
-             /* LDMDA rn!, rlist */
-             arm_block_memory(load, down_a, down, no);
-             break;
+          case 0x90:   /* STMDB rn, rlist */
+            cpu_alert |= exec_arm_block_mem<AccStore, false, false, AddrDec, AddrUpdPre>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x92:   /* STMDB rn!, rlist */
+            cpu_alert |= exec_arm_block_mem<AccStore, true, false, AddrDec, AddrUpdPre>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x94:   /* STMDB rn, rlist^ */
+            cpu_alert |= exec_arm_block_mem<AccStore, false, true, AddrDec, AddrUpdPre>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x96:   /* STMDB rn!, rlist^ */
+            cpu_alert |= exec_arm_block_mem<AccStore, true, true, AddrDec, AddrUpdPre>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
 
-          case 0x84:
-             /* STMDA rn, rlist^ */
-             arm_block_memory(store, down_a, no, yes);
-             break;
+          case 0x98:   /* STMIB rn, rlist */
+            cpu_alert |= exec_arm_block_mem<AccStore, false, false, AddrInc, AddrUpdPre>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x9A:   /* STMIB rn!, rlist */
+            cpu_alert |= exec_arm_block_mem<AccStore, true, false, AddrInc, AddrUpdPre>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x9C:   /* STMIB rn, rlist^ */
+            cpu_alert |= exec_arm_block_mem<AccStore, false, true, AddrInc, AddrUpdPre>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x9E:   /* STMIB rn!, rlist^ */
+            cpu_alert |= exec_arm_block_mem<AccStore, true, true, AddrInc, AddrUpdPre>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
 
-          case 0x85:
-             /* LDMDA rn, rlist^ */
-             arm_block_memory(load, down_a, no, yes);
-             break;
 
-          case 0x86:
-             /* STMDA rn!, rlist^ */
-             arm_block_memory(store, down_a, down, yes);
-             break;
+          /* LDM instructions: LDMDA, LDMIA, LDMDB, LDMIB */
 
-          case 0x87:
-             /* LDMDA rn!, rlist^ */
-             arm_block_memory(load, down_a, down, yes);
-             break;
+          case 0x81:   /* LDMDA rn, rlist */
+            cpu_alert |= exec_arm_block_mem<AccLoad, false, false, AddrDec, AddrUpdPost>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x83:   /* LDMDA rn!, rlist */
+            cpu_alert |= exec_arm_block_mem<AccLoad, true, false, AddrDec, AddrUpdPost>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x85:   /* LDMDA rn, rlist^ */
+            cpu_alert |= exec_arm_block_mem<AccLoad, false, true, AddrDec, AddrUpdPost>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x87:   /* LDMDA rn!, rlist^ */
+            cpu_alert |= exec_arm_block_mem<AccLoad, true, true, AddrDec, AddrUpdPost>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
 
-          case 0x88:
-             /* STMIA rn, rlist */
-             arm_block_memory(store, no, no, no);
-             break;
+          case 0x89:   /* LDMIA rn, rlist */
+            cpu_alert |= exec_arm_block_mem<AccLoad, false, false, AddrInc, AddrUpdPost>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x8B:   /* LDMIA rn!, rlist */
+            cpu_alert |= exec_arm_block_mem<AccLoad, true, false, AddrInc, AddrUpdPost>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x8D:   /* LDMIA rn, rlist^ */
+            cpu_alert |= exec_arm_block_mem<AccLoad, false, true, AddrInc, AddrUpdPost>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x8F:   /* LDMIA rn!, rlist^ */
+            cpu_alert |= exec_arm_block_mem<AccLoad, true, true, AddrInc, AddrUpdPost>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
 
-          case 0x89:
-             /* LDMIA rn, rlist */
-             arm_block_memory(load, no, no, no);
-             break;
+          case 0x91:   /* LDMDB rn, rlist */
+            cpu_alert |= exec_arm_block_mem<AccLoad, false, false, AddrDec, AddrUpdPre>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x93:   /* LDMDB rn!, rlist */
+            cpu_alert |= exec_arm_block_mem<AccLoad, true, false, AddrDec, AddrUpdPre>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x95:   /* LDMDB rn, rlist^ */
+            cpu_alert |= exec_arm_block_mem<AccLoad, false, true, AddrDec, AddrUpdPre>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x97:   /* LDMDB rn!, rlist^ */
+            cpu_alert |= exec_arm_block_mem<AccLoad, true, true, AddrDec, AddrUpdPre>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
 
-          case 0x8A:
-             /* STMIA rn!, rlist */
-             arm_block_memory(store, no, up, no);
-             break;
+          case 0x99:   /* LDMIB rn, rlist */
+            cpu_alert |= exec_arm_block_mem<AccLoad, false, false, AddrInc, AddrUpdPre>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x9B:   /* LDMIB rn!, rlist */
+            cpu_alert |= exec_arm_block_mem<AccLoad, true, false, AddrInc, AddrUpdPre>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x9D:   /* LDMIB rn, rlist^ */
+            cpu_alert |= exec_arm_block_mem<AccLoad, false, true, AddrInc, AddrUpdPre>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
+          case 0x9F:   /* LDMIB rn!, rlist^ */
+            cpu_alert |= exec_arm_block_mem<AccLoad, true, true, AddrInc, AddrUpdPre>(
+              (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
+            break;
 
-          case 0x8B:
-             /* LDMIA rn!, rlist */
-             arm_block_memory(load, no, up, no);
-             break;
-
-          case 0x8C:
-             /* STMIA rn, rlist^ */
-             arm_block_memory(store, no, no, yes);
-             break;
-
-          case 0x8D:
-             /* LDMIA rn, rlist^ */
-             arm_block_memory(load, no, no, yes);
-             break;
-
-          case 0x8E:
-             /* STMIA rn!, rlist^ */
-             arm_block_memory(store, no, up, yes);
-             break;
-
-          case 0x8F:
-             /* LDMIA rn!, rlist^ */
-             arm_block_memory(load, no, up, yes);
-             break;
-
-          case 0x90:
-             /* STMDB rn, rlist */
-             arm_block_memory(store, down_b, no, no);
-             break;
-
-          case 0x91:
-             /* LDMDB rn, rlist */
-             arm_block_memory(load, down_b, no, no);
-             break;
-
-          case 0x92:
-             /* STMDB rn!, rlist */
-             arm_block_memory(store, down_b, down, no);
-             break;
-
-          case 0x93:
-             /* LDMDB rn!, rlist */
-             arm_block_memory(load, down_b, down, no);
-             break;
-
-          case 0x94:
-             /* STMDB rn, rlist^ */
-             arm_block_memory(store, down_b, no, yes);
-             break;
-
-          case 0x95:
-             /* LDMDB rn, rlist^ */
-             arm_block_memory(load, down_b, no, yes);
-             break;
-
-          case 0x96:
-             /* STMDB rn!, rlist^ */
-             arm_block_memory(store, down_b, down, yes);
-             break;
-
-          case 0x97:
-             /* LDMDB rn!, rlist^ */
-             arm_block_memory(load, down_b, down, yes);
-             break;
-
-          case 0x98:
-             /* STMIB rn, rlist */
-             arm_block_memory(store, up, no, no);
-             break;
-
-          case 0x99:
-             /* LDMIB rn, rlist */
-             arm_block_memory(load, up, no, no);
-             break;
-
-          case 0x9A:
-             /* STMIB rn!, rlist */
-             arm_block_memory(store, up, up, no);
-             break;
-
-          case 0x9B:
-             /* LDMIB rn!, rlist */
-             arm_block_memory(load, up, up, no);
-             break;
-
-          case 0x9C:
-             /* STMIB rn, rlist^ */
-             arm_block_memory(store, up, no, yes);
-             break;
-
-          case 0x9D:
-             /* LDMIB rn, rlist^ */
-             arm_block_memory(load, up, no, yes);
-             break;
-
-          case 0x9E:
-             /* STMIB rn!, rlist^ */
-             arm_block_memory(store, up, up, yes);
-             break;
-
-          case 0x9F:
-             /* LDMIB rn!, rlist^ */
-             arm_block_memory(load, up, up, yes);
-             break;
 
           case 0xA0 ... 0xAF:
              {
