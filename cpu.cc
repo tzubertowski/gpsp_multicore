@@ -961,10 +961,9 @@ const u32 spsr_masks[4] = { 0x00000000, 0x000000EF, 0xF0000000, 0xF00000EF };
 // Excutes an LDM/STM instruction
 
 typedef enum { AccLoad, AccStore } AccMode;
-typedef enum { AddrInc, AddrDec } AddrMode;
-typedef enum { AddrUpdPre, AddrUpdPost } AddrUpMode;
+typedef enum { AddrPreInc, AddrPreDec, AddrPostInc, AddrPostDec } AddrMode;
 
-template<AccMode mode, bool writeback, bool sbit, AddrMode addr_mode, AddrUpMode updm>
+template<AccMode mode, bool writeback, bool sbit, AddrMode addr_mode>
 inline cpu_alert_type exec_arm_block_mem(u32 rn, u32 reglist, s32 &cycles_remaining) {
   cpu_alert_type cpu_alert = CPU_ALERT_NONE;
   // Register register usage stats.
@@ -972,11 +971,15 @@ inline cpu_alert_type exec_arm_block_mem(u32 rn, u32 reglist, s32 &cycles_remain
   using_register_list(arm, reglist, 16);
 
   // Calcualte base address.
-  u32 numops = (bit_count[reglist >> 8] + bit_count[reglist & 0xFF]);
   u32 base = reg[rn];
-  u32 address = base & ~3U;
-  s32 addr_off = (addr_mode == AddrInc) ? 4 : -4;  // Address incr/decr amount.
+  u32 numops = (bit_count[reglist >> 8] + bit_count[reglist & 0xFF]);
+  s32 addr_off = (addr_mode == AddrPreInc || addr_mode == AddrPostInc) ? 4 : -4;  // Address incr/decr amount.
   u32 endaddr = base + addr_off * numops;
+
+  u32 address = (addr_mode == AddrPreInc)  ? base + 4 :
+                (addr_mode == AddrPostInc) ? base :
+                (addr_mode == AddrPreDec)  ? endaddr : endaddr + 4;
+  address &= ~3U;
 
   // If sbit is set, change to user mode and back, so to write the user regs.
   // However for LDM {PC} we restore CPSR from SPSR.
@@ -1000,21 +1003,13 @@ inline cpu_alert_type exec_arm_block_mem(u32 rn, u32 reglist, s32 &cycles_remain
   arm_pc_offset(4);  // Advance PC
 
   for (u32 i = 0; i < 16; i++)  {
-    u32 regnum = (addr_mode == AddrInc) ? i : 15 - i;
-    if ((reglist >> regnum) & 0x01) {
-      // Update address for pre-update mode.
-      if (updm == AddrUpdPre)
-        address += addr_off;
-
+    if ((reglist >> i) & 0x01) {
       if (mode == AccLoad) {
-        load_aligned32(address, reg[regnum]);
+        load_aligned32(address, reg[i]);
       } else {
-        store_aligned32(address, (regnum == REG_PC) ? reg[REG_PC] + 4 : reg[regnum]);
+        store_aligned32(address, (i == REG_PC) ? reg[REG_PC] + 4 : reg[i]);
       }
-
-      // Update address for post-update mode.
-      if (updm == AddrUpdPost)
-        address += addr_off;
+      address += 4;
     }
   }
 
@@ -2865,70 +2860,70 @@ arm_loop:
           /* STM instructions: STMDA, STMIA, STMDB, STMIB */
 
           case 0x80:   /* STMDA rn, rlist */
-            cpu_alert |= exec_arm_block_mem<AccStore, false, false, AddrDec, AddrUpdPost>(
+            cpu_alert |= exec_arm_block_mem<AccStore, false, false, AddrPostDec>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
           case 0x88:   /* STMIA rn, rlist */
-            cpu_alert |= exec_arm_block_mem<AccStore, false, false, AddrInc, AddrUpdPost>(
+            cpu_alert |= exec_arm_block_mem<AccStore, false, false, AddrPostInc>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
           case 0x90:   /* STMDB rn, rlist */
-            cpu_alert |= exec_arm_block_mem<AccStore, false, false, AddrDec, AddrUpdPre>(
+            cpu_alert |= exec_arm_block_mem<AccStore, false, false, AddrPreDec>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
           case 0x98:   /* STMIB rn, rlist */
-            cpu_alert |= exec_arm_block_mem<AccStore, false, false, AddrInc, AddrUpdPre>(
+            cpu_alert |= exec_arm_block_mem<AccStore, false, false, AddrPreInc>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
 
           case 0x82:   /* STMDA rn!, rlist */
-            cpu_alert |= exec_arm_block_mem<AccStore, true, false, AddrDec, AddrUpdPost>(
+            cpu_alert |= exec_arm_block_mem<AccStore, true, false, AddrPostDec>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
           case 0x8A:   /* STMIA rn!, rlist */
-            cpu_alert |= exec_arm_block_mem<AccStore, true, false, AddrInc, AddrUpdPost>(
+            cpu_alert |= exec_arm_block_mem<AccStore, true, false, AddrPostInc>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
           case 0x92:   /* STMDB rn!, rlist */
-            cpu_alert |= exec_arm_block_mem<AccStore, true, false, AddrDec, AddrUpdPre>(
+            cpu_alert |= exec_arm_block_mem<AccStore, true, false, AddrPreDec>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
           case 0x9A:   /* STMIB rn!, rlist */
-            cpu_alert |= exec_arm_block_mem<AccStore, true, false, AddrInc, AddrUpdPre>(
+            cpu_alert |= exec_arm_block_mem<AccStore, true, false, AddrPreInc>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
 
           case 0x84:   /* STMDA rn, rlist^ */
-            cpu_alert |= exec_arm_block_mem<AccStore, false, true, AddrDec, AddrUpdPost>(
+            cpu_alert |= exec_arm_block_mem<AccStore, false, true, AddrPostDec>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
           case 0x8C:   /* STMIA rn, rlist^ */
-            cpu_alert |= exec_arm_block_mem<AccStore, false, true, AddrInc, AddrUpdPost>(
+            cpu_alert |= exec_arm_block_mem<AccStore, false, true, AddrPostInc>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
           case 0x94:   /* STMDB rn, rlist^ */
-            cpu_alert |= exec_arm_block_mem<AccStore, false, true, AddrDec, AddrUpdPre>(
+            cpu_alert |= exec_arm_block_mem<AccStore, false, true, AddrPreDec>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
           case 0x9C:   /* STMIB rn, rlist^ */
-            cpu_alert |= exec_arm_block_mem<AccStore, false, true, AddrInc, AddrUpdPre>(
+            cpu_alert |= exec_arm_block_mem<AccStore, false, true, AddrPreInc>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
 
           case 0x86:   /* STMDA rn!, rlist^ */
-            cpu_alert |= exec_arm_block_mem<AccStore, true, true, AddrDec, AddrUpdPost>(
+            cpu_alert |= exec_arm_block_mem<AccStore, true, true, AddrPostDec>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
           case 0x8E:   /* STMIA rn!, rlist^ */
-            cpu_alert |= exec_arm_block_mem<AccStore, true, true, AddrInc, AddrUpdPost>(
+            cpu_alert |= exec_arm_block_mem<AccStore, true, true, AddrPostInc>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
           case 0x96:   /* STMDB rn!, rlist^ */
-            cpu_alert |= exec_arm_block_mem<AccStore, true, true, AddrDec, AddrUpdPre>(
+            cpu_alert |= exec_arm_block_mem<AccStore, true, true, AddrPreDec>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
           case 0x9E:   /* STMIB rn!, rlist^ */
-            cpu_alert |= exec_arm_block_mem<AccStore, true, true, AddrInc, AddrUpdPre>(
+            cpu_alert |= exec_arm_block_mem<AccStore, true, true, AddrPreInc>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
 
@@ -2936,77 +2931,77 @@ arm_loop:
           /* LDM instructions: LDMDA, LDMIA, LDMDB, LDMIB */
 
           case 0x81:   /* LDMDA rn, rlist */
-            cpu_alert |= exec_arm_block_mem<AccLoad, false, false, AddrDec, AddrUpdPost>(
+            cpu_alert |= exec_arm_block_mem<AccLoad, false, false, AddrPostDec>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
           case 0x89:   /* LDMIA rn, rlist */
-            cpu_alert |= exec_arm_block_mem<AccLoad, false, false, AddrInc, AddrUpdPost>(
+            cpu_alert |= exec_arm_block_mem<AccLoad, false, false, AddrPostInc>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
           case 0x91:   /* LDMDB rn, rlist */
-            cpu_alert |= exec_arm_block_mem<AccLoad, false, false, AddrDec, AddrUpdPre>(
+            cpu_alert |= exec_arm_block_mem<AccLoad, false, false, AddrPreDec>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
           case 0x99:   /* LDMIB rn, rlist */
-            cpu_alert |= exec_arm_block_mem<AccLoad, false, false, AddrInc, AddrUpdPre>(
+            cpu_alert |= exec_arm_block_mem<AccLoad, false, false, AddrPreInc>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
 
           case 0x83:   /* LDMDA rn!, rlist */
-            cpu_alert |= exec_arm_block_mem<AccLoad, true, false, AddrDec, AddrUpdPost>(
+            cpu_alert |= exec_arm_block_mem<AccLoad, true, false, AddrPostDec>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
           case 0x8B:   /* LDMIA rn!, rlist */
-            cpu_alert |= exec_arm_block_mem<AccLoad, true, false, AddrInc, AddrUpdPost>(
+            cpu_alert |= exec_arm_block_mem<AccLoad, true, false, AddrPostInc>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
           case 0x93:   /* LDMDB rn!, rlist */
-            cpu_alert |= exec_arm_block_mem<AccLoad, true, false, AddrDec, AddrUpdPre>(
+            cpu_alert |= exec_arm_block_mem<AccLoad, true, false, AddrPreDec>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
           case 0x9B:   /* LDMIB rn!, rlist */
-            cpu_alert |= exec_arm_block_mem<AccLoad, true, false, AddrInc, AddrUpdPre>(
+            cpu_alert |= exec_arm_block_mem<AccLoad, true, false, AddrPreInc>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             break;
 
           case 0x85:   /* LDMDA rn, rlist^ */
-            cpu_alert |= exec_arm_block_mem<AccLoad, false, true, AddrDec, AddrUpdPost>(
+            cpu_alert |= exec_arm_block_mem<AccLoad, false, true, AddrPostDec>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             arm_spsr_restore_ldm_check();
             break;
           case 0x8D:   /* LDMIA rn, rlist^ */
-            cpu_alert |= exec_arm_block_mem<AccLoad, false, true, AddrInc, AddrUpdPost>(
+            cpu_alert |= exec_arm_block_mem<AccLoad, false, true, AddrPostInc>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             arm_spsr_restore_ldm_check();
             break;
           case 0x95:   /* LDMDB rn, rlist^ */
-            cpu_alert |= exec_arm_block_mem<AccLoad, false, true, AddrDec, AddrUpdPre>(
+            cpu_alert |= exec_arm_block_mem<AccLoad, false, true, AddrPreDec>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             arm_spsr_restore_ldm_check();
             break;
           case 0x9D:   /* LDMIB rn, rlist^ */
-            cpu_alert |= exec_arm_block_mem<AccLoad, false, true, AddrInc, AddrUpdPre>(
+            cpu_alert |= exec_arm_block_mem<AccLoad, false, true, AddrPreInc>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             arm_spsr_restore_ldm_check();
             break;
 
           case 0x87:   /* LDMDA rn!, rlist^ */
-            cpu_alert |= exec_arm_block_mem<AccLoad, true, true, AddrDec, AddrUpdPost>(
+            cpu_alert |= exec_arm_block_mem<AccLoad, true, true, AddrPostDec>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             arm_spsr_restore_ldm_check();
             break;
           case 0x8F:   /* LDMIA rn!, rlist^ */
-            cpu_alert |= exec_arm_block_mem<AccLoad, true, true, AddrInc, AddrUpdPost>(
+            cpu_alert |= exec_arm_block_mem<AccLoad, true, true, AddrPostInc>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             arm_spsr_restore_ldm_check();
             break;
           case 0x97:   /* LDMDB rn!, rlist^ */
-            cpu_alert |= exec_arm_block_mem<AccLoad, true, true, AddrDec, AddrUpdPre>(
+            cpu_alert |= exec_arm_block_mem<AccLoad, true, true, AddrPreDec>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             arm_spsr_restore_ldm_check();
             break;
           case 0x9F:   /* LDMIB rn!, rlist^ */
-            cpu_alert |= exec_arm_block_mem<AccLoad, true, true, AddrInc, AddrUpdPre>(
+            cpu_alert |= exec_arm_block_mem<AccLoad, true, true, AddrPreInc>(
               (opcode >> 16) & 0x0F, opcode & 0xFFFF, cycles_remaining);
             arm_spsr_restore_ldm_check();
             break;
