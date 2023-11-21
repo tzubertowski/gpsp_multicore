@@ -1379,12 +1379,13 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 address, u32 store_mask)
   generate_load_reg_pc(reg_a1, i, 8);                                         \
   generate_function_call(execute_aligned_store32)                             \
 
-#define arm_block_memory_final_load()                                         \
+#define arm_block_memory_final_load(writeback_type)                           \
   arm_block_memory_load()                                                     \
 
-#define arm_block_memory_final_store()                                        \
+#define arm_block_memory_final_store(writeback_type)                          \
   generate_load_pc(reg_a2, (pc + 4));                                         \
   generate_load_reg(reg_a1, i)                                                \
+  arm_block_memory_writeback_post_store(writeback_type);                      \
   generate_function_call(execute_store_u32);                                  \
 
 #define arm_block_memory_adjust_pc_store()                                    \
@@ -1417,13 +1418,14 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 address, u32 store_mask)
 
 // Only emit writeback if the register is not in the list
 
-#define arm_block_memory_writeback_load(writeback_type)                       \
+#define arm_block_memory_writeback_pre_load(writeback_type)                   \
   if(!((reg_list >> rn) & 0x01))                                              \
   {                                                                           \
     arm_block_memory_writeback_##writeback_type();                            \
   }                                                                           \
 
-#define arm_block_memory_writeback_store(writeback_type)                      \
+#define arm_block_memory_writeback_pre_store(writeback_type)
+#define arm_block_memory_writeback_post_store(writeback_type)                 \
   arm_block_memory_writeback_##writeback_type()                               \
 
 #define arm_block_memory(access_type, offset_type, writeback_type, s_bit)     \
@@ -1434,7 +1436,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 address, u32 store_mask)
   u32 base_reg = arm_to_a64_reg[rn];                                          \
                                                                               \
   arm_block_memory_offset_##offset_type();                                    \
-  arm_block_memory_writeback_##access_type(writeback_type);                   \
+  arm_block_memory_writeback_pre_##access_type(writeback_type);               \
                                                                               \
   {                                                                           \
     aa64_emit_andi(reg_save0, reg_save0, 30, 29);  /* clear 2 LSB */          \
@@ -1452,7 +1454,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 address, u32 store_mask)
         }                                                                     \
         else                                                                  \
         {                                                                     \
-          arm_block_memory_final_##access_type();                             \
+          arm_block_memory_final_##access_type(writeback_type);               \
           break;                                                              \
         }                                                                     \
       }                                                                       \

@@ -1504,11 +1504,12 @@ u32 execute_store_cpsr_body()
   generate_load_reg_pc(a1, i, 8);                                             \
   generate_function_call(execute_store_aligned_u32)                           \
 
-#define arm_block_memory_final_load()                                         \
+#define arm_block_memory_final_load(writeback_type)                           \
   arm_block_memory_load()                                                     \
 
-#define arm_block_memory_final_store()                                        \
+#define arm_block_memory_final_store(writeback_type)                          \
   generate_load_reg_pc(a1, i, 12);                                            \
+  arm_block_memory_writeback_post_store(writeback_type);                      \
   generate_store_reg_i32(pc + 4, REG_PC);                                     \
   generate_function_call(execute_store_u32)                                   \
 
@@ -1532,26 +1533,28 @@ u32 execute_store_cpsr_body()
   generate_add_imm(a0, 4)                                                     \
 
 #define arm_block_memory_writeback_down()                                     \
-  generate_load_reg(a0, rn)                                                   \
-  generate_add_imm(a0, -(word_bit_count(reg_list) * 4));                      \
-  generate_store_reg(a0, rn)                                                  \
+  generate_load_reg(a2, rn)                                                   \
+  generate_add_imm(a2, -(word_bit_count(reg_list) * 4));                      \
+  generate_store_reg(a2, rn)                                                  \
 
 #define arm_block_memory_writeback_up()                                       \
-  generate_load_reg(a0, rn);                                                  \
-  generate_add_imm(a0, (word_bit_count(reg_list) * 4));                       \
-  generate_store_reg(a0, rn)                                                  \
+  generate_load_reg(a2, rn);                                                  \
+  generate_add_imm(a2, (word_bit_count(reg_list) * 4));                       \
+  generate_store_reg(a2, rn)                                                  \
 
 #define arm_block_memory_writeback_no()
 
 // Only emit writeback if the register is not in the list
 
-#define arm_block_memory_writeback_load(writeback_type)                       \
+#define arm_block_memory_writeback_pre_load(writeback_type)                   \
   if(!((reg_list >> rn) & 0x01))                                              \
   {                                                                           \
     arm_block_memory_writeback_##writeback_type();                            \
   }                                                                           \
 
-#define arm_block_memory_writeback_store(writeback_type)                      \
+#define arm_block_memory_writeback_pre_store(writeback_type)                  \
+
+#define arm_block_memory_writeback_post_store(writeback_type)                 \
   arm_block_memory_writeback_##writeback_type()                               \
 
 #define arm_block_memory(access_type, offset_type, writeback_type, s_bit)     \
@@ -1564,14 +1567,14 @@ u32 execute_store_cpsr_body()
   arm_block_memory_offset_##offset_type();                                    \
   generate_and_imm(a0, ~0x03);                                                \
   generate_store_reg(a0, REG_SAVE3);                                          \
-  arm_block_memory_writeback_##access_type(writeback_type);                   \
+  arm_block_memory_writeback_pre_##access_type(writeback_type);               \
                                                                               \
   for(i = 0; i < 16; i++)                                                     \
   {                                                                           \
     if((reg_list >> i) & 0x01)                                                \
     {                                                                         \
       cycle_count++;                                                          \
-      generate_load_reg(a0, REG_SAVE3);                                      \
+      generate_load_reg(a0, REG_SAVE3);                                       \
       generate_add_imm(a0, offset)                                            \
       if(reg_list & ~((2 << i) - 1))                                          \
       {                                                                       \
@@ -1580,7 +1583,7 @@ u32 execute_store_cpsr_body()
       }                                                                       \
       else                                                                    \
       {                                                                       \
-        arm_block_memory_final_##access_type();                               \
+        arm_block_memory_final_##access_type(writeback_type);                 \
       }                                                                       \
     }                                                                         \
   }                                                                           \

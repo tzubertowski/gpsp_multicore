@@ -1485,11 +1485,12 @@ static void trace_instruction(u32 pc, u32 mode)
   arm_generate_load_reg_pc(reg_a1, i, 8);                                     \
   generate_store_call_u32_safe()                                              \
 
-#define arm_block_memory_final_load()                                         \
+#define arm_block_memory_final_load(writeback_type)                           \
   arm_block_memory_load()                                                     \
 
-#define arm_block_memory_final_store()                                        \
+#define arm_block_memory_final_store(writeback_type)                          \
   arm_generate_load_reg_pc(reg_a1, i, 12);                                    \
+  arm_block_memory_writeback_post_store(writeback_type);                      \
   generate_store_call_u32();                                                  \
   write32((pc + 4))                                                           \
 
@@ -1513,27 +1514,29 @@ static void trace_instruction(u32 pc, u32 mode)
   generate_add_imm(reg_s0, 4, 0)                                              \
 
 #define arm_block_memory_writeback_down()                                     \
-  arm_generate_load_reg(reg_a0, rn);                                          \
-  generate_sub_imm(reg_a0, (word_bit_count(reg_list) * 4), 0);                \
-  arm_generate_store_reg(reg_a0, rn)                                          \
+  arm_generate_load_reg(reg_a2, rn);                                          \
+  generate_sub_imm(reg_a2, (word_bit_count(reg_list) * 4), 0);                \
+  arm_generate_store_reg(reg_a2, rn)                                          \
 
 #define arm_block_memory_writeback_up()                                       \
-  arm_generate_load_reg(reg_a0, rn);                                          \
-  generate_add_imm(reg_a0, (word_bit_count(reg_list) * 4), 0);                \
-  arm_generate_store_reg(reg_a0, rn)                                          \
+  arm_generate_load_reg(reg_a2, rn);                                          \
+  generate_add_imm(reg_a2, (word_bit_count(reg_list) * 4), 0);                \
+  arm_generate_store_reg(reg_a2, rn)                                          \
 
 #define arm_block_memory_writeback_no()
 
 /* Only emit writeback if the register is not in the list */
 
-#define arm_block_memory_writeback_load(writeback_type)                       \
+#define arm_block_memory_writeback_pre_load(writeback_type)                   \
   if(!((reg_list >> rn) & 0x01))                                              \
   {                                                                           \
     arm_block_memory_writeback_##writeback_type();                            \
   }                                                                           \
 
-#define arm_block_memory_writeback_store(writeback_type)                      \
+#define arm_block_memory_writeback_post_store(writeback_type)                 \
   arm_block_memory_writeback_##writeback_type()                               \
+
+#define arm_block_memory_writeback_pre_store(writeback_type)
 
 #define arm_block_memory(access_type, offset_type, writeback_type, s_bit)     \
 {                                                                             \
@@ -1543,7 +1546,7 @@ static void trace_instruction(u32 pc, u32 mode)
                                                                               \
   arm_generate_load_reg(reg_s0, rn);                                          \
   arm_block_memory_offset_##offset_type();                                    \
-  arm_block_memory_writeback_##access_type(writeback_type);                   \
+  arm_block_memory_writeback_pre_##access_type(writeback_type);               \
   ARM_BIC_REG_IMM(0, reg_s0, reg_s0, 0x03, 0);                                \
   arm_generate_store_reg(reg_s0, REG_SAVE);                                   \
                                                                               \
@@ -1561,7 +1564,7 @@ static void trace_instruction(u32 pc, u32 mode)
       }                                                                       \
       else                                                                    \
       {                                                                       \
-        arm_block_memory_final_##access_type();                               \
+        arm_block_memory_final_##access_type(writeback_type);                 \
         break;                                                                \
       }                                                                       \
     }                                                                         \
