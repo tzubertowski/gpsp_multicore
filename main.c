@@ -34,7 +34,19 @@ u32 oam_update_count = 0;
 
 char main_path[512];
 
-void trigger_ext_event(void);
+static u32 random_state = 0;
+
+// Generate 16 random bits.
+u16 rand_gen() {
+  random_state = ((random_state * 1103515245) + 12345) & 0x7fffffff;
+  return random_state;
+}
+
+// Add some random state to the initial seed.
+void rand_seed(u32 data) {
+  random_state ^= rand_gen() ^ data;
+}
+
 
 static unsigned update_timers(irq_type *irq_raised, unsigned completed_cycles)
 {
@@ -127,6 +139,9 @@ u32 function_cc update_gba(int remaining_cycles)
 
     // Timers can trigger DMA (usually sound) and consume cycles
     dma_cycles = update_timers(&irq_raised, completed_cycles);
+    // Check for serial port IRQs as well.
+    if (update_serial(completed_cycles))
+      irq_raised |= IRQ_SERIAL;
 
     // Video count tracks the video cycles remaining until the next event
     video_count -= completed_cycles;
@@ -248,6 +263,10 @@ u32 function_cc update_gba(int remaining_cycles)
     // Figure out when we need to stop CPU execution. The next event is
     // a video event or a timer event, whatever happens first.
     execute_cycles = MAX(video_count, 0);
+    {
+      u32 cc = serial_next_event();
+      execute_cycles = MIN(execute_cycles, cc);
+    }
 
     // If we are paused due to a DMA, cap the number of cyles to that amount.
     if (reg[CPU_HALT_STATE] == CPU_DMA) {

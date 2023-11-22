@@ -297,6 +297,17 @@ static const ini_t gbaover[] = {
       0,                           /* translation_gate_target_3 */
    },
    {
+      // Dragon Ball Z - Buu's Fury (U)
+      "DBZBUUSFURY",               /* gamepak_title        */
+      "BG3E",                      /* gamepak_code         */
+      "70",                        /* gamepak_maker        */
+      FLAGS_RFU,                   /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
       // Dragon Ball Z - The Legacy of Goku (E)
       "DRAGONBALL Z",              /* gamepak_title        */
       "ALGP",                      /* gamepak_code         */
@@ -646,7 +657,7 @@ static const ini_t gbaover[] = {
       "MARIOGOLFGBA",              /* gamepak_title        */
       "BMGE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flags                */
+      FLAGS_RFU,                   /* flags                */
       0x8014e0a,                   /* idle_loop_target_pc  */
       0x3000d00,                   /* translation_gate_target_1 */
       0x3000a30,                   /* translation_gate_target_2 */
@@ -657,7 +668,7 @@ static const ini_t gbaover[] = {
       "MARIOGOLFGBA",              /* gamepak_title        */
       "BMGJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flags                */
+      FLAGS_RFU,                   /* flags                */
       0x8014e0a,                   /* idle_loop_target_pc  */
       0x3000d00,                   /* translation_gate_target_1 */
       0x3000a30,                   /* translation_gate_target_2 */
@@ -668,7 +679,7 @@ static const ini_t gbaover[] = {
       "MARIOGOLFGBA",              /* gamepak_title        */
       "BMGP",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flags                */
+      FLAGS_RFU,                   /* flags                */
       0x8014e0a,                   /* idle_loop_target_pc  */
       0x3000d00,                   /* translation_gate_target_1 */
       0x3000a30,                   /* translation_gate_target_2 */
@@ -679,7 +690,7 @@ static const ini_t gbaover[] = {
       "MARIOGOLFGBA",              /* gamepak_title        */
       "BMGS",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flags                */
+      FLAGS_RFU,                   /* flags                */
       0x8014e0a,                   /* idle_loop_target_pc  */
       0x3000d00,                   /* translation_gate_target_1 */
       0x3000a30,                   /* translation_gate_target_2 */
@@ -690,7 +701,7 @@ static const ini_t gbaover[] = {
       "MARIOGOLFGBA",              /* gamepak_title        */
       "BMGF",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flags                */
+      FLAGS_RFU,                   /* flags                */
       0x8014e0a,                   /* idle_loop_target_pc  */
       0x3000d00,                   /* translation_gate_target_1 */
       0x3000a30,                   /* translation_gate_target_2 */
@@ -701,7 +712,7 @@ static const ini_t gbaover[] = {
       "MARIOGOLFGBA",              /* gamepak_title        */
       "BMGI",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flags                */
+      FLAGS_RFU,                   /* flags                */
       0x8014e0a,                   /* idle_loop_target_pc  */
       0x3000d00,                   /* translation_gate_target_1 */
       0x3000a30,                   /* translation_gate_target_2 */
@@ -712,7 +723,7 @@ static const ini_t gbaover[] = {
       "MARIOGOLFGBA",              /* gamepak_title        */
       "BMGD",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flags                */
+      FLAGS_RFU,                   /* flags                */
       0x8014e0a,                   /* idle_loop_target_pc  */
       0x3000d00,                   /* translation_gate_target_1 */
       0x3000a30,                   /* translation_gate_target_2 */
@@ -723,7 +734,7 @@ static const ini_t gbaover[] = {
       "MARIOGOLFGBA",              /* gamepak_title        */
       "BMGU",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flags                */
+      FLAGS_RFU,                   /* flags                */
       0x8014e0a,                   /* idle_loop_target_pc  */
       0x3000d00,                   /* translation_gate_target_1 */
       0x3000a30,                   /* translation_gate_target_2 */
@@ -768,6 +779,17 @@ static const ini_t gbaover[] = {
       "B8MP",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
       0,                           /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
+      // Mario Tenis (E)
+      "MARIOTENNISA",              /* gamepak_title        */
+      "BTME",                      /* gamepak_code         */
+      "01",                        /* gamepak_maker        */
+      FLAGS_RFU,                   /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1284,7 +1306,7 @@ static const ini_t gbaover[] = {
       "POKEMON FIRE",              /* gamepak_title        */
       "BPRJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
       0x80008b2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1295,7 +1317,7 @@ static const ini_t gbaover[] = {
       "POKEMON FIRE",              /* gamepak_title        */
       "BPRE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
       0x80008b2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1306,7 +1328,7 @@ static const ini_t gbaover[] = {
       "POKEMON FIRE",              /* gamepak_title        */
       "BPRS",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
       0x80008b2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1317,7 +1339,7 @@ static const ini_t gbaover[] = {
       "POKEMON FIRE",              /* gamepak_title        */
       "BPRD",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
       0x80008b2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1328,7 +1350,7 @@ static const ini_t gbaover[] = {
       "POKEMON FIRE",              /* gamepak_title        */
       "BPRI",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
       0x80008b2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1339,7 +1361,7 @@ static const ini_t gbaover[] = {
       "POKEMON FIRE",              /* gamepak_title        */
       "BPRF",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
       0x80008b2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1351,7 +1373,7 @@ static const ini_t gbaover[] = {
       "POKEMON LEAF",              /* gamepak_title        */
       "BPGE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
       0x80008b2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1362,7 +1384,7 @@ static const ini_t gbaover[] = {
       "POKEMON LEAF",              /* gamepak_title        */
       "BPGS",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
       0x80008b6,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1373,7 +1395,7 @@ static const ini_t gbaover[] = {
       "POKEMON LEAF",              /* gamepak_title        */
       "BPGD",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
       0x80008b6,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1384,7 +1406,7 @@ static const ini_t gbaover[] = {
       "POKEMON LEAF",              /* gamepak_title        */
       "BPGI",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
       0x80008b6,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1395,7 +1417,7 @@ static const ini_t gbaover[] = {
       "POKEMON LEAF",              /* gamepak_title        */
       "BPGF",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
       0x80008b6,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1406,7 +1428,7 @@ static const ini_t gbaover[] = {
       "POKEMON LEAF",              /* gamepak_title        */
       "BPGJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */

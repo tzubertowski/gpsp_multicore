@@ -77,6 +77,9 @@ extern u32 flush_ram_count;
 
 extern char main_path[512];
 
+u16 rand_gen();
+void rand_seed(u32 data);
+
 #define cycles_to_run(c) ((c) & 0x7FFF)
 #define completed_frame(c) ((c) & 0x80000000)
 u32 function_cc update_gba(int remaining_cycles);

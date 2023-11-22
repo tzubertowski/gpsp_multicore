@@ -92,7 +92,9 @@ int dynarec_enable;
 boot_mode selected_boot_mode = boot_game;
 int sprite_limit = 1;
 
-static int rtc_mode = FEAT_AUTODETECT, rumble_mode = FEAT_AUTODETECT;
+static int rtc_mode = FEAT_AUTODETECT;
+static int rumble_mode = FEAT_AUTODETECT;
+static int serial_setting = SERIAL_MODE_AUTO;
 
 u32 idle_loop_target_pc = 0xFFFFFFFF;
 u32 translation_gate_target_pc[MAX_TRANSLATION_GATES];
@@ -423,6 +425,69 @@ static void video_run(void)
             GBA_SCREEN_PITCH * 2);
 }
 
+// Netplay (Netpacket) interface
+
+static u32 num_clients;
+static retro_netpacket_send_t netpacket_send_fn_ptr = NULL;
+static retro_netpacket_poll_receive_t netpacket_pollrcv_fn_ptr = NULL;
+
+void netpacket_poll_receive() {
+  if (netpacket_pollrcv_fn_ptr)
+    netpacket_pollrcv_fn_ptr();
+}
+
+void netpacket_send(uint16_t client_id, const void *buf, size_t len) {
+  // Force all packets to be flushed ASAP, to minimize latency.
+  if (netpacket_send_fn_ptr)
+    netpacket_send_fn_ptr(RETRO_NETPACKET_RELIABLE | RETRO_NETPACKET_FLUSH_HINT, buf, len, client_id);
+}
+
+static void netpacket_start(uint16_t client_id, retro_netpacket_send_t send_fn, retro_netpacket_poll_receive_t poll_receive_fn) {
+  netpacket_send_fn_ptr = send_fn;
+  netpacket_pollrcv_fn_ptr = poll_receive_fn;
+  num_clients = 0;
+}
+
+// Netplay session ends.
+static void netpacket_stop() {
+  netpacket_send_fn_ptr = NULL;
+  netpacket_pollrcv_fn_ptr = NULL;
+}
+
+static void netpacket_receive(const void* buf, size_t len, uint16_t client_id) {
+  switch (serial_mode) {
+  case SERIAL_MODE_RFU:
+    rfu_net_receive(buf, len, client_id);
+    break;
+  };
+}
+
+// Ensure we do not have too many clients for the type of connection used.
+static bool netpacket_connected(uint16_t client_id) {
+  u32 max_clients = serial_mode == SERIAL_MODE_RFU ? 32 : 0;
+
+  if (num_clients >= max_clients)
+    return false;
+
+  num_clients++;
+  return true;
+}
+
+static void netpacket_disconnected(uint16_t client_id) {
+  num_clients--;
+}
+
+const struct retro_netpacket_callback netpacket_iface = {
+  netpacket_start,          /* start */
+  netpacket_receive,        /* receive */
+  netpacket_stop,           /* stop */
+  NULL,                     /* poll */
+  netpacket_connected,      /* connected */
+  netpacket_disconnected,   /* disconnected */
+  NULL,                     /* core version char* */
+};
+
+
 #ifdef PERF_TEST
 
 extern struct retro_perf_callback perf_cb;
@@ -546,6 +611,9 @@ void retro_init(void)
    libretro_supports_ff_override = false;
    if (environ_cb(RETRO_ENVIRONMENT_SET_FASTFORWARDING_OVERRIDE, NULL))
       libretro_supports_ff_override = true;
+
+   // This interface is actually optional
+   environ_cb(RETRO_ENVIRONMENT_SET_NETPACKET_INTERFACE, (void*)&netpacket_iface);
 
    current_frameskip_type = no_frameskip;
    frameskip_threshold    = 0;
@@ -811,6 +879,18 @@ static void check_variables(bool started_from_load)
            rtc_mode = FEAT_AUTODETECT;
      }
 
+     var.key                = "gpsp_serial";
+     var.value              = 0;
+     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+     {
+        if (!strcmp(var.value, "disabled"))
+           serial_setting = SERIAL_MODE_DISABLED;
+        else if (!strcmp(var.value, "rfu"))
+           serial_setting = SERIAL_MODE_RFU;
+        else
+           serial_setting = SERIAL_MODE_AUTO;
+     }
+
      var.key                = "gpsp_rumble";
      var.value              = 0;
      if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
@@ -1025,7 +1105,7 @@ bool retro_load_game(const struct retro_game_info* info)
    }
 
    memset(gamepak_backup, 0xff, sizeof(gamepak_backup));
-   if (load_gamepak(info, info->path, rtc_mode, rumble_mode) != 0)
+   if (load_gamepak(info, info->path, rtc_mode, rumble_mode, serial_setting) != 0)
    {
       error_msg("Could not load the game file.");
       return false;
@@ -1187,6 +1267,12 @@ void retro_run(void)
 
    audio_run();
    video_run();
+
+   switch (serial_mode) {
+   case SERIAL_MODE_RFU:
+     rfu_frame_update();
+     break;
+   };
 
    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
       check_variables(false);

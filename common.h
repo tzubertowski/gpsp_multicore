@@ -95,6 +95,11 @@
 #define GBA_SCREEN_BUFFER_SIZE  \
   (GBA_SCREEN_PITCH * (GBA_SCREEN_HEIGHT + 1) * sizeof(uint16_t))
 
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+  #define netorder32(value) (value)
+#else
+  #define netorder32(value) __builtin_bswap32(value)
+#endif
 
 typedef u32 fixed16_16;
 typedef u32 fixed8_24;
@@ -165,5 +170,6 @@ typedef u32 fixed8_24;
 #include "sound.h"
 #include "main.h"
 #include "cheats.h"
+#include "serial.h"
 
 #endif

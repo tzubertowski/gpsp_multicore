@@ -933,6 +933,13 @@ cpu_alert_type function_cc write_io_register16(u32 address, u32 value)
     case REG_TM2CNT: trigger_timer(2, value); break;
     case REG_TM3CNT: trigger_timer(3, value); break;
 
+    // Serial port registers
+    case REG_SIOCNT:
+      return write_siocnt(value);
+
+    case REG_RCNT:
+      return write_rcnt(value);
+
     // Interrupt flag, clears the bits it tries to write
     case REG_IF:
       write_ioreg(REG_IF, read_ioreg(REG_IF) & (~value));
@@ -1554,6 +1561,7 @@ typedef struct
 #define FLAGS_RUMBLE         0x0002
 #define FLAGS_RTC            0x0004
 #define FLAGS_EEPROM         0x0010
+#define FLAGS_RFU            0x0020
 
 #include "gba_over.h"
 
@@ -1593,6 +1601,9 @@ static void load_game_config_over(gamepak_info_t *gpinfo)
 
      if (gbaover[i].flags & FLAGS_EEPROM)
        backup_type_reset = BACKUP_EEPROM;
+
+     if (serial_mode == SERIAL_MODE_AUTO && (gbaover[i].flags & FLAGS_RFU))
+       serial_mode = SERIAL_MODE_RFU;
 
      if (gbaover[i].translation_gate_target_1 != 0)
      {
@@ -2524,7 +2535,7 @@ static s32 load_gamepak_raw(const char *name)
 }
 
 u32 load_gamepak(const struct retro_game_info* info, const char *name,
-                 int force_rtc, int force_rumble)
+                 int force_rtc, int force_rumble, int force_serial)
 {
    gamepak_info_t gpinfo;
 
@@ -2544,6 +2555,7 @@ u32 load_gamepak(const struct retro_game_info* info, const char *name,
    rtc_enabled = false;
    rumble_enabled = false;
    backup_type_reset = BACKUP_UNKN;
+   serial_mode = force_serial;
 
    load_game_config_over(&gpinfo);
 

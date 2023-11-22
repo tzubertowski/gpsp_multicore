@@ -113,6 +113,18 @@ struct retro_core_option_definition option_defs_us[] = {
       "auto"
    },
    {
+      "gpsp_serial",
+      "Link Cable Connectivity",
+      "Configures the serial (Link Cable) connection. Automatic will pick up a reasonable support for most known games.",
+      {
+         { "auto",     "Automatic" },
+         { "disabled", "Disabled" },
+         { "rfu",      "GBA Wireless Adapter" },
+         { NULL, NULL },
+      },
+      "auto"
+   },
+   {
       "gpsp_rumble",
       "Rumble support",
       "Sets the Rumble support for the emulated cartridge. Autodetect uses a ROM database that works with most commercial titles. You might want to force Rumble when using homebrew or ROM hacks that support it. You can also force-disable it if you don't like it.",
