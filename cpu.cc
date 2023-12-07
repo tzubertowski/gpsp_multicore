@@ -577,6 +577,15 @@ const u8 bit_count[256] =
 #define arm_pc_offset(val)                                                    \
   reg[REG_PC] += val                                                          \
 
+#define arm_next_instruction()                                                \
+{                                                                             \
+  arm_pc_offset(4);                                                           \
+  goto skip_instruction;                                                      \
+}                                                                             \
+
+#define thumb_pc_offset(val)                                                  \
+  reg[REG_PC] += val                                                          \
+
 
 // It should be okay to still generate result flags, spsr will overwrite them.
 // This is pretty infrequent (returning from interrupt handlers, et al) so
@@ -1022,6 +1031,62 @@ inline cpu_alert_type exec_arm_block_mem(u32 rn, u32 reglist, s32 &cycles_remain
   return cpu_alert;
 }
 
+template<AccMode mode, AddrMode addr_mode>
+inline cpu_alert_type exec_thumb_block_mem(u32 rn, u32 reglist, s32 &cycles_remaining) {
+  cpu_alert_type cpu_alert = CPU_ALERT_NONE;
+  // Register register usage stats.
+  using_register(arm, rn, memory_base);
+  using_register_list(arm, reglist, 16);
+
+  // Calcualte base address.
+  u32 base = reg[rn];
+  u32 numops = bit_count[reglist & 0xFF] + (bit_count[reglist >> 8] ? 1 : 0);
+  s32 addr_off = (addr_mode == AddrPreInc || addr_mode == AddrPostInc) ? 4 : -4;  // Address incr/decr amount.
+  u32 endaddr = base + addr_off * numops;
+
+  u32 address = (addr_mode == AddrPreInc)  ? base + 4 :
+                (addr_mode == AddrPostInc) ? base :
+                (addr_mode == AddrPreDec)  ? endaddr : endaddr + 4;
+  address &= ~3U;
+
+  // Similar to the ARM version, just a bit simpler. See above.
+  bool wrbck_base = (1 << rn) & reglist;
+  bool base_first = (((1 << rn) - 1) & reglist) == 0;
+  bool writeback_first = (mode == AccLoad) || !(wrbck_base && base_first);
+
+  if (writeback_first)
+    reg[rn] = endaddr;
+
+  thumb_pc_offset(2);  // Advance PC
+
+  if (mode == AccLoad) {
+    for (u32 i = 0; i < 8; i++)  {
+      if ((reglist >> i) & 0x01) {
+        load_aligned32(address, reg[i]);
+        address += 4;
+      }
+    }
+    if (reglist & (1 << REG_PC)) {
+      load_aligned32(address, reg[REG_PC]);
+    }
+  } else {
+    for (u32 i = 0; i < 8; i++)  {
+      if ((reglist >> i) & 0x01) {
+        store_aligned32(address, reg[i]);
+        address += 4;
+      }
+    }
+    if (reglist & (1 << REG_LR)) {
+      store_aligned32(address, reg[REG_LR]);
+    }
+  }
+
+  if (!writeback_first)
+    reg[rn] = endaddr;
+
+  return cpu_alert;
+}
+
 #define arm_swap(type)                                                        \
 {                                                                             \
   arm_decode_swap();                                                          \
@@ -1031,15 +1096,6 @@ inline cpu_alert_type exec_arm_block_mem(u32 rn, u32 reglist, s32 &cycles_remain
   reg[rd] = temp;                                                             \
   arm_pc_offset(4);                                                           \
 }                                                                             \
-
-#define arm_next_instruction()                                                \
-{                                                                             \
-  arm_pc_offset(4);                                                           \
-  goto skip_instruction;                                                      \
-}                                                                             \
-
-#define thumb_pc_offset(val)                                                  \
-  reg[REG_PC] += val                                                          \
 
 // Types: add_sub, add_sub_imm, alu_op, imm
 // Affects N/Z/C/V flags
@@ -3421,34 +3477,34 @@ thumb_loop:
              }
              break;
 
-          case 0xB4:
-             /* PUSH rlist */
-             thumb_block_memory(store, down, no_op, 13);
+          case 0xB4:  /* PUSH rlist */
+             cpu_alert |= exec_thumb_block_mem<AccStore, AddrPreDec>(
+               REG_SP, opcode & 0xFF, cycles_remaining);
              break;
 
-          case 0xB5:
-             /* PUSH rlist, lr */
-             thumb_block_memory(store, push_lr, push_lr, 13);
+          case 0xB5:  /* PUSH rlist, lr */
+             cpu_alert |= exec_thumb_block_mem<AccStore, AddrPreDec>(
+               REG_SP, (opcode & 0xFF) | (1 << REG_LR), cycles_remaining);
              break;
 
-          case 0xBC:
-             /* POP rlist */
-             thumb_block_memory(load, no_op, up, 13);
+          case 0xBC:  /* POP rlist */
+             cpu_alert |= exec_thumb_block_mem<AccLoad, AddrPostInc>(
+               REG_SP, opcode & 0xFF, cycles_remaining);
              break;
 
-          case 0xBD:
-             /* POP rlist, pc */
-             thumb_block_memory(load, no_op, pop_pc, 13);
+          case 0xBD:  /* POP rlist, pc */
+             cpu_alert |= exec_thumb_block_mem<AccLoad, AddrPostInc>(
+               REG_SP, (opcode & 0xFF) | (1 << REG_PC), cycles_remaining);
              break;
 
-          case 0xC0 ... 0xC7:
-             /* STMIA r0..7!, rlist */
-             thumb_block_memory(store, no_op, up, ((opcode >> 8) & 7));
+          case 0xC0 ... 0xC7:    /* STMIA r0..7!, rlist */
+             cpu_alert |= exec_thumb_block_mem<AccStore, AddrPostInc>(
+               (opcode >> 8) & 7, (opcode & 0xFF), cycles_remaining);
              break;
 
-          case 0xC8 ... 0xCF:
-             /* LDMIA r0..7!, rlist */
-             thumb_block_memory(load, no_op, up, ((opcode >> 8) & 7));
+          case 0xC8 ... 0xCF:    /* LDMIA r0..7!, rlist */
+             cpu_alert |= exec_thumb_block_mem<AccLoad, AddrPostInc>(
+               (opcode >> 8) & 7, (opcode & 0xFF), cycles_remaining);
              break;
 
           case 0xD0:
