@@ -875,7 +875,7 @@ const u32 spsr_masks[4] = { 0x00000000, 0x000000EF, 0xF0000000, 0xF00000EF };
     STATS_MEMORY_ACCESS(write, type, region);                                 \
   }                                                                           \
                                                                               \
-  cpu_alert = write_memory##size(_address, value);                            \
+  cpu_alert |= write_memory##size(_address, value);                           \
 }                                                                             \
 
 #define load_aligned32(address, dest)                                         \
@@ -909,7 +909,7 @@ const u32 spsr_masks[4] = { 0x00000000, 0x000000EF, 0xF0000000, 0xF00000EF };
     cycles_remaining -= ws_cyc_seq[region][1];                                \
     STATS_MEMORY_ACCESS(write, u32, region);                                  \
   }                                                                           \
-  cpu_alert = write_memory32(_address, value);                                \
+  cpu_alert |= write_memory32(_address, value);                               \
 }                                                                             \
 
 #define load_memory_u8(address, dest)                                         \
@@ -1068,6 +1068,7 @@ inline cpu_alert_type exec_thumb_block_mem(u32 rn, u32 reglist, s32 &cycles_rema
     }
     if (reglist & (1 << REG_PC)) {
       load_aligned32(address, reg[REG_PC]);
+      reg[REG_PC] &= ~0x01;
     }
   } else {
     for (u32 i = 0; i < 8; i++)  {
@@ -1328,66 +1329,6 @@ inline cpu_alert_type exec_thumb_block_mem(u32 rn, u32 reglist, s32 &cycles_rema
   thumb_pc_offset(2);                                                         \
   thumb_decode_##op_type();                                                   \
   access_type##_memory_##mem_type(address, reg_op);                           \
-}                                                                             \
-
-#define thumb_block_address_preadjust_no_op()                                 \
-
-#define thumb_block_address_preadjust_up()                                    \
-  address += bit_count[reg_list] * 4                                          \
-
-#define thumb_block_address_preadjust_down()                                  \
-  address -= bit_count[reg_list] * 4                                          \
-
-#define thumb_block_address_preadjust_push_lr()                               \
-  address -= (bit_count[reg_list] + 1) * 4                                    \
-
-#define thumb_block_address_postadjust_no_op()                                \
-
-#define thumb_block_address_postadjust_up()                                   \
-  address += offset                                                           \
-
-#define thumb_block_address_postadjust_down()                                 \
-  address -= offset                                                           \
-
-#define thumb_block_address_postadjust_pop_pc()                               \
-  load_memory_u32(address + offset, reg[REG_PC]);                             \
-  reg[REG_PC] &= ~0x01;                                                       \
-  address += offset + 4                                                       \
-
-#define thumb_block_address_postadjust_push_lr()                              \
-  store_memory_u32(address + offset, reg[REG_LR]);                            \
-
-#define thumb_block_memory_wb_load(base_reg)                                  \
-  if(!((reg_list >> base_reg) & 0x01))                                        \
-  {                                                                           \
-    reg[base_reg] = address;                                                  \
-  }                                                                           \
-
-#define thumb_block_memory_wb_store(base_reg)                                 \
-  reg[base_reg] = address                                                     \
-
-#define thumb_block_memory(access_type, pre_op, post_op, base_reg)            \
-{                                                                             \
-  u32 i;                                                                      \
-  u32 offset = 0;                                                             \
-  thumb_decode_rlist();                                                       \
-  using_register(thumb, base_reg, memory_base);                               \
-  u32 address = reg[base_reg] & ~0x03;                                        \
-  thumb_block_address_preadjust_##pre_op();                                   \
-                                                                              \
-  for(i = 0; i < 8; i++)                                                      \
-  {                                                                           \
-    if((reg_list >> i) & 1)                                                   \
-    {                                                                         \
-      access_type##_aligned32(address + offset, reg[i]);                      \
-      offset += 4;                                                            \
-    }                                                                         \
-  }                                                                           \
-                                                                              \
-  thumb_pc_offset(2);                                                         \
-                                                                              \
-  thumb_block_address_postadjust_##post_op();                                 \
-  thumb_block_memory_wb_##access_type(base_reg);                              \
 }                                                                             \
 
 #define thumb_conditional_branch(condition)                                   \
