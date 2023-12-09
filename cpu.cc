@@ -218,9 +218,6 @@ const u8 bit_count[256] =
 #define thumb_decode_branch_cond()                                            \
   s32 offset = (s8)(opcode & 0xFF)                                            \
 
-#define thumb_decode_swi()                                                    \
-  u32 comment = opcode & 0xFF                                                 \
-
 #define thumb_decode_branch()                                                 \
   u32 offset = opcode & 0x07FF                                                \
 
@@ -3030,27 +3027,15 @@ arm_loop:
 #endif
 
           case 0xF0 ... 0xFF:
-             {
-                /* SWI comment */
-                u32 swi_comment = opcode & 0x00FFFFFF;
-
-                switch(swi_comment >> 16)
-                {
-                   /* Jump to BIOS SWI handler */
-                   default:
-                      // After SWI, we read bios[0xE4]
-                      reg[REG_BUS_VALUE] = 0xe3a02004;
-                      REG_MODE(MODE_SUPERVISOR)[6] = reg[REG_PC] + 4;
-                      collapse_flags();
-                      REG_SPSR(MODE_SUPERVISOR) = reg[REG_CPSR];
-                      reg[REG_PC] = 0x00000008;
-                      // Move to ARM mode, Supervisor mode and disable IRQs
-                      reg[REG_CPSR] = (reg[REG_CPSR] & ~0x3F) | 0x13 | 0x80;
-                      set_cpu_mode(MODE_SUPERVISOR);
-                      break;
-                }
-                break;
-             }
+            collapse_flags();
+            reg[REG_BUS_VALUE] = 0xe3a02004;  // After SWI, we read bios[0xE4]
+            REG_MODE(MODE_SUPERVISOR)[6] = reg[REG_PC] + 4;
+            REG_SPSR(MODE_SUPERVISOR) = reg[REG_CPSR];
+            reg[REG_PC] = 0x00000008;
+            // Move to ARM mode, Supervisor mode and disable IRQs
+            reg[REG_CPSR] = (reg[REG_CPSR] & ~0x3F) | 0x13 | 0x80;
+            set_cpu_mode(MODE_SUPERVISOR);
+            break;
        }
 
 skip_instruction:
@@ -3448,97 +3433,60 @@ thumb_loop:
                (opcode >> 8) & 7, (opcode & 0xFF), cycles_remaining);
              break;
 
-          case 0xD0:
-             /* BEQ label */
+          case 0xD0:   /* BEQ label */
              thumb_conditional_branch(z_flag == 1);
              break;
-
-          case 0xD1:
-             /* BNE label */
+          case 0xD1:   /* BNE label */
              thumb_conditional_branch(z_flag == 0);
              break;
-
-          case 0xD2:
-             /* BCS label */
+          case 0xD2:   /* BCS label */
              thumb_conditional_branch(c_flag == 1);
              break;
-
-          case 0xD3:
-             /* BCC label */
+          case 0xD3:   /* BCC label */
              thumb_conditional_branch(c_flag == 0);
              break;
-
-          case 0xD4:
-             /* BMI label */
+          case 0xD4:   /* BMI label */
              thumb_conditional_branch(n_flag == 1);
              break;
-
-          case 0xD5:
-             /* BPL label */
+          case 0xD5:   /* BPL label */
              thumb_conditional_branch(n_flag == 0);
              break;
-
-          case 0xD6:
-             /* BVS label */
+          case 0xD6:   /* BVS label */
              thumb_conditional_branch(v_flag == 1);
              break;
-
-          case 0xD7:
-             /* BVC label */
+          case 0xD7:   /* BVC label */
              thumb_conditional_branch(v_flag == 0);
              break;
-
-          case 0xD8:
-             /* BHI label */
+          case 0xD8:   /* BHI label */
              thumb_conditional_branch(c_flag & (z_flag ^ 1));
              break;
-
-          case 0xD9:
-             /* BLS label */
+          case 0xD9:   /* BLS label */
              thumb_conditional_branch((c_flag == 0) | z_flag);
              break;
-
-          case 0xDA:
-             /* BGE label */
+          case 0xDA:   /* BGE label */
              thumb_conditional_branch(n_flag == v_flag);
              break;
-
-          case 0xDB:
-             /* BLT label */
+          case 0xDB:   /* BLT label */
              thumb_conditional_branch(n_flag != v_flag);
              break;
-
-          case 0xDC:
-             /* BGT label */
+          case 0xDC:   /* BGT label */
              thumb_conditional_branch((z_flag == 0) & (n_flag == v_flag));
              break;
-
-          case 0xDD:
-             /* BLE label */
+          case 0xDD:   /* BLE label */
              thumb_conditional_branch(z_flag | (n_flag != v_flag));
              break;
 
           case 0xDF:
-             {
-                /* SWI comment */
-                u32 swi_comment = opcode & 0xFF;
-
-                switch(swi_comment)
-                {
-                   default:
-                      // After SWI, we read bios[0xE4]
-                      reg[REG_BUS_VALUE] = 0xe3a02004;
-                      REG_MODE(MODE_SUPERVISOR)[6] = reg[REG_PC] + 2;
-                      REG_SPSR(MODE_SUPERVISOR) = reg[REG_CPSR];
-                      reg[REG_PC] = 0x00000008;
-                      // Move to ARM mode, Supervisor mode and disable IRQs
-                      reg[REG_CPSR] = (reg[REG_CPSR] & ~0x3F) | 0x13 | 0x80;
-                      set_cpu_mode(MODE_SUPERVISOR);
-                      collapse_flags();
-                      goto arm_loop;
-                }
-                break;
-             }
+             collapse_flags();
+             REG_MODE(MODE_SUPERVISOR)[6] = reg[REG_PC] + 2;
+             REG_SPSR(MODE_SUPERVISOR) = reg[REG_CPSR];
+             reg[REG_PC] = 0x00000008;
+             // Move to ARM mode, Supervisor mode and disable IRQs
+             reg[REG_CPSR] = (reg[REG_CPSR] & ~0x3F) | 0x13 | 0x80;
+             set_cpu_mode(MODE_SUPERVISOR);
+             reg[REG_BUS_VALUE] = 0xe3a02004;  // After SWI, we read bios[0xE4]
+             goto arm_loop;
+             break;
 
           case 0xE0 ... 0xE7:
              {
