@@ -1435,6 +1435,50 @@ static const ini_t gbaover[] = {
       0,                           /* translation_gate_target_3 */
    },
    {
+      // Pokemon Pinball - Ruby & Sapphire (Europe) (En,Fr,De,Es,It)
+      "POKEPIN R/S",                     /* gamepak_title        */
+      "BPPP",                            /* gamepak_code         */
+      "01",                              /* gamepak_maker        */
+      FLAGS_FLASH_128KB | FLAGS_RUMBLE,  /* flags                */
+      0,                                 /* idle_loop_target_pc  */
+      0,                                 /* translation_gate_target_1 */
+      0,                                 /* translation_gate_target_2 */
+      0,                                 /* translation_gate_target_3 */
+   },
+   {
+      // Pokemon Pinball - Ruby & Sapphire (Japan)
+      "POKEPIN R/S",                     /* gamepak_title        */
+      "BPPJ",                            /* gamepak_code         */
+      "01",                              /* gamepak_maker        */
+      FLAGS_FLASH_128KB | FLAGS_RUMBLE,  /* flags                */
+      0,                                 /* idle_loop_target_pc  */
+      0,                                 /* translation_gate_target_1 */
+      0,                                 /* translation_gate_target_2 */
+      0,                                 /* translation_gate_target_3 */
+   },
+   {
+      // Pokemon Pinball - Ruby & Sapphire (USA)
+      "POKEPIN R/S",                     /* gamepak_title        */
+      "BPPE",                            /* gamepak_code         */
+      "01",                              /* gamepak_maker        */
+      FLAGS_FLASH_128KB | FLAGS_RUMBLE,  /* flags                */
+      0,                                 /* idle_loop_target_pc  */
+      0,                                 /* translation_gate_target_1 */
+      0,                                 /* translation_gate_target_2 */
+      0,                                 /* translation_gate_target_3 */
+   },
+   {
+      // Goodboy Galaxy (World)
+      "GOODBOY",                         /* gamepak_title        */
+      "2GBP",                            /* gamepak_code         */
+      "01",                              /* gamepak_maker        */
+      FLAGS_RUMBLE,                      /* flags                */
+      0,                                 /* idle_loop_target_pc  */
+      0,                                 /* translation_gate_target_1 */
+      0,                                 /* translation_gate_target_2 */
+      0,                                 /* translation_gate_target_3 */
+   },
+   {
       // Prince of Persia - The Sands of Time (U)
       "PRINCEPERSIA",              /* gamepak_title        */
       "BPYE",                      /* gamepak_code         */
