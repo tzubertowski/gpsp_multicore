@@ -327,6 +327,7 @@ else ifeq ($(platform), classic_armv7_a7)
 	    LDFLAGS += -static-libgcc -static-libstdc++
 	  endif
 	endif
+
 #######################################
 
 # Xbox 360
@@ -489,6 +490,32 @@ else ifeq ($(platform), miyoo)
 	CFLAGS += -DSMALL_TRANSLATION_CACHE
 	HAVE_DYNAREC := 1
 	CPU_ARCH := arm
+	
+
+else ifeq ($(platform), miyoomini)
+	TARGET := $(TARGET_NAME)_plus_libretro.so
+	CC = /opt/miyoomini-toolchain/usr/bin/arm-linux-gcc
+	CXX = /opt/miyoomini-toolchain/usr/bin/arm-linux-g++
+	AR = /opt/miyoomini-toolchain/usr/bin/arm-linux-ar
+	fpic := -fPIC
+	SHARED := -shared -Wl,--version-script=link.T -Wl,--no-undefined
+	CFLAGS += -Ofast \
+	-flto=4 -fwhole-program -fuse-linker-plugin \
+	-fdata-sections -ffunction-sections -Wl,--gc-sections \
+	-fno-stack-protector -fno-ident -fomit-frame-pointer \
+	-falign-functions=1 -falign-jumps=1 -falign-loops=1 \
+	-fno-unwind-tables -fno-asynchronous-unwind-tables -fno-unroll-loops \
+	-fmerge-all-constants -fno-math-errno \
+	-marm -mtune=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard
+	CXXFLAGS = $(CFLAGS) -std=gnu++11
+	CPPFLAGS += $(CFLAGS)
+	ASFLAGS += $(CFLAGS)
+	CPU_ARCH := arm
+	MMAP_JIT_CACHE = 1
+	HAVE_DYNAREC = 1
+	HAVE_NEON = 1
+	ARCH = arm
+	BUILTIN_GPU = neon
 
 # Windows
 else
