@@ -1439,7 +1439,7 @@ static const ini_t gbaover[] = {
       "POKEPIN R/S",                     /* gamepak_title        */
       "BPPP",                            /* gamepak_code         */
       "01",                              /* gamepak_maker        */
-      FLAGS_FLASH_128KB | FLAGS_RUMBLE,  /* flags                */
+      FLAGS_FLASH_128KB,  /* flags                */
       0,                                 /* idle_loop_target_pc  */
       0,                                 /* translation_gate_target_1 */
       0,                                 /* translation_gate_target_2 */
@@ -1450,7 +1450,7 @@ static const ini_t gbaover[] = {
       "POKEPIN R/S",                     /* gamepak_title        */
       "BPPJ",                            /* gamepak_code         */
       "01",                              /* gamepak_maker        */
-      FLAGS_FLASH_128KB | FLAGS_RUMBLE,  /* flags                */
+      FLAGS_FLASH_128KB,  /* flags                */
       0,                                 /* idle_loop_target_pc  */
       0,                                 /* translation_gate_target_1 */
       0,                                 /* translation_gate_target_2 */
@@ -1461,7 +1461,7 @@ static const ini_t gbaover[] = {
       "POKEPIN R/S",                     /* gamepak_title        */
       "BPPE",                            /* gamepak_code         */
       "01",                              /* gamepak_maker        */
-      FLAGS_FLASH_128KB | FLAGS_RUMBLE,  /* flags                */
+      FLAGS_FLASH_128KB,  /* flags                */
       0,                                 /* idle_loop_target_pc  */
       0,                                 /* translation_gate_target_1 */
       0,                                 /* translation_gate_target_2 */
