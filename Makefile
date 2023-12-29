@@ -312,9 +312,7 @@ else ifeq ($(platform), classic_armv7_a7)
 	-fmerge-all-constants -fno-math-errno \
 	-marm -mtune=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard
 	ASFLAGS += $(CFLAGS)
-	HAVE_NEON = 1
 	ARCH = arm
-	BUILTIN_GPU = neon
 	CPU_ARCH := arm
 	MMAP_JIT_CACHE = 1
 	HAVE_DYNAREC = 1
