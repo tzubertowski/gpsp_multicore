@@ -502,8 +502,7 @@ u32 arm_to_mips_reg[] =
 // Returns a new rm if it redirects it (which will happen on most of these
 // cases)
 
-#define generate_load_rm_sh_builder(flags_op)                                 \
-u32 generate_load_rm_sh_##flags_op(u32 rm)                                    \
+#define generate_load_rm_sh(rm, flags_op)                                     \
 {                                                                             \
   switch((opcode >> 4) & 0x07)                                                \
   {                                                                           \
@@ -548,8 +547,6 @@ u32 generate_load_rm_sh_##flags_op(u32 rm)                                    \
       break;                                                                  \
     }                                                                         \
   }                                                                           \
-                                                                              \
-  return rm;                                                                  \
 }                                                                             \
 
 #define generate_block_extra_vars()                                           \
@@ -559,10 +556,8 @@ u32 generate_load_rm_sh_##flags_op(u32 rm)                                    \
 
 #define generate_block_extra_vars_arm()                                       \
   generate_block_extra_vars();                                                \
-  generate_load_rm_sh_builder(flags);                                         \
-  generate_load_rm_sh_builder(no_flags);                                      \
-                                                                              \
-  u32 generate_load_offset_sh(u32 rm)                                         \
+
+#define generate_load_offset_sh(rm)                                           \
   {                                                                           \
     switch((opcode >> 5) & 0x03)                                              \
     {                                                                         \
@@ -587,7 +582,6 @@ u32 generate_load_rm_sh_##flags_op(u32 rm)                                    \
         break;                                                                \
       }                                                                       \
     }                                                                         \
-    return rm;                                                                \
   }                                                                           \
 
 #define generate_indirect_branch_arm()                                        \
@@ -1065,11 +1059,11 @@ u32 execute_spsr_restore_body(u32 address)
   arm_decode_data_proc_reg(opcode);                                           \
   if(check_generate_c_flag)                                                   \
   {                                                                           \
-    rm = generate_load_rm_sh_flags(rm);                                       \
+    generate_load_rm_sh(rm, flags);                                           \
   }                                                                           \
   else                                                                        \
   {                                                                           \
-    rm = generate_load_rm_sh_no_flags(rm);                                    \
+    generate_load_rm_sh(rm, no_flags);                                        \
   }                                                                           \
                                                                               \
   arm_op_check_##load_op();                                                   \
@@ -1078,7 +1072,7 @@ u32 execute_spsr_restore_body(u32 address)
 
 #define arm_generate_op_reg(name, load_op)                                    \
   arm_decode_data_proc_reg(opcode);                                           \
-  rm = generate_load_rm_sh_no_flags(rm);                                      \
+  generate_load_rm_sh(rm, no_flags);                                          \
   arm_op_check_##load_op();                                                   \
   generate_op_##name##_reg(arm_to_mips_reg[rd], arm_to_mips_reg[rn],          \
    arm_to_mips_reg[rm])                                                       \
@@ -1276,7 +1270,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 address)
 
 #define arm_data_trans_reg(adjust_op, adjust_dir)                             \
   arm_decode_data_trans_reg();                                                \
-  rm = generate_load_offset_sh(rm);                                           \
+  generate_load_offset_sh(rm);                                                \
   arm_access_memory_reg_##adjust_op(adjust_dir)                               \
 
 #define arm_data_trans_imm(adjust_op, adjust_dir)                             \
