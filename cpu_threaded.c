@@ -2884,8 +2884,8 @@ u8 function_cc *block_lookup_address_thumb(u32 pc)
   }                                                                           \
 }                                                                             \
 
-#define MAX_BLOCK_SIZE 8192
-#define MAX_EXITS      256
+#define MAX_BLOCK_SIZE   1024   // 2/4KiB blocks max
+#define MAX_EXITS          32   // This covers 99% blocks
 
 block_data_type block_data[MAX_BLOCK_SIZE];
 block_exit_type block_exits[MAX_EXITS];
