@@ -29,7 +29,9 @@
 // Config knobs, update with care.
 #define BCST_FRAME_ANNOUNCE_CNT      30   // Send broadcast twice per second.
 #define MAX_RFU_PEERS                32   // Do not allow more than 32 peers.
-#define RFU_WAIT_TIMEOUT       0x800000   // ~30 frames timeout
+
+#define RFU_DEF_TIMEOUT              32   // Expressed as frames (~533ms)
+#define RFU_DEF_RTXMAX                4   // Up to 4 transmissions per send
 
 
 // Unpacks big endian integers used for signaling
@@ -53,7 +55,7 @@ static inline u32 leupack32(const u8 *ptr) {
 
 #define RFU_CMD_INIT1        0x10   // Dummy after-init command
 #define RFU_CMD_INIT2        0x3d   // Dummy after-init command
-#define RFU_CMD_SETUP1       0x17   // Some setup command not well understood
+#define RFU_CMD_SYSCFG       0x17   // System configuration (comms. config)
 
 #define RFU_CMD_LINKPWR      0x11   // Link/RF strength (0 to 0x16/0xFF)
 
@@ -88,7 +90,7 @@ static inline u32 leupack32(const u8 *ptr) {
 // RFU commands for slave mode (~command responses)
 #define RFU_CMD_RESP_TIMEO   0x27   // Timeout!
 #define RFU_CMD_RESP_DATA    0x28   // There's data available
-#define RFU_CMD_RESP_DISC    0x36   // Some clients disconnected
+#define RFU_CMD_RESP_DISC    0x29   // Some clients disconnected
 
 
 // These are internal FSM states for the communication steps.
@@ -114,7 +116,8 @@ static u32 rfu_prev_data;
 static u32 rfu_comstate, rfu_cnt, rfu_state;
 static u32 rfu_buf[255];
 static u8 rfu_cmd, rfu_plen;
-static u32 rfu_wait_cycles;
+static u32 rfu_timeout_cycles, rfu_resp_timeout;
+static u8 rfu_timeout, rfu_rtx_max;
 
 static struct {
   u32 buf[23];
@@ -226,7 +229,10 @@ void rfu_reset() {
   rfu_cnt = 0;
   rfu_state = RFU_STATE_IDLE;
   rfu_comstate = RFU_COMSTATE_RESET;
-  rfu_wait_cycles = 0;
+  rfu_timeout_cycles = 0;
+  rfu_resp_timeout = 0;
+  rfu_timeout = RFU_DEF_TIMEOUT;
+  rfu_rtx_max = RFU_DEF_RTXMAX;
   memset(&rfu_host, 0, sizeof(rfu_host));
 
   // Clear all the received broadcasts.
@@ -255,7 +261,12 @@ static s32 rfu_process_command() {
   // These are not 100% supported, but they are OK as long as we ACK them.
   case RFU_CMD_INIT1:
   case RFU_CMD_INIT2:
-  case RFU_CMD_SETUP1:     // Has 1 byte payload
+    return 0;
+
+  case RFU_CMD_SYSCFG:
+    // Contains the slave timeout and retransmit count.
+    rfu_timeout = rfu_buf[0];
+    rfu_rtx_max = rfu_buf[0] >> 8;
     return 0;
 
   case RFU_CMD_SYSVER:
@@ -604,7 +615,8 @@ u32 rfu_transfer(u32 sent_value) {
     // and reverse the clock roles (the RFU becomes master).
     if (rfu_cmd == RFU_CMD_WAIT || rfu_cmd == RFU_CMD_RTX_WAIT || rfu_cmd == RFU_CMD_SEND_DATAW) {
       rfu_comstate = RFU_COMSTATE_WAITEVENT;
-      rfu_wait_cycles = RFU_WAIT_TIMEOUT;
+      rfu_timeout_cycles = rfu_timeout * (16777216 / 60);  // Frames to cycles
+      rfu_resp_timeout = rfu_rtx_max * (16777216 / 60 / 6);  // RFU "frame" to cycles
     } else {
       rfu_comstate = rfu_plen ? RFU_COMSTATE_RESPDAT : RFU_COMSTATE_WAITCMD;
     }
@@ -819,10 +831,8 @@ bool rfu_update(unsigned cycles) {
     netpacket_poll_receive();
 
     // Check if we are running our of time to respond.
-    if (rfu_wait_cycles > cycles)
-      rfu_wait_cycles -= cycles;
-    else
-      rfu_wait_cycles = 0;
+    rfu_timeout_cycles -= MIN(cycles, rfu_timeout_cycles);
+    rfu_resp_timeout   -= MIN(cycles, rfu_resp_timeout);
 
     // Wait for GBA to go into slave mode before finishing the wait!
     if ((read_ioreg(REG_SIOCNT) & 0x1) == 0) {
@@ -832,6 +842,17 @@ bool rfu_update(unsigned cycles) {
         rfu_buf[1] = 0x80000000;
         rfu_cnt = 0;
         rfu_plen = 2;
+        rfu_comstate = RFU_COMSTATE_WAITRESP;
+      }
+      else if ((rfu_state == RFU_STATE_SHOST || rfu_state == RFU_STATE_HOST) &&
+               !rfu_resp_timeout) {
+        // We "retransmitted" the message N times (not really, but the equivalent
+        // time has elapsed) and we simulate a lack of client response.
+        rfu_buf[0] = 0x99660000 | RFU_CMD_RESP_DATA | (1 << 8);
+        rfu_buf[1] = 0x00000F0F;  // TODO: just using 4 slots for now
+        rfu_buf[2] = 0x80000000;
+        rfu_cnt = 0;
+        rfu_plen = 3;
         rfu_comstate = RFU_COMSTATE_WAITRESP;
       }
       else if ((rfu_state == RFU_STATE_SHOST || rfu_state == RFU_STATE_HOST) &&
@@ -846,7 +867,7 @@ bool rfu_update(unsigned cycles) {
         rfu_host.disc_flag = 0;
         RFU_DEBUG_LOG("Wait command resp: disconnect %x\n", rfu_host.disc_flag);
       }
-      else if (!rfu_wait_cycles) {
+      else if (!rfu_timeout_cycles) {
         // We ran out of time, just return an "error" code
         rfu_buf[0] = 0x99660000 | RFU_CMD_RESP_TIMEO;
         rfu_buf[1] = 0x80000000;
