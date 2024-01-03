@@ -28,6 +28,7 @@ static u32 serial_irq_cycles = 0;
 #define CLOCK_CYC_256KHZ_32BIT      2097    // CLOCK / 256KHz * 32
 #define CLOCK_CYC_2MHZ_8BIT           67    // CLOCK / 2MHz * 8
 #define CLOCK_CYC_2MHZ_32BIT         268    // CLOCK / 2MHz * 32
+#define CLOCK_CYC_64KHZ_32BIT       8192    // CLOCK / 64kHz * 32
 
 // Available serial modes
 #define SERIAL_MODE_NORMAL      0
@@ -107,6 +108,19 @@ cpu_alert_type write_siocnt(u16 value) {
         // Once SO goes low (GBA not busy anymore), lower SI as well.
         if (!(newval & 0x0008) && (oldval & 0x0008))
           newval &= ~0x0004;
+      }
+    }
+    else if (serial_mode == SERIAL_MODE_GBP) {
+      // Serial configured in slave mode, waiting for incoming word.
+      if ((newval & 0x0080) && !(newval & 0x1) && !serial_irq_cycles) {
+        // Send a new GBP sequence
+        u32 rval = gbp_transfer(read_ioreg32(REG_SIODATA32_L));
+        write_ioreg(REG_SIODATA32_L, rval & 0xFFFF);
+        write_ioreg(REG_SIODATA32_H, rval >> 16);
+
+        // Schedule the interrupt/reception. We simulate a 64KHz clock, which
+        // translates to ~32 exchanges per frame (~2 rumble updates per frame).
+        serial_irq_cycles = CLOCK_CYC_64KHZ_32BIT;
       }
     }
     break;

@@ -123,6 +123,15 @@ u32 update_input(void)
    else
       turbo_b_counter = 0;
 
+   // GBP keypad detection hack (only at game startup!)
+   if (serial_mode == SERIAL_MODE_GBP) {
+     // During the startup screen (aproximate)
+     if (frame_counter > 20 && frame_counter < 100) {
+       // Emulate 4 keypad buttons pressed (which is impossible).
+       new_key = (frame_counter % 3) ? 0x3FF : 0x30F;
+     }
+   }
+
    if ((new_key | old_key) != old_key)
       trigger_key(new_key);
 

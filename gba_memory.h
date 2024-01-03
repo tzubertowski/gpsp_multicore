@@ -227,6 +227,7 @@ u8 read_backup(u32 address);
 void function_cc write_backup(u32 address, u32 value);
 void function_cc write_gpio(u32 address, u32 value);
 
+void write_rumble(bool oldv, bool newv);
 void rumble_frame_reset();
 float rumble_active_pct();
 

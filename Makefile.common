@@ -15,6 +15,7 @@ SOURCES_C := $(CORE_DIR)/main.c \
              $(CORE_DIR)/cheats.c \
              $(CORE_DIR)/memmap.c \
              $(CORE_DIR)/serial.c \
+             $(CORE_DIR)/gbp.c \
              $(CORE_DIR)/rfu.c \
              $(CORE_DIR)/libretro/libretro.c \
              $(CORE_DIR)/gba_cc_lut.c \

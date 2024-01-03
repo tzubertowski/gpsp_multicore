@@ -664,6 +664,39 @@ static const ini_t gbaover[] = {
       0,                           /* translation_gate_target_3 */
    },
    {
+      // Mario & Luigi - Super Star Saga (E)
+      "MARIO&LUIGIP",              /* gamepak_title        */
+      "A88P",                      /* gamepak_code         */
+      "01",                        /* gamepak_maker        */
+      FLAGS_GBA_PLAYER,            /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
+      // Mario & Luigi - Super Star Saga (U)
+      "MARIO&LUIGIU",              /* gamepak_title        */
+      "A88E",                      /* gamepak_code         */
+      "01",                        /* gamepak_maker        */
+      FLAGS_GBA_PLAYER,            /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
+      // Mario & Luigi - Super Star Saga (J)
+      "MARIO&LUIGIJ",              /* gamepak_title        */
+      "A88J",                      /* gamepak_code         */
+      "01",                        /* gamepak_maker        */
+      FLAGS_GBA_PLAYER,            /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
       // Mario Golf: Advance Tour (U)
       "MARIOGOLFGBA",              /* gamepak_title        */
       "BMGE",                      /* gamepak_code         */
@@ -1446,6 +1479,39 @@ static const ini_t gbaover[] = {
       0,                           /* translation_gate_target_3 */
    },
    {
+      // Pokemon Pinball (U)
+      "POKEPIN R/S",               /* gamepak_title        */
+      "BPPE",                      /* gamepak_code         */
+      "01",                        /* gamepak_maker        */
+      FLAGS_GBA_PLAYER,            /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
+      // Pokemon Pinball (E)
+      "POKEPIN R/S",               /* gamepak_title        */
+      "BPPP",                      /* gamepak_code         */
+      "01",                        /* gamepak_maker        */
+      FLAGS_GBA_PLAYER,            /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
+      // Pokemon Pinball (J)
+      "POKEPIN R/S",               /* gamepak_title        */
+      "BPPJ",                      /* gamepak_code         */
+      "01",                        /* gamepak_maker        */
+      FLAGS_GBA_PLAYER,            /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
       // Pokemon: Fushigi no Dungeon Aka no Kyuujotai (J)
       "POKE DUNGEON",              /* gamepak_title        */
       "B24J",                      /* gamepak_code         */
@@ -1754,7 +1820,7 @@ static const ini_t gbaover[] = {
       "SUPER MARIOD",              /* gamepak_title        */
       "AX4J",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_GBA_PLAYER,  /* flags      */
       0x8000732,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1765,7 +1831,7 @@ static const ini_t gbaover[] = {
       "SUPER MARIOD",              /* gamepak_title        */
       "AX4P",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_GBA_PLAYER,  /* flags      */
       0x8000732,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1776,7 +1842,7 @@ static const ini_t gbaover[] = {
       "SUPER MARIOD",              /* gamepak_title        */
       "AX4E",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB,           /* flags                */
+      FLAGS_FLASH_128KB | FLAGS_GBA_PLAYER,  /* flags      */
       0x8000732,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */

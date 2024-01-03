@@ -1348,10 +1348,10 @@ static void write_rtc(u8 old, u8 new)
   }
 }
 
-static void write_rumble(u8 old, u8 new) {
-  if (new && !old)
+void write_rumble(bool oldv, bool newv) {
+  if (newv && !oldv)
     rumble_enable_tick = cpu_ticks;
-  else if (!new && old) {
+  else if (!newv && oldv) {
     rumble_ticks += (cpu_ticks - rumble_enable_tick);
     rumble_enable_tick = 0;
   }
@@ -1557,11 +1557,12 @@ typedef struct
    char gamepak_maker[3];
 } gamepak_info_t;
 
-#define FLAGS_FLASH_128KB    0x0001
-#define FLAGS_RUMBLE         0x0002
-#define FLAGS_RTC            0x0004
-#define FLAGS_EEPROM         0x0010
-#define FLAGS_RFU            0x0020
+#define FLAGS_FLASH_128KB    0x0001   // Forces 128KB flash.
+#define FLAGS_RUMBLE         0x0002   // Enables GPIO3 rumble support.
+#define FLAGS_GBA_PLAYER     0x0004   // Enables GBA Player rumble support.
+#define FLAGS_RTC            0x0008   // Enables RTC support by default.
+#define FLAGS_EEPROM         0x0010   // Forces EEPROM storage.
+#define FLAGS_RFU            0x0020   // Enables Wireless Adapter (via serial).
 
 #include "gba_over.h"
 
@@ -1602,8 +1603,12 @@ static void load_game_config_over(gamepak_info_t *gpinfo)
      if (gbaover[i].flags & FLAGS_EEPROM)
        backup_type_reset = BACKUP_EEPROM;
 
-     if (serial_mode == SERIAL_MODE_AUTO && (gbaover[i].flags & FLAGS_RFU))
-       serial_mode = SERIAL_MODE_RFU;
+     if (serial_mode == SERIAL_MODE_AUTO) {
+       if (gbaover[i].flags & FLAGS_RFU)
+         serial_mode = SERIAL_MODE_RFU;
+       if (gbaover[i].flags & FLAGS_GBA_PLAYER)
+         serial_mode = SERIAL_MODE_GBP;
+     }
 
      if (gbaover[i].translation_gate_target_1 != 0)
      {

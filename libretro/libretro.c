@@ -887,6 +887,8 @@ static void check_variables(bool started_from_load)
            serial_setting = SERIAL_MODE_DISABLED;
         else if (!strcmp(var.value, "rfu"))
            serial_setting = SERIAL_MODE_RFU;
+        else if (!strcmp(var.value, "gbp"))
+           serial_setting = SERIAL_MODE_GBP;
         else
            serial_setting = SERIAL_MODE_AUTO;
      }

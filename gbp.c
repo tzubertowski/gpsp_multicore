@@ -1,6 +1,6 @@
 /* gameplaySP
  *
- * Copyright (C) 2023 David Guillen Fandos <david@davidgf.net>
+ * Copyright (C) 2024 David Guillen Fandos <david@davidgf.net>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -17,27 +17,39 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#define SERIAL_MODE_DISABLED      0
-#define SERIAL_MODE_RFU           1  // Wifi Adapter
-#define SERIAL_MODE_GBP           2  // Connected to the GB Player
-#define SERIAL_MODE_AUTO          3  // Choose best fit automatically
+#include "common.h"
 
-extern int serial_mode;
+static const u32 gbp_seq[16] = {
+  0x0000494E,
+  0x0000494E,
+  0xB6B1494E,
+  0xB6B1544E,
+  0xABB1544E,
+  0xABB14E45,
+  0xB1BA4E45,
+  0xB1BA4F44,
+  0xB0BB4F44,
+  0xB0BB8002,
+  0x10000010,
+  0x20000013,
+  0x30000003,
+  0x30000003,
+  0x30000003,
+  0x30000003, // Responds with rumble amount
+};
 
-// Register writes
-cpu_alert_type write_siocnt(u16 value);
-cpu_alert_type write_rcnt(u16 value);
+static u32 gbp_seq_n = 0;
+static bool gbp_rumble = false;
 
-// Serial IRQ interface
-u32 serial_next_event();
-bool update_serial(unsigned cycles);
+// GB Player sequencing
+u32 gbp_transfer(u32 value) {
+  u32 ret = gbp_seq[gbp_seq_n++];
+  if (gbp_seq_n == 16) {
+    bool rumble_active = (value & 2);
+    write_rumble(gbp_rumble, rumble_active);
+    gbp_rumble = rumble_active;
+    gbp_seq_n = 0;
+  }
+  return ret;
+}
 
-// RFU interface
-void rfu_reset(void);
-bool rfu_update(unsigned cycles);
-u32 rfu_transfer(u32 value);
-void rfu_frame_update(void);
-void rfu_net_receive(const void* buf, size_t len, uint16_t client_id);
-
-// GBP interface
-u32 gbp_transfer(u32 value);
