@@ -176,6 +176,17 @@ static const ini_t gbaover[] = {
       0,                           /* translation_gate_target_3 */
    },
    {
+      // No No No Puzzle Chailien (J)
+      "CHAILIEN NO ",              /* gamepak_title        */
+      "BKRJ",                      /* gamepak_code         */
+      "01",                        /* gamepak_maker        */
+      FLAGS_RFU,                   /* flags             */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
       // Castlevania (E)
       "DRACULA AGB1",              /* gamepak_title        */
       "AAMP",                      /* gamepak_code         */
