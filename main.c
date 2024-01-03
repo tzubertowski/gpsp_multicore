@@ -22,6 +22,7 @@
 
 timer_type timer[4];
 
+u32 frame_counter = 0;
 u32 cpu_ticks = 0;
 u32 execute_cycles = 0;
 s32 video_count = 0;
@@ -93,6 +94,7 @@ void init_main(void)
   timer[0].direct_sound_channels = TIMER_DS_CHANNEL_BOTH;
   timer[1].direct_sound_channels = TIMER_DS_CHANNEL_NONE;
 
+  frame_counter = 0;
   cpu_ticks = 0;
   execute_cycles = 960;
   video_count = 960;
@@ -217,6 +219,7 @@ u32 function_cc update_gba(int remaining_cycles)
 
           // We completed a frame, tell the dynarec to exit to the main thread
           frame_complete = 0x80000000;
+          frame_counter++;
         }
 
         // Vcount trigger (flag) and IRQ if enabled
@@ -347,6 +350,9 @@ bool main_read_savestate(const u8 *src)
          bson_read_int32(p1, "sleep-cycles", &reg[REG_SLEEP_CYCLES])))
     return false;
 
+  if (!bson_read_int32(p1, "frame-count", &frame_counter))
+    frame_counter = 60 * 10;  // Use "fake" 10 seconds.
+
   for (i = 0; i < 4; i++)
   {
     char tname[2] = {'0' + i, 0};
@@ -371,6 +377,7 @@ unsigned main_write_savestate(u8* dst)
   int i;
   u8 *wbptr, *wbptr2, *startp = dst;
   bson_start_document(dst, "emu", wbptr);
+  bson_write_int32(dst, "frame-count", frame_counter);
   bson_write_int32(dst, "cpu-ticks", cpu_ticks);
   bson_write_int32(dst, "exec-cycles", execute_cycles);
   bson_write_int32(dst, "video-count", video_count);
