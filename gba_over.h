@@ -1152,7 +1152,7 @@ static const ini_t gbaover[] = {
       "POKEMON EMER",              /* gamepak_title        */
       "BPEE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
+      FLAGS_FLASH_128KB | FLAGS_RTC | FLAGS_RFU,  /* flags */
       0x80008ce,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1163,7 +1163,7 @@ static const ini_t gbaover[] = {
       "POKEMON EMER",              /* gamepak_title        */
       "BPEJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
+      FLAGS_FLASH_128KB | FLAGS_RTC | FLAGS_RFU,  /* flags */
       0x80008ce,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1174,7 +1174,7 @@ static const ini_t gbaover[] = {
       "POKEMON EMER",              /* gamepak_title        */
       "BPED",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
+      FLAGS_FLASH_128KB | FLAGS_RTC | FLAGS_RFU,  /* flags */
       0x80008ce,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1185,7 +1185,7 @@ static const ini_t gbaover[] = {
       "POKEMON EMER",              /* gamepak_title        */
       "BPEF",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
+      FLAGS_FLASH_128KB | FLAGS_RTC | FLAGS_RFU,  /* flags */
       0x80008ce,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1196,7 +1196,7 @@ static const ini_t gbaover[] = {
       "POKEMON EMER",              /* gamepak_title        */
       "BPES",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
+      FLAGS_FLASH_128KB | FLAGS_RTC | FLAGS_RFU,  /* flags */
       0x80008ce,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1207,7 +1207,7 @@ static const ini_t gbaover[] = {
       "POKEMON EMER",              /* gamepak_title        */
       "BPEI",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB | FLAGS_RTC,  /* flags             */
+      FLAGS_FLASH_128KB | FLAGS_RTC | FLAGS_RFU,  /* flags */
       0x80008ce,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
