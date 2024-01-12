@@ -253,6 +253,28 @@ static const ini_t gbaover[] = {
       0,                           /* translation_gate_target_3 */
    },
    {
+      // Digimon Racing (U)
+      "DIGIMONRACIN",              /* gamepak_title        */
+      "BDGE",                      /* gamepak_code         */
+      "B2",                        /* gamepak_maker        */
+      FLAGS_RFU,                   /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
+      // Digimon Racing (E)
+      "DIGIMONRACIN",              /* gamepak_title        */
+      "BDGP",                      /* gamepak_code         */
+      "B2",                        /* gamepak_maker        */
+      FLAGS_RFU,                   /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
       // Disney's Aladdin (J)
       "ALADDIN",                   /* gamepak_title        */
       "AJ6J",                      /* gamepak_code         */

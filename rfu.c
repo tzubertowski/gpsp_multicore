@@ -52,6 +52,9 @@ static inline u32 leupack32(const u8 *ptr) {
 // https://blog.kuiper.dev/gba-wireless-adapter
 
 #define RFU_CONN_INPROGRESS  0x01000000     // Connection ongoing
+#define RFU_CONN_FAILED      0x02000000     // Connection failed
+
+#define RFU_CONN_COMP_FAIL   0x01000000     // Failed to connect
 
 #define RFU_CMD_INIT1        0x10   // Dummy after-init command
 #define RFU_CMD_INIT2        0x3d   // Dummy after-init command
@@ -69,7 +72,7 @@ static inline u32 leupack32(const u8 *ptr) {
 
 #define RFU_CMD_HOST_START   0x19   // Start broadcasting and accepting clients
 #define RFU_CMD_HOST_ACCEPT  0x1a   // Poll for incoming connections
-#define RFU_CMD_HOST_STOP    0x1b   // Stop broadcasting
+#define RFU_CMD_HOST_STOP    0x1b   // Stop accepting new connections
 
 #define RFU_CMD_BCRD_START   0x1c   // Broadcast read session start
 #define RFU_CMD_BCRD_FETCH   0x1d   // Broadcast read (actual data read)
@@ -108,7 +111,7 @@ static inline u32 leupack32(const u8 *ptr) {
 // These FSM states describe the adapter wifi state.
 #define RFU_STATE_IDLE            0
 #define RFU_STATE_HOST            1    // Hosting (with broadcast)
-#define RFU_STATE_SHOST           2    // Hosting (without broadcast)
+#define RFU_STATE_CONNECTING      2    // Trying to connect to a parent
 #define RFU_STATE_CLIENT          3    // Client, connected to a host
 
 
@@ -127,11 +130,11 @@ static struct {
 static struct {
   u16 devid;         // Device ID assigned to the host
   u8 tx_ttl;         // Internal counter for broadcast transmission
-  u8 disc_flag;      // Disconnected devices flag.
   u32 bdata[6];      // Data to broadcast other devices
   struct {
     u16 client_id;   // libretro client ID
     u16 devid;       // Host-assigned device ID
+    u16 clttl;       // Client TTL (to check for disconnects)
     struct {
       u32 datalen;   // Byte count of data waiting to be polled.
       u8  data[16];  // Data received from client.
@@ -171,6 +174,7 @@ static t_client_broadcast rfu_peer_bcst[MAX_RFU_PEERS];
 #define NET_RFU_DISCONNECT      0x04    // Client/Host disconnect notice
 #define NET_RFU_HOST_SEND       0x05    // Host to client data send
 #define NET_RFU_CLIENT_SEND     0x06    // Client to host data send
+#define NET_RFU_CLIENT_ACK      0x07    // Client ACKs host received data.
 
 // Callbacks used to send and force-receive data.
 void netpacket_send(uint16_t client_id, const void *buf, size_t len);
@@ -255,7 +259,7 @@ static u16 new_devid() {
 // and return the return command code (plus some payload too?).
 static s32 rfu_process_command() {
   u32 i, j, cnt = 0;
-  RFU_DEBUG_LOG("Processing command 0x%x\n", rfu_cmd);
+  RFU_DEBUG_LOG("Processing command 0x%x (len %d)\n", rfu_cmd, rfu_plen);
 
   switch (rfu_cmd) {
   // These are not 100% supported, but they are OK as long as we ACK them.
@@ -274,16 +278,18 @@ static s32 rfu_process_command() {
     return 1;
 
   case RFU_CMD_SYSSTAT:
-    // WIP This is still not well described!
-    if (rfu_state == RFU_STATE_SHOST || rfu_state == RFU_STATE_HOST)
-      rfu_buf[0] = 0x01000000 | rfu_host.devid;
+    // Lower bits contain the DEVID, along with slot bits (if any) and some status code.
+    if (rfu_state == RFU_STATE_HOST)
+      rfu_buf[0] = (1 << 24) | rfu_host.devid;
+    else if (rfu_state == RFU_STATE_CLIENT)
+      rfu_buf[0] = (5 << 24) | ((1 << rfu_client.clnum) << 16) | rfu_client.devid;
     else
-      rfu_buf[0] = 0x00000000 | rfu_client.devid;
+      rfu_buf[0] = 0;
 
     return 1;
 
   case RFU_CMD_SLOTSTAT:
-    if (rfu_state == RFU_STATE_SHOST || rfu_state == RFU_STATE_HOST) {
+    if (rfu_state == RFU_STATE_HOST) {
       // Just a list of connected devices it seems
       u32 cnt = 0;
       rfu_buf[cnt++] = 0;
@@ -298,7 +304,7 @@ static s32 rfu_process_command() {
 
   case RFU_CMD_LINKPWR:
     // TODO: Return something better (ie. latency?)
-    if (rfu_state == RFU_STATE_HOST || rfu_state == RFU_STATE_SHOST)
+    if (rfu_state == RFU_STATE_HOST)
       rfu_buf[0] = (rfu_host.clients[0].devid ? 0x000000ff : 0) |
                    (rfu_host.clients[1].devid ? 0x0000ff00 : 0) |
                    (rfu_host.clients[2].devid ? 0x00ff0000 : 0) |
@@ -343,8 +349,9 @@ static s32 rfu_process_command() {
     if (rfu_state == RFU_STATE_IDLE) {
       // Generate a new ID in this case.
       rfu_host.devid = new_devid();
-      RFU_DEBUG_LOG("Start hosting with device ID %02x\n", rfu_host.devid);
+      memset(rfu_host.clients, 0, sizeof(rfu_host.clients));
       rfu_state = RFU_STATE_HOST;    // Host mode active
+      RFU_DEBUG_LOG("Start hosting with device ID %02x\n", rfu_host.devid);
     }
     // Start broadcasting immediately.
     rfu_host.tx_ttl = 0xff;
@@ -354,15 +361,16 @@ static s32 rfu_process_command() {
     if (rfu_state == RFU_STATE_IDLE)
       return -1;  // Return error if host mode is not active
 
-    // If no clients are connected, stop host mode for real.
-    for (i = 0; i < 4; i++) {
-      if (rfu_host.clients[i].devid) {
-        // We found one valid client so far. Slient host it is.
-        rfu_state = RFU_STATE_SHOST;
-        return 0;
-      }
+    // This just "stops" accepting new clients, however if the host has no
+    // clients, it will return to idle state (I think!).
+    if (rfu_state == RFU_STATE_HOST) {
+      for (i = 0; i < 4; i++)
+        if (rfu_host.clients[i].devid)
+          return 0;     // We stay in the host mode.
+
+      rfu_state = RFU_STATE_IDLE;
     }
-    rfu_state = RFU_STATE_IDLE;
+
     return 0;
 
   case RFU_CMD_HOST_ACCEPT:
@@ -377,7 +385,7 @@ static s32 rfu_process_command() {
     return cnt;
 
   case RFU_CMD_CONNECT:
-    if (rfu_state == RFU_STATE_HOST || rfu_state == RFU_STATE_SHOST)
+    if (rfu_state == RFU_STATE_HOST)
       return -1;  // Return error if host mode is active
 
     // The game specified a device ID, find the host.
@@ -389,6 +397,8 @@ static s32 rfu_process_command() {
 
           // Send a request to the host to connect
           rfu_net_send_cmd(rfu_peer_bcst[i].client_id, NET_RFU_CONNECT_REQ, reqid);
+          rfu_state = RFU_STATE_CONNECTING;
+          RFU_DEBUG_LOG("Sending connection request to parent %x\n", reqid);
           return 0;
         }
       }
@@ -397,23 +407,31 @@ static s32 rfu_process_command() {
     return -1;
 
   case RFU_CMD_ISCONNECTED:
-    if (rfu_state == RFU_STATE_HOST || rfu_state == RFU_STATE_SHOST)
+    if (rfu_state == RFU_STATE_HOST)
       return -1;  // Return error if host mode is active
 
-    rfu_buf[0] = !rfu_client.devid ? RFU_CONN_INPROGRESS :
-                 (rfu_client.devid | (rfu_client.clnum << 16));
+    if (rfu_state == RFU_STATE_CONNECTING)
+      rfu_buf[0] = RFU_CONN_INPROGRESS;
+    else if (rfu_state == RFU_STATE_IDLE)
+      rfu_buf[0] = RFU_CONN_FAILED;
+    else
+      rfu_buf[0] = rfu_client.devid | (rfu_client.clnum << 16);
+
     return 1;
 
   case RFU_CMD_CONCOMPL:
     // Seems that this is also called even when no connection happened!
-    if (rfu_state == RFU_STATE_HOST || rfu_state == RFU_STATE_SHOST)
+    if (rfu_state == RFU_STATE_HOST)
       return -1;
 
-    // Not sure what to return here, when the connection timedout/was nacked.
-    if (!rfu_client.devid)
-      return 0;
+    // Returns ID, with slot number and can also indicate failure.
+    if (rfu_state == RFU_STATE_CLIENT) {
+      rfu_buf[0] = rfu_client.devid | (rfu_client.clnum << 16);
+    } else {
+      rfu_buf[0] = RFU_CONN_COMP_FAIL;
+      rfu_state = RFU_STATE_IDLE;
+    }
 
-    rfu_buf[0] = rfu_client.devid;
     return 1;
 
   case RFU_CMD_SEND_DATAW:
@@ -421,7 +439,7 @@ static s32 rfu_process_command() {
     if (!rfu_plen)
       return 0;
 
-    if (rfu_state == RFU_STATE_HOST || rfu_state == RFU_STATE_SHOST) {
+    if (rfu_state == RFU_STATE_HOST) {
       // Read data to be sent into the TX buffer
       rfu_tx_buf.blen = rfu_buf[0] & 0x7F;
       memcpy(rfu_tx_buf.buf, &rfu_buf[1], (rfu_plen - 1)*sizeof(u32));
@@ -434,7 +452,7 @@ static s32 rfu_process_command() {
 
     /* fallthrough */
   case RFU_CMD_RTX_WAIT:
-    if (rfu_state == RFU_STATE_HOST || rfu_state == RFU_STATE_SHOST) {
+    if (rfu_state == RFU_STATE_HOST) {
       // Host sends a package to all clients.
       RFU_DEBUG_LOG("Host sending %d bytes / %d words to clients\n",
                     rfu_tx_buf.blen, rfu_plen - 1);
@@ -452,7 +470,8 @@ static s32 rfu_process_command() {
       if (rfu_tx_buf.blen <= 16) {
         // Send it immediately! This is not really accurate.
         rfu_net_send_data(rfu_client.host_id, NET_RFU_CLIENT_SEND,
-          rfu_tx_buf.blen | (rfu_client.clnum << 16), rfu_tx_buf.buf, rfu_tx_buf.blen);
+          (rfu_tx_buf.blen << 24) | (rfu_client.clnum << 16) | rfu_client.devid,
+          rfu_tx_buf.buf, rfu_tx_buf.blen);
       }
     }
     else
@@ -460,27 +479,29 @@ static s32 rfu_process_command() {
     break;
 
   case RFU_CMD_RECV_DATA:
-    if (rfu_state == RFU_STATE_HOST || rfu_state == RFU_STATE_SHOST) {
+    if (rfu_state == RFU_STATE_HOST) {
       // Receive data from clients
-      u32 cnt = 0;
+      u32 cnt = 0, bufbytes = 0;
+      u8 tmpbuf[16*4];
       rfu_buf[cnt++] = 0;   // Header contains byte counts as a bitfield.
       for (i = 0; i < 4; i++) {
-        u32 dlen = rfu_host.clients[i].pkts[0].datalen;
+        u32 dlen = MIN(16, rfu_host.clients[i].pkts[0].datalen);
         if (rfu_host.clients[i].devid && dlen != 0) {
           RFU_DEBUG_LOG("Host reads data from client buffer (%d bytes)\n", dlen);
-          // Copy data into words into the RFU buffer.
-          for (j = 0; j < (dlen + 3) / 4; j++)
-            rfu_buf[cnt++] = leupack32(&rfu_host.clients[i].pkts[0].data[j*4]);
+          // Accumulate into temp buffer
+          memcpy(&tmpbuf[bufbytes], &rfu_host.clients[i].pkts[0].data[0], dlen);
+          bufbytes += dlen;
           // Update byte count header for this client
           rfu_buf[0] |= dlen << (8 + i * 5);
-
           // Discard front packet
           memmove(&rfu_host.clients[i].pkts[0], &rfu_host.clients[i].pkts[1],
                   3 * sizeof(rfu_host.clients[i].pkts[0]));
           rfu_host.clients[i].pkts[3].datalen = 0;
-          break;
         }
       }
+      // Copy data into words into the RFU buffer.
+      for (i = 0; i < (bufbytes + 3) / 4; i++)
+        rfu_buf[cnt++] = leupack32(&tmpbuf[i*4]);
       return cnt;
     }
     else if (rfu_state == RFU_STATE_CLIENT) {
@@ -509,7 +530,7 @@ static s32 rfu_process_command() {
       rfu_net_send_cmd(rfu_client.host_id, NET_RFU_DISCONNECT,
                        rfu_client.devid | (rfu_client.clnum << 16));
       rfu_state = RFU_STATE_IDLE;
-    } else if (rfu_state == RFU_STATE_HOST || rfu_state == RFU_STATE_SHOST) {
+    } else if (rfu_state == RFU_STATE_HOST) {
       // We are disconnecing some client(s).
       for (i = 0; i < 4; i++)
         if (rfu_buf[0] & (1 << i)) {
@@ -534,7 +555,7 @@ static bool rfu_data_avail() {
     if (rfu_client.pkts[0].hblen != 0)
       return true;
   }
-  else if (rfu_state == RFU_STATE_HOST || rfu_state == RFU_STATE_SHOST) {
+  else if (rfu_state == RFU_STATE_HOST) {
     // Returns true if any data from any client is available.
     u32 i;
     for (i = 0; i < 4; i++)
@@ -670,6 +691,19 @@ void rfu_frame_update() {
         rfu_net_send_bcast(NET_RFU_BROADCAST, rfu_host.devid, rfu_host.bdata);
       }
     }
+
+    // Account client TTL (to timeout clients)
+    if (rfu_state == RFU_STATE_HOST) {
+      for (i = 0; i < 4; i++) {
+        if (rfu_host.clients[i].devid) {
+          if (++rfu_host.clients[i].clttl >= 240 /* 4s */) {
+            // The client hasn't sent stuff for a while, disconnect.
+            RFU_DEBUG_LOG("Disconnect client slot %d due to timeout\n", i);
+            memset(&rfu_host.clients[i], 0, sizeof(rfu_host.clients[i]));
+          }
+        }
+      }
+    }
   }
 }
 
@@ -745,31 +779,31 @@ void rfu_net_receive(const void* buf, size_t len, uint16_t client_id) {
     case NET_RFU_CONNECT_ACK:
       RFU_DEBUG_LOG("Received connection ACK from client ID: %d\n", client_id);
       // Only ok if we are not connected (not hosting)
-      if (rfu_state == RFU_STATE_IDLE) {
+      if (rfu_state == RFU_STATE_CONNECTING) {
         // Clear state and install device ID and slot number.
         memset(&rfu_client, 0, sizeof(rfu_client));
         rfu_client.devid = hdata & 0xffff;
         rfu_client.clnum = hdata >> 16;
         rfu_client.host_id = client_id;
         rfu_state = RFU_STATE_CLIENT;
+        RFU_DEBUG_LOG("Client connected with slot ID %d\n", rfu_client.clnum);
       }
       break;
 
     case NET_RFU_CONNECT_NACK:
-      // TODO: How do we handle a connection reject?
-      // For now do nothing and timeout will handle it.
-      RFU_DEBUG_LOG("Received CONN NACK, no action taken (unimplemented)\n");
+      // When receiving a NACK just return to Idle state.
+      if (rfu_state == RFU_STATE_CONNECTING)
+        rfu_state = RFU_STATE_IDLE;
+      RFU_DEBUG_LOG("Received CONN NACK\n");
       break;
 
     case NET_RFU_DISCONNECT:
-      if (rfu_state == RFU_STATE_HOST || rfu_state == RFU_STATE_SHOST) {
+      if (rfu_state == RFU_STATE_HOST) {
         // Clear the client from the list
         u32 clnum = (hdata >> 16) & 0x3;
         u16 cldid = hdata & 0xffff;
         if (rfu_host.clients[clnum].devid == cldid)
           memset(&rfu_host.clients[clnum], 0, sizeof(rfu_host.clients[clnum]));
-        // Write down disconnected client mask, for wait commands.
-        rfu_host.disc_flag |= (1 << clnum);
       }
       else if (rfu_state == RFU_STATE_CLIENT) {
         // Go back to idle state!
@@ -782,15 +816,17 @@ void rfu_net_receive(const void* buf, size_t len, uint16_t client_id) {
       // Only possible if we are a client
       if (rfu_state == RFU_STATE_CLIENT) {
         u32 blen = hdata & 0x7f;
-        if (len - 12 >= blen) {
+        if (len >= blen + 12) {
           u32 i;
+          // ACK the reception (so they know we are alive!)
+          rfu_net_send_cmd(client_id, NET_RFU_CLIENT_ACK,
+                           rfu_client.devid | (rfu_client.clnum << 16));
           // Receive data from the host. Queue que packet if possible
           for (i = 0; i < 4; i++) {
             if (!rfu_client.pkts[i].hblen) {
               memcpy(&rfu_client.pkts[i].hdata, payl, blen);
               rfu_client.pkts[i].hblen = blen;
-              RFU_DEBUG_LOG("Received host packet (%d bytes), queue pos #%d\n",
-                            blen, i);
+              RFU_DEBUG_LOG("Recv host packet (%d bytes) Q[#%d]\n", blen, i);
               return;
             }
           }
@@ -801,23 +837,35 @@ void rfu_net_receive(const void* buf, size_t len, uint16_t client_id) {
 
     case NET_RFU_CLIENT_SEND:
       // Only available when we are hosting
-      if (rfu_state == RFU_STATE_HOST || rfu_state == RFU_STATE_SHOST) {
+      if (rfu_state == RFU_STATE_HOST) {
         u32 i;
-        u32 blen = hdata & 0x1f;
+        u16 cdevid = hdata & 0xffff;
         u32 clid = (hdata >> 16) & 0x3;
+        u32 blen = hdata >> 24;
 
-        if (rfu_host.clients[clid].devid) {
+        // Validate the slot with device ID
+        if (rfu_host.clients[clid].devid == cdevid) {
+          rfu_host.clients[clid].clttl = 0;   // Account for packet reception
           for (i = 0; i < 4; i++) {
             if (!rfu_host.clients[clid].pkts[i].datalen) {
               memcpy(rfu_host.clients[clid].pkts[i].data, payl, blen);
               rfu_host.clients[clid].pkts[i].datalen = blen;
-              RFU_DEBUG_LOG("Received client packet (%d bytes), queue pos #%d\n",
-                            blen, i);
+              RFU_DEBUG_LOG("Recv client packet (%d bytes) Q[#%d]\n", blen, i);
               return;
             }
           }
           RFU_DEBUG_LOG("Host dropped a client packet\n");
         }
+      }
+
+    case NET_RFU_CLIENT_ACK:
+      // Should only happen when hosting
+      if (rfu_state == RFU_STATE_HOST) {
+        u32 devid = hdata & 0xffff;
+        u32 clid = (hdata >> 16) & 0x3;
+
+        if (rfu_host.clients[clid].devid == devid)
+          rfu_host.clients[clid].clttl = 0;   // Account for packet reception
       }
     };
   }
@@ -836,7 +884,17 @@ bool rfu_update(unsigned cycles) {
 
     // Wait for GBA to go into slave mode before finishing the wait!
     if ((read_ioreg(REG_SIOCNT) & 0x1) == 0) {
-      if (rfu_data_avail()) {
+      if (rfu_state == RFU_STATE_IDLE) {
+        // We are disconnected (most likely)
+        rfu_buf[0] = 0x99660000 | (1 << 8) | RFU_CMD_RESP_DISC;
+        rfu_buf[1] = 0xF;  // Reason disconnect (0), all slots disconnected?
+        rfu_buf[2] = 0x80000000;
+        rfu_cnt = 0;
+        rfu_plen = 3;
+        rfu_comstate = RFU_COMSTATE_WAITRESP;
+        RFU_DEBUG_LOG("Wait command resp: disconnect\n");
+      }
+      else if (rfu_data_avail()) {
         // Some event is available!
         rfu_buf[0] = 0x99660000 | RFU_CMD_RESP_DATA;
         rfu_buf[1] = 0x80000000;
@@ -844,8 +902,7 @@ bool rfu_update(unsigned cycles) {
         rfu_plen = 2;
         rfu_comstate = RFU_COMSTATE_WAITRESP;
       }
-      else if ((rfu_state == RFU_STATE_SHOST || rfu_state == RFU_STATE_HOST) &&
-               !rfu_resp_timeout) {
+      else if (rfu_state == RFU_STATE_HOST && !rfu_resp_timeout) {
         // We "retransmitted" the message N times (not really, but the equivalent
         // time has elapsed) and we simulate a lack of client response.
         rfu_buf[0] = 0x99660000 | RFU_CMD_RESP_DATA | (1 << 8);
@@ -854,18 +911,6 @@ bool rfu_update(unsigned cycles) {
         rfu_cnt = 0;
         rfu_plen = 3;
         rfu_comstate = RFU_COMSTATE_WAITRESP;
-      }
-      else if ((rfu_state == RFU_STATE_SHOST || rfu_state == RFU_STATE_HOST) &&
-               rfu_host.disc_flag) {
-        // We are a host, and received a disconnect from a client.
-        rfu_buf[0] = 0x99660000 | (1 << 8) | RFU_CMD_RESP_DISC;
-        rfu_buf[1] = rfu_host.disc_flag;  // Reason disconnect (0)
-        rfu_buf[2] = 0x80000000;
-        rfu_cnt = 0;
-        rfu_plen = 3;
-        rfu_comstate = RFU_COMSTATE_WAITRESP;
-        rfu_host.disc_flag = 0;
-        RFU_DEBUG_LOG("Wait command resp: disconnect %x\n", rfu_host.disc_flag);
       }
       else if (!rfu_timeout_cycles) {
         // We ran out of time, just return an "error" code
