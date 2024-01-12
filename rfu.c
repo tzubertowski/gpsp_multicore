@@ -347,8 +347,9 @@ static s32 rfu_process_command() {
     }
 
     if (rfu_state == RFU_STATE_IDLE) {
-      // Generate a new ID in this case.
-      rfu_host.devid = new_devid();
+      // Generate a new ID if we don't have one already.
+      if (!rfu_host.devid)
+        rfu_host.devid = new_devid();
       memset(rfu_host.clients, 0, sizeof(rfu_host.clients));
       rfu_state = RFU_STATE_HOST;    // Host mode active
       RFU_DEBUG_LOG("Start hosting with device ID %02x\n", rfu_host.devid);
@@ -403,8 +404,8 @@ static s32 rfu_process_command() {
         }
       }
     }
-    // If the ID cannot be found, return an error?
-    return -1;
+    // If the ID cannot be found, just ACK for now, ISCONNECTED will fail.
+    return 0;
 
   case RFU_CMD_ISCONNECTED:
     if (rfu_state == RFU_STATE_HOST)
@@ -482,7 +483,7 @@ static s32 rfu_process_command() {
     if (rfu_state == RFU_STATE_HOST) {
       // Receive data from clients
       u32 cnt = 0, bufbytes = 0;
-      u8 tmpbuf[16*4];
+      u8 tmpbuf[16*4] = {0};
       rfu_buf[cnt++] = 0;   // Header contains byte counts as a bitfield.
       for (i = 0; i < 4; i++) {
         u32 dlen = MIN(16, rfu_host.clients[i].pkts[0].datalen);
