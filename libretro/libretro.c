@@ -464,7 +464,7 @@ static void netpacket_receive(const void* buf, size_t len, uint16_t client_id) {
 
 // Ensure we do not have too many clients for the type of connection used.
 static bool netpacket_connected(uint16_t client_id) {
-  u32 max_clients = serial_mode == SERIAL_MODE_RFU ? 32 : 0;
+  u32 max_clients = serial_mode == SERIAL_MODE_RFU ? MAX_RFU_NETPLAYERS : 0;
 
   if (num_clients >= max_clients)
     return false;

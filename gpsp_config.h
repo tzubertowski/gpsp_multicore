@@ -24,4 +24,7 @@
 #define ROM_BRANCH_HASH_BITS                           16
 #define ROM_BRANCH_HASH_SIZE   (1 << ROM_BRANCH_HASH_BITS)
 
+/* RFU Multiplayer config, do not mess around too much with it */
+#define MAX_RFU_NETPLAYERS       32
+
 #endif

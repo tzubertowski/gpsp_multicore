@@ -27,8 +27,8 @@
 #endif
 
 // Config knobs, update with care.
-#define BCST_FRAME_ANNOUNCE_CNT      30   // Send broadcast twice per second.
-#define MAX_RFU_PEERS                32   // Do not allow more than 32 peers.
+#define BCST_ANNOUNCE_VB               30   // Send broadcast twice per second.
+#define MAX_RFU_PEERS  MAX_RFU_NETPLAYERS   // Do not allow more than 32 peers.
 
 #define RFU_DEF_TIMEOUT              32   // Expressed as frames (~533ms)
 #define RFU_DEF_RTXMAX                4   // Up to 4 transmissions per send
@@ -322,13 +322,16 @@ static s32 rfu_process_command() {
 
   case RFU_CMD_BCRD_STOP:
   case RFU_CMD_BCRD_FETCH:
-    // Return all broadcasts that we have received.
-    for (i = 0, cnt = 0; i < MAX_RFU_PEERS; i++) {
-      if (rfu_peer_bcst[i].valid) {
+    // We pick up to four random broadcasting peers.
+    // This is not randomly fair but whatever :D
+    i = rand_gen() % MAX_RFU_PEERS;
+    for (j = 0, cnt = 0; cnt < 4*7 && j < MAX_RFU_PEERS; j++) {
+      u32 entry = (i + j) % MAX_RFU_PEERS;
+      if (rfu_peer_bcst[entry].valid) {
         // Header is just the device ID
-        rfu_buf[cnt++] = rfu_peer_bcst[i].device_id;
-        memcpy(&rfu_buf[cnt], rfu_peer_bcst[i].data,
-               sizeof(rfu_peer_bcst[i].data));
+        rfu_buf[cnt++] = rfu_peer_bcst[entry].device_id;
+        memcpy(&rfu_buf[cnt], rfu_peer_bcst[entry].data,
+               sizeof(rfu_peer_bcst[entry].data));
         cnt += 6;
       }
     }
@@ -687,7 +690,7 @@ void rfu_frame_update() {
 
     // Broadcast host session periodically
     if (rfu_state == RFU_STATE_HOST) {
-      if (rfu_host.tx_ttl++ >= BCST_FRAME_ANNOUNCE_CNT) {
+      if (rfu_host.tx_ttl++ >= BCST_ANNOUNCE_VB) {
         rfu_host.tx_ttl = 0;
         rfu_net_send_bcast(NET_RFU_BROADCAST, rfu_host.devid, rfu_host.bdata);
       }
@@ -719,28 +722,14 @@ void rfu_net_receive(const void* buf, size_t len, uint16_t client_id) {
 
     switch (ptype) {
     case NET_RFU_BROADCAST:
-      // Add or update broadcast to rfu_peer_bcst
-      RFU_DEBUG_LOG("Got broadcast: client ID: %d devID: %02x\n", client_id, hdata);
-      for (i = 0; i < MAX_RFU_PEERS; i++) {
-        if (rfu_peer_bcst[i].valid && rfu_peer_bcst[i].client_id == client_id) {
-          rfu_peer_bcst[i].device_id = hdata;
-          rfu_peer_bcst[i].ttl = 0xff;
-          for (j = 0; j < 6; j++)
-            rfu_peer_bcst[i].data[j] = upack32(&payl[j*4]);
-          return;
-        }
-      }
-      // Find an empty slot to add this new broadcast.
-      for (i = 0; i < MAX_RFU_PEERS; i++) {
-        if (!rfu_peer_bcst[i].valid) {
-          rfu_peer_bcst[i].client_id = client_id;
-          rfu_peer_bcst[i].device_id = hdata;
-          rfu_peer_bcst[i].ttl = 0xff;
-          rfu_peer_bcst[i].valid = 1;
-          for (j = 0; j < 6; j++)
-            rfu_peer_bcst[i].data[j] = upack32(&payl[j*4]);
-          return;
-        }
+      // Fill the broadcast slot for the peer
+      RFU_DEBUG_LOG("Got broadcast (client: #%d devID: %02x)\n", client_id, hdata);
+      if (client_id < MAX_RFU_PEERS) {
+        rfu_peer_bcst[client_id].device_id = hdata;
+        rfu_peer_bcst[client_id].valid = 1;
+        rfu_peer_bcst[client_id].ttl = 0xff;
+        for (j = 0; j < 6; j++)
+          rfu_peer_bcst[client_id].data[j] = upack32(&payl[j*4]);
       }
       break;
 
