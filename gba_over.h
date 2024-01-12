@@ -954,7 +954,7 @@ static const ini_t gbaover[] = {
       "MEGAMAN5_TP_",              /* gamepak_title        */
       "BRBE",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flags                */
+      FLAGS_RFU,                   /* flags                */
       0x80003ca,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -965,7 +965,7 @@ static const ini_t gbaover[] = {
       "MEGAMAN5_TC_",              /* gamepak_title        */
       "BRKE",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flags                */
+      FLAGS_RFU,                   /* flags                */
       0x80003ca,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -976,7 +976,18 @@ static const ini_t gbaover[] = {
       "MEGAMAN6_GXX",              /* gamepak_title        */
       "BR5E",                      /* gamepak_code         */
       "08",                        /* gamepak_maker        */
-      0,                           /* flags                */
+      FLAGS_RFU,                   /* flags                */
+      0x80003da,                   /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
+      // Megaman Battle Network 6 Cybeast Falzar (U)
+      "MEGAMAN6_FXX",              /* gamepak_title        */
+      "BR6E",                      /* gamepak_code         */
+      "08",                        /* gamepak_maker        */
+      FLAGS_RFU,                   /* flags                */
       0x80003da,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1099,6 +1110,17 @@ static const ini_t gbaover[] = {
       "41",                        /* gamepak_maker        */
       0,                           /* flags                */
       0x3001cf8,                   /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
+      // Narnia Chronicles (U)
+      "NARNIA LWW",                /* gamepak_title        */
+      "B2WE",                      /* gamepak_code         */
+      "4Q",                        /* gamepak_maker        */
+      FLAGS_RFU,                   /* flags                */
+      0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
       0,                           /* translation_gate_target_3 */
@@ -1871,6 +1893,28 @@ static const ini_t gbaover[] = {
       0,                           /* translation_gate_target_3 */
    },
    {
+      // Shrek Super Slam (U)
+      "SUPER SLAM",                /* gamepak_title        */
+      "B4UE",                      /* gamepak_code         */
+      "52",                        /* gamepak_maker        */
+      FLAGS_RFU,                   /* flags      */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
+      // Shrek Super Slam (E)
+      "SUPER SLAM",                /* gamepak_title        */
+      "B4UP",                      /* gamepak_code         */
+      "52",                        /* gamepak_maker        */
+      FLAGS_RFU,                   /* flags      */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
       // Super Puzzle Fighter II Turbo (E)
       "PUZZLEFIGHT2",              /* gamepak_title        */
       "AZ8P",                      /* gamepak_code         */
@@ -1948,6 +1992,17 @@ static const ini_t gbaover[] = {
       0,                           /* translation_gate_target_3 */
    },
    {
+      // Lord of the Rings: the third Age (U)
+      "THIRD AGE",                 /* gamepak_title        */
+      "B3AE",                      /* gamepak_code         */
+      "69",                        /* gamepak_maker        */
+      FLAGS_RFU,                   /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
       // Tom Clancy's Splinter Cell: Pandora Tomorrow (U)
       "TOM CLANCY'S",              /* gamepak_title        */
       "BSLE",                      /* gamepak_code         */
@@ -1963,7 +2018,18 @@ static const ini_t gbaover[] = {
       "HAMSPORTS",                 /* gamepak_title        */
       "B85A",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      0,                           /* flags                */
+      FLAGS_RFU,                   /* flags                */
+      0,                           /* idle_loop_target_pc  */
+      0,                           /* translation_gate_target_1 */
+      0,                           /* translation_gate_target_2 */
+      0,                           /* translation_gate_target_3 */
+   },
+   {
+      // Hamtaro Ham Ham Games (E)
+      "HAMSPORTS",                 /* gamepak_title        */
+      "B85P",                      /* gamepak_code         */
+      "01",                        /* gamepak_maker        */
+      FLAGS_RFU,                   /* flags                */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
