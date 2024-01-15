@@ -32,8 +32,8 @@ endif
 
 include $(CORE_DIR)/Makefile.common
 
-GIT_VERSION := " $(shell git rev-parse --short HEAD || echo unknown)"
-ifneq ($(GIT_VERSION)," unknown")
+GIT_VERSION := "$(shell git rev-parse --short HEAD || echo unknown)"
+ifneq ($(GIT_VERSION),"unknown")
    COREFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 endif
 

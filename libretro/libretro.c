@@ -484,7 +484,7 @@ const struct retro_netpacket_callback netpacket_iface = {
   NULL,                     /* poll */
   netpacket_connected,      /* connected */
   netpacket_disconnected,   /* disconnected */
-  NULL,                     /* core version char* */
+  GPSP_NETPACKET_VERSION,   /* core version char* */
 };
 
 
@@ -510,11 +510,12 @@ extern struct retro_perf_callback perf_cb;
 
 void retro_get_system_info(struct retro_system_info* info)
 {
-   info->library_name = "gpSP";
-#ifndef GIT_VERSION
-#define GIT_VERSION ""
-#endif
-   info->library_version = "v0.91" GIT_VERSION;
+   info->library_name = GPSP_NAME;
+ #ifdef GIT_VERSION
+   info->library_version = GPSP_VERSION "-" GIT_VERSION;
+ #else
+   info->library_version = GPSP_VERSION;
+ #endif
    info->need_fullpath = true;
    info->block_extract = false;
    info->valid_extensions = "gba|bin|agb|gbz|u1" ;

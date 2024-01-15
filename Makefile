@@ -58,8 +58,8 @@ else ifneq ($(findstring MINGW,$(shell uname -a)),)
 endif
 
 TARGET_NAME	:= gpsp
-GIT_VERSION := " $(shell git rev-parse --short HEAD || echo unknown)"
-ifneq ($(GIT_VERSION)," unknown")
+GIT_VERSION := "$(shell git rev-parse --short HEAD || echo unknown)"
+ifneq ($(GIT_VERSION),"unknown")
 	CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 endif
 LIBM		   := -lm
