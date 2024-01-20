@@ -475,6 +475,22 @@ else ifeq ($(platform), rs90)
 	HAVE_DYNAREC := 1
 	CPU_ARCH := mips
 
+# SF2000
+else ifeq ($(platform), sf2000)
+	TARGET := $(TARGET_NAME)_libretro_$(platform).a
+	MIPS:=/opt/mips32-mti-elf/2019.09-03-2/bin/mips-mti-elf-
+	CC = $(MIPS)gcc
+	CXX = $(MIPS)g++
+	AR = $(MIPS)ar
+	CFLAGS = -EL -march=mips32 -mtune=mips32 -msoft-float -G0 -mno-abicalls -fno-pic
+	CFLAGS += -ffast-math -fomit-frame-pointer -ffunction-sections -fdata-sections 
+	CFLAGS += -DSMALL_TRANSLATION_CACHE -DROM_BUFFER_SIZE=4
+	CFLAGS += -DSF2000
+	CXXFLAGS = $(CFLAGS)
+	STATIC_LINKING = 1
+	# HAVE_DYNAREC := 1
+	CPU_ARCH := mips
+
 # MIYOO
 else ifeq ($(platform), miyoo)
 	TARGET := $(TARGET_NAME)_libretro.so

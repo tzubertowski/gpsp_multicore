@@ -29,6 +29,10 @@
 #include <kernel.h>
 #endif
 
+#ifdef SF2000
+void xlog(const char *fmt, ...);
+#endif
+
 u8 *last_rom_translation_ptr = NULL;
 u8 *last_ram_translation_ptr = NULL;
 
@@ -2659,9 +2663,13 @@ u8 function_cc *block_lookup_address_arm(u32 pc)
     }
   }
 
+#ifndef SF2000
   printf("bad jump %x (%x)\n", pc, reg[REG_PC]);
   fflush(stdout);
   return NULL;
+#else
+  xlog("bad jump %x (%x)\n", pc, reg[REG_PC]);
+#endif
 }
 
 u8 function_cc *block_lookup_address_thumb(u32 pc)
