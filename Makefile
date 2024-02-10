@@ -201,7 +201,7 @@ else ifeq ($(platform), psl1ght)
 else ifeq ($(platform), libnx)
 	include $(DEVKITPRO)/libnx/switch_rules
 	TARGET := $(TARGET_NAME)_libretro_$(platform).a
-	CFLAGS += -O3 -fomit-frame-pointer -ffast-math -I$(DEVKITPRO)/libnx/include/
+	CFLAGS += -O3 -fomit-frame-pointer -ffast-math -I$(DEVKITPRO)/libnx/include/ -fPIE
 	CFLAGS += -specs=$(DEVKITPRO)/libnx/switch.specs
 	CFLAGS += -D__SWITCH__ -DHAVE_LIBNX
 	CFLAGS += -DARM -D__aarch64__=1 -march=armv8-a -mtune=cortex-a57 -mtp=soft -ffast-math
