@@ -615,7 +615,7 @@ fnptrs:
 
 # Make this section executable!
 .text
-#if defined(PSP) || defined(PS2)
+#if defined(PSP) || defined(PS2) || defined(SF2000)
   .section .bss
 #else
   # Need to mark the section as awx (for Linux)
