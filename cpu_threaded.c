@@ -2682,9 +2682,13 @@ u8 function_cc *block_lookup_address_thumb(u32 pc)
       return ret;
     }
   }
-  printf("bad jump %x (%x)\n", pc, reg[REG_PC]);
-  fflush(stdout);
-  return NULL;
+  #ifndef SF2000
+   printf("bad jump %x (%x)\n", pc, reg[REG_PC]);
+   fflush(stdout);
+   return NULL;
+  #else
+    xlog("bad jump %x (%x)\n", pc, reg[REG_PC]);
+  #endif
 }
 
 

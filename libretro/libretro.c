@@ -981,6 +981,16 @@ static void check_variables(bool started_from_load)
        (post_process_mix != post_process_mix_prev))
       init_post_processing();
 
+   var.key                = "gpsp_mappingYXtoLR";
+   var.value              = 0;
+   mappingYXtoLR          = false;
+
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+   {
+      if (!strcmp(var.value, "enabled"))
+         mappingYXtoLR = true;
+   }
+   
    var.key           = "gpsp_turbo_period";
    var.value         = NULL;
    turbo_period      = TURBO_PERIOD_MIN;
@@ -1158,6 +1168,8 @@ void* retro_get_memory_data(unsigned id)
 {
    if (id == RETRO_MEMORY_SAVE_RAM)
       return gamepak_backup;
+   else if (id == RETRO_MEMORY_SYSTEM_RAM)
+      return ewram;
 
    return NULL;
 }
@@ -1166,6 +1178,8 @@ size_t retro_get_memory_size(unsigned id)
 {
    if (id == RETRO_MEMORY_SAVE_RAM)
       return 0x20000;  /* Assume 128KiB, biggest possible save */
+   else if (id == RETRO_MEMORY_SYSTEM_RAM)
+      return 0x40000;
 
    return 0;
 }

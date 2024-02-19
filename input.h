@@ -68,6 +68,8 @@ extern bool libretro_ff_enabled_prev;
 #define TURBO_PULSE_WIDTH_MIN 2
 #define TURBO_PULSE_WIDTH_MAX 15
 
+extern bool mappingYXtoLR;
+
 extern unsigned turbo_period;
 extern unsigned turbo_pulse_width;
 extern unsigned turbo_a_counter;

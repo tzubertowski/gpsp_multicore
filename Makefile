@@ -197,12 +197,16 @@ else ifeq ($(platform), psl1ght)
 	CFLAGS += -DMSB_FIRST -D__ppc__
 	STATIC_LINKING = 1
 	
-# Nintendo Switch (libtransistor)
-else ifeq ($(platform), switch)
-	EXT=a
-        TARGET := $(TARGET_NAME)_libretro_$(platform).$(EXT)
-        include $(LIBTRANSISTOR_HOME)/libtransistor.mk
-        STATIC_LINKING=1
+# Nintendo Switch (libnx)
+else ifeq ($(platform), libnx)
+	include $(DEVKITPRO)/libnx/switch_rules
+	TARGET := $(TARGET_NAME)_libretro_$(platform).a
+	CFLAGS += -O3 -fomit-frame-pointer -ffast-math -I$(DEVKITPRO)/libnx/include/ -fPIE
+	CFLAGS += -specs=$(DEVKITPRO)/libnx/switch.specs
+	CFLAGS += -D__SWITCH__ -DHAVE_LIBNX
+	CFLAGS += -DARM -D__aarch64__=1 -march=armv8-a -mtune=cortex-a57 -mtp=soft -ffast-math
+	STATIC_LINKING=1
+	STATIC_LINKING_LINK = 1
 
 # Nintendo Game Cube / Wii / WiiU
 else ifneq (,$(filter $(platform), ngc wii wiiu))
@@ -484,11 +488,10 @@ else ifeq ($(platform), sf2000)
 	AR = $(MIPS)ar
 	CFLAGS = -EL -march=mips32 -mtune=mips32 -msoft-float -G0 -mno-abicalls -fno-pic
 	CFLAGS += -ffast-math -fomit-frame-pointer -ffunction-sections -fdata-sections 
-	CFLAGS += -DSMALL_TRANSLATION_CACHE -DROM_BUFFER_SIZE=4
 	CFLAGS += -DSF2000
 	CXXFLAGS = $(CFLAGS)
 	STATIC_LINKING = 1
-	# HAVE_DYNAREC := 1
+	HAVE_DYNAREC := 1
 	CPU_ARCH := mips
 
 # MIYOO

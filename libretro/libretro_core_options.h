@@ -217,6 +217,17 @@ struct retro_core_option_definition option_defs_us[] = {
       "disabled"
    },
    {
+      "gpsp_mappingYXtoLR",
+      "Mapping Y X button to L R",
+      "Mapping the buttons Y to L and X to R.",
+      {
+         { "disabled", NULL },
+         { "enabled",  NULL },
+         { NULL, NULL },
+      },
+      "disabled"
+   },
+   {
       "gpsp_turbo_period",
       "Turbo Button Period",
       "Specify the repeat interval (in frames) when holding down the Turbo A/B buttons.",

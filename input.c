@@ -23,6 +23,7 @@ bool libretro_supports_bitmasks    = false;
 bool libretro_supports_ff_override = false;
 bool libretro_ff_enabled           = false;
 bool libretro_ff_enabled_prev      = false;
+bool mappingYXtoLR                 = false;
 
 unsigned turbo_period      = TURBO_PERIOD_MIN;
 unsigned turbo_pulse_width = TURBO_PULSE_WIDTH_MIN;
@@ -83,8 +84,18 @@ u32 update_input(void)
       libretro_ff_enabled = libretro_supports_ff_override &&
             (ret & (1 << RETRO_DEVICE_ID_JOYPAD_R2));
 
-      turbo_a = (ret & (1 << RETRO_DEVICE_ID_JOYPAD_X));
-      turbo_b = (ret & (1 << RETRO_DEVICE_ID_JOYPAD_Y));
+      if (mappingYXtoLR) 
+      {
+        if (ret & (1 << RETRO_DEVICE_ID_JOYPAD_X))
+            new_key = BUTTON_R;
+        if (ret & (1 << RETRO_DEVICE_ID_JOYPAD_Y))
+            new_key = BUTTON_L;
+      }
+      else
+      {
+        turbo_a = (ret & (1 << RETRO_DEVICE_ID_JOYPAD_X));
+        turbo_b = (ret & (1 << RETRO_DEVICE_ID_JOYPAD_Y));
+      }
    }
    else
    {
@@ -94,8 +105,18 @@ u32 update_input(void)
        libretro_ff_enabled = libretro_supports_ff_override &&
             input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2);
 
-      turbo_a = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X);
-      turbo_b = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y);
+      if (mappingYXtoLR) 
+      {
+        if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X))
+            new_key = BUTTON_R;
+        if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y))
+            new_key = BUTTON_L;
+      }
+      else
+      {
+        turbo_a = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X);
+        turbo_b = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y);
+      }
    }
 
    /* Handle turbo buttons */
