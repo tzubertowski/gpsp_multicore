@@ -1004,6 +1004,7 @@ static void check_variables(bool started_from_load)
        (post_process_mix != post_process_mix_prev))
       init_post_processing();
 
+   #ifdef SF2000
    var.key                = "gpsp_mappingYXtoLR";
    var.value              = 0;
    mappingYXtoLR          = false;
@@ -1013,6 +1014,7 @@ static void check_variables(bool started_from_load)
       if (!strcmp(var.value, "enabled"))
          mappingYXtoLR = true;
    }
+   #endif
    
    var.key           = "gpsp_turbo_period";
    var.value         = NULL;
