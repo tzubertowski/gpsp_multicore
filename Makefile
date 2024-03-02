@@ -488,6 +488,7 @@ else ifeq ($(platform), sf2000)
 	AR = $(MIPS)ar
 	CFLAGS = -EL -march=mips32 -mtune=mips32 -msoft-float -G0 -mno-abicalls -fno-pic
 	CFLAGS += -ffast-math -fomit-frame-pointer -ffunction-sections -fdata-sections 
+	CFLAGS += -DROM_BUFFER_SIZE=16
 	CFLAGS += -DSF2000
 	CXXFLAGS = $(CFLAGS)
 	STATIC_LINKING = 1
