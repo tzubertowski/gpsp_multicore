@@ -216,6 +216,7 @@ struct retro_core_option_definition option_defs_us[] = {
       },
       "disabled"
    },
+   #if defined SF2000
    {
       "gpsp_mappingYXtoLR",
       "Mapping Y X button to L R",
@@ -227,6 +228,7 @@ struct retro_core_option_definition option_defs_us[] = {
       },
       "disabled"
    },
+   #endif
    {
       "gpsp_turbo_period",
       "Turbo Button Period",

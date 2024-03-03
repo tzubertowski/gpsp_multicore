@@ -68,7 +68,9 @@ extern bool libretro_ff_enabled_prev;
 #define TURBO_PULSE_WIDTH_MIN 2
 #define TURBO_PULSE_WIDTH_MAX 15
 
+#ifdef SF2000
 extern bool mappingYXtoLR;
+#endif
 
 extern unsigned turbo_period;
 extern unsigned turbo_pulse_width;
