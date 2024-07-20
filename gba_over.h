@@ -1589,17 +1589,6 @@ static const ini_t gbaover[] = {
       0,                           /* translation_gate_target_3 */
    },
    {
-      // Goodboy Galaxy (World)
-      "GOODBOY",                         /* gamepak_title        */
-      "2GBP",                            /* gamepak_code         */
-      "01",                              /* gamepak_maker        */
-      FLAGS_RUMBLE,                      /* flags                */
-      0,                                 /* idle_loop_target_pc  */
-      0,                                 /* translation_gate_target_1 */
-      0,                                 /* translation_gate_target_2 */
-      0,                                 /* translation_gate_target_3 */
-   },
-   {
       // Prince of Persia - The Sands of Time (U)
       "PRINCEPERSIA",              /* gamepak_title        */
       "BPYE",                      /* gamepak_code         */
