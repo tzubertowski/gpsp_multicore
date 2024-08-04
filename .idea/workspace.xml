@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="150abfe5-d1e0-4595-9777-e79c02c73d28" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/game_config.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gba_memory.c" beforeDir="false" afterPath="$PROJECT_DIR$/gba_memory.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gba_memory.h" beforeDir="false" afterPath="$PROJECT_DIR$/gba_memory.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gbp.c" beforeDir="false" afterPath="$PROJECT_DIR$/gbp.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libretro/libretro.c" beforeDir="false" afterPath="$PROJECT_DIR$/libretro/libretro.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.c" beforeDir="false" afterPath="$PROJECT_DIR$/main.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.h" beforeDir="false" afterPath="$PROJECT_DIR$/main.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mips/mips_emit.h" beforeDir="false" afterPath="$PROJECT_DIR$/mips/mips_emit.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rfu.c" beforeDir="false" afterPath="$PROJECT_DIR$/rfu.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/x86/x86_stub.S" beforeDir="false" afterPath="$PROJECT_DIR$/x86/x86_stub.S" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
+  <component name="ProjectId" id="2kBa4keNK5NoUZwFywdaS1GRSAK" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;Reverting in master&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="RunManager">
+    <configuration default="true" type="JetRunConfigurationType">
+      <module name="gpsp" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
+      <module name="gpsp" />
+      <option name="filePath" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="150abfe5-d1e0-4595-9777-e79c02c73d28" name="Changes" comment="" />
+      <created>1722759236172</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1722759236172</updated>
+    </task>
+    <servers />
+  </component>
+</project>

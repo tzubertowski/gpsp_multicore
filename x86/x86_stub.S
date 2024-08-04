@@ -232,7 +232,7 @@ ext_store_gpio16:
   and $0xFFFF, %edx           # make value 16bit
   and $0xFF, %eax             # mask address
   SETUP_ARGS                  # Setup addr, value
-  CALL_FUNC(write_gpio)       # write out RTC register
+  CALL_FUNC(write_rtc)       # write out RTC register
   ret
 
 ext_store_backup8:

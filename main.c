@@ -33,6 +33,7 @@ u32 gbc_update_count = 0;
 u32 oam_update_count = 0;
 
 char main_path[512];
+char save_path[512];
 
 static u32 random_state = 0;
 

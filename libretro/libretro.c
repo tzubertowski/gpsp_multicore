@@ -84,17 +84,13 @@ static retro_video_refresh_t video_cb;
 static retro_audio_sample_batch_t audio_batch_cb;
 static retro_input_poll_t input_poll_cb;
 static retro_environment_t environ_cb;
-static retro_set_rumble_state_t rumble_cb;
 
 struct retro_perf_callback perf_cb;
 
 int dynarec_enable;
+int use_libretro_save_method = 0;
 boot_mode selected_boot_mode = boot_game;
 int sprite_limit = 1;
-
-static int rtc_mode = FEAT_AUTODETECT;
-static int rumble_mode = FEAT_AUTODETECT;
-static int serial_setting = SERIAL_MODE_AUTO;
 
 u32 idle_loop_target_pc = 0xFFFFFFFF;
 u32 translation_gate_target_pc[MAX_TRANSLATION_GATES];
@@ -425,69 +421,6 @@ static void video_run(void)
             GBA_SCREEN_PITCH * 2);
 }
 
-// Netplay (Netpacket) interface
-
-static u32 num_clients;
-static retro_netpacket_send_t netpacket_send_fn_ptr = NULL;
-static retro_netpacket_poll_receive_t netpacket_pollrcv_fn_ptr = NULL;
-
-void netpacket_poll_receive() {
-  if (netpacket_pollrcv_fn_ptr)
-    netpacket_pollrcv_fn_ptr();
-}
-
-void netpacket_send(uint16_t client_id, const void *buf, size_t len) {
-  // Force all packets to be flushed ASAP, to minimize latency.
-  if (netpacket_send_fn_ptr)
-    netpacket_send_fn_ptr(RETRO_NETPACKET_RELIABLE | RETRO_NETPACKET_FLUSH_HINT, buf, len, client_id);
-}
-
-static void netpacket_start(uint16_t client_id, retro_netpacket_send_t send_fn, retro_netpacket_poll_receive_t poll_receive_fn) {
-  netpacket_send_fn_ptr = send_fn;
-  netpacket_pollrcv_fn_ptr = poll_receive_fn;
-  num_clients = 0;
-}
-
-// Netplay session ends.
-static void netpacket_stop() {
-  netpacket_send_fn_ptr = NULL;
-  netpacket_pollrcv_fn_ptr = NULL;
-}
-
-static void netpacket_receive(const void* buf, size_t len, uint16_t client_id) {
-  switch (serial_mode) {
-  case SERIAL_MODE_RFU:
-    rfu_net_receive(buf, len, client_id);
-    break;
-  };
-}
-
-// Ensure we do not have too many clients for the type of connection used.
-static bool netpacket_connected(uint16_t client_id) {
-  u32 max_clients = serial_mode == SERIAL_MODE_RFU ? MAX_RFU_NETPLAYERS : 0;
-
-  if (num_clients >= max_clients)
-    return false;
-
-  num_clients++;
-  return true;
-}
-
-static void netpacket_disconnected(uint16_t client_id) {
-  num_clients--;
-}
-
-const struct retro_netpacket_callback netpacket_iface = {
-  netpacket_start,          /* start */
-  netpacket_receive,        /* receive */
-  netpacket_stop,           /* stop */
-  NULL,                     /* poll */
-  netpacket_connected,      /* connected */
-  netpacket_disconnected,   /* disconnected */
-  GPSP_NETPACKET_VERSION,   /* core version char* */
-};
-
-
 #ifdef PERF_TEST
 
 extern struct retro_perf_callback perf_cb;
@@ -612,9 +545,6 @@ void retro_init(void)
    libretro_supports_ff_override = false;
    if (environ_cb(RETRO_ENVIRONMENT_SET_FASTFORWARDING_OVERRIDE, NULL))
       libretro_supports_ff_override = true;
-
-   // This interface is actually optional
-   environ_cb(RETRO_ENVIRONMENT_SET_NETPACKET_INTERFACE, (void*)&netpacket_iface);
 
    current_frameskip_type = no_frameskip;
    frameskip_threshold    = 0;
@@ -747,6 +677,7 @@ void retro_set_controller_port_device(unsigned port, unsigned device) {}
 
 void retro_reset(void)
 {
+   update_backup();
    reset_gba();
 }
 
@@ -816,7 +747,7 @@ static void extract_directory(char* buf, const char* path, size_t size)
       strncpy(buf, ".", size);
 }
 
-static void check_variables(bool started_from_load)
+static void check_variables(int started_from_load)
 {
    struct retro_variable var;
    bool frameskip_type_prev;
@@ -866,44 +797,6 @@ static void check_variables(bool started_from_load)
            selected_boot_mode = boot_game;
         else if (!strcmp(var.value, "bios"))
            selected_boot_mode = boot_bios;
-     }
-
-     var.key                = "gpsp_rtc";
-     var.value              = 0;
-     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-     {
-        if (!strcmp(var.value, "disabled"))
-           rtc_mode = FEAT_DISABLE;
-        else if (!strcmp(var.value, "enabled"))
-           rtc_mode = FEAT_ENABLE;
-        else
-           rtc_mode = FEAT_AUTODETECT;
-     }
-
-     var.key                = "gpsp_serial";
-     var.value              = 0;
-     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-     {
-        if (!strcmp(var.value, "disabled"))
-           serial_setting = SERIAL_MODE_DISABLED;
-        else if (!strcmp(var.value, "rfu"))
-           serial_setting = SERIAL_MODE_RFU;
-        else if (!strcmp(var.value, "gbp"))
-           serial_setting = SERIAL_MODE_GBP;
-        else
-           serial_setting = SERIAL_MODE_AUTO;
-     }
-
-     var.key                = "gpsp_rumble";
-     var.value              = 0;
-     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-     {
-        if (!strcmp(var.value, "disabled"))
-           rumble_mode = FEAT_DISABLE;
-        else if (!strcmp(var.value, "enabled"))
-           rumble_mode = FEAT_ENABLE;
-        else
-           rumble_mode = FEAT_AUTODETECT;
      }
    }
 
@@ -981,6 +874,19 @@ static void check_variables(bool started_from_load)
        (post_process_mix != post_process_mix_prev))
       init_post_processing();
 
+   if (started_from_load)
+   {
+      var.key = "gpsp_save_method";
+      var.value = NULL;
+      if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+      {
+         if (!strcmp(var.value, "libretro"))
+            use_libretro_save_method = 1;
+         else
+            use_libretro_save_method = 0;
+      }
+   }
+
    #ifdef SF2000
    var.key                = "gpsp_mappingYXtoLR";
    var.value              = 0;
@@ -992,7 +898,7 @@ static void check_variables(bool started_from_load)
          mappingYXtoLR = true;
    }
    #endif
-   
+
    var.key           = "gpsp_turbo_period";
    var.value         = NULL;
    turbo_period      = TURBO_PERIOD_MIN;
@@ -1076,7 +982,8 @@ bool retro_load_game(const struct retro_game_info* info)
    if (!info)
       return false;
 
-   check_variables(true);
+   use_libretro_save_method = 0;
+   check_variables(1);
    set_input_descriptors();
 
    char filename_bios[MAX_PATH];
@@ -1087,6 +994,11 @@ bool retro_load_game(const struct retro_game_info* info)
       info_msg("RGB565 is not supported.");
 
    extract_directory(main_path, info->path, sizeof(main_path));
+
+   if (environ_cb(RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY, &dir) && dir)
+      strcpy(save_path, dir);
+   else
+      strcpy(save_path, main_path);
 
    if (environ_cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &dir) && dir)
       strcpy(filename_bios, dir);
@@ -1119,18 +1031,12 @@ bool retro_load_game(const struct retro_game_info* info)
      memcpy(bios_rom, open_gba_bios_rom, sizeof(bios_rom));
    }
 
-   memset(gamepak_backup, 0xff, sizeof(gamepak_backup));
-   if (load_gamepak(info, info->path, rtc_mode, rumble_mode, serial_setting) != 0)
+   memset(gamepak_backup, -1, sizeof(gamepak_backup));
+   if (load_gamepak(info, info->path) != 0)
    {
       error_msg("Could not load the game file.");
       return false;
    }
-
-   struct retro_rumble_interface rumbleif;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_RUMBLE_INTERFACE, &rumbleif))
-      rumble_cb = rumbleif.set_rumble_state;
-   else
-      rumble_cb = NULL;
 
    reset_gba();
 
@@ -1147,6 +1053,8 @@ bool retro_load_game_special(unsigned game_type,
 
 void retro_unload_game(void)
 {
+   update_backup();
+
    if (libretro_ff_enabled)
       set_fastforward_override(false);
 
@@ -1168,20 +1076,50 @@ unsigned retro_get_region(void)
 
 void* retro_get_memory_data(unsigned id)
 {
-   if (id == RETRO_MEMORY_SAVE_RAM)
-      return gamepak_backup;
-   else if (id == RETRO_MEMORY_SYSTEM_RAM)
-      return ewram;
+   switch (id)
+   {
+   case RETRO_MEMORY_SAVE_RAM:
+      if (use_libretro_save_method)
+         return gamepak_backup;
+      break;
+   default:
+      break;
+   }
 
-   return NULL;
+   return 0;
 }
 
 size_t retro_get_memory_size(unsigned id)
 {
-   if (id == RETRO_MEMORY_SAVE_RAM)
-      return 0x20000;  /* Assume 128KiB, biggest possible save */
-   else if (id == RETRO_MEMORY_SYSTEM_RAM)
-      return 0x40000;
+   switch (id)
+   {
+   case RETRO_MEMORY_SAVE_RAM:
+      if (use_libretro_save_method)
+      {
+         switch(backup_type)
+         {
+         case BACKUP_SRAM:
+            return sram_bankcount * 0x8000;
+
+         case BACKUP_FLASH:
+            return 0x10000 * flash_bank_cnt;
+
+         case BACKUP_EEPROM:
+            return 0x200 * eeprom_size;
+
+         // assume 128KB save, regardless if rom supports battery saves
+         // this is needed because gba cannot provide initially the backup save size
+         // until a few cycles has passed (unless provided by a database)
+         case BACKUP_NONE:
+         default:
+            return (1024 * 128);
+            break;
+         }
+      }
+      break;
+   default:
+      break;
+   }
 
    return 0;
 }
@@ -1192,8 +1130,6 @@ void retro_run(void)
 
    input_poll_cb();
    update_input();
-
-   rumble_frame_reset();
 
    /* Check whether current frame should
     * be skipped */
@@ -1277,24 +1213,11 @@ void retro_run(void)
       execute_arm(execute_cycles);
    }
 
-   if (rumble_cb) {
-     // TODO: Add some user-option to select a rumble policy
-     u32 strength = 0xffff * rumble_active_pct();
-     rumble_cb(0, RETRO_RUMBLE_WEAK,   MIN(strength, 0xffff));
-     rumble_cb(0, RETRO_RUMBLE_STRONG, MIN(strength, 0xffff) / 2);
-   }
-
    audio_run();
    video_run();
 
-   switch (serial_mode) {
-   case SERIAL_MODE_RFU:
-     rfu_frame_update();
-     break;
-   };
-
    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
-      check_variables(false);
+      check_variables(0);
 }
 
 unsigned retro_api_version(void)

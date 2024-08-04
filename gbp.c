@@ -46,7 +46,6 @@ u32 gbp_transfer(u32 value) {
   u32 ret = gbp_seq[gbp_seq_n++];
   if (gbp_seq_n == 16) {
     bool rumble_active = (value & 2);
-    write_rumble(gbp_rumble, rumble_active);
     gbp_rumble = rumble_active;
     gbp_seq_n = 0;
   }

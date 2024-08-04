@@ -342,7 +342,6 @@ u8 bios_rom[1024 * 16];
 // Up to 128kb, store SRAM, flash ROM, or EEPROM here.
 u8 gamepak_backup[1024 * 128];
 
-u32 dma_bus_val;
 dma_transfer_type dma[4];
 
 // ROM memory is allocated in blocks of 1MB to better map the native block
@@ -382,8 +381,11 @@ RFILE *gamepak_file_large = NULL;
 // If the GBC audio waveform is modified:
 u32 gbc_sound_wave_update = 0;
 
-u32 backup_type = BACKUP_UNKN;
-u32 backup_type_reset = BACKUP_UNKN;
+// Keep it 32KB until the upper 64KB is accessed, then make it 64KB.
+
+u32 backup_type = BACKUP_NONE;
+u32 sram_bankcount = SRAM_SIZE_32KB;
+
 u32 flash_mode = FLASH_BASE_MODE;
 u32 flash_command_position = 0;
 u32 flash_bank_num;  // 0 or 1
@@ -423,10 +425,7 @@ u8 read_backup(u32 address)
 {
   u8 value = 0;
 
-  if(backup_type == BACKUP_EEPROM)
-    return 0xff;
-
-  if(backup_type == BACKUP_UNKN)
+  if(backup_type == BACKUP_NONE)
     backup_type = BACKUP_SRAM;
 
   if(backup_type == BACKUP_SRAM)
@@ -462,16 +461,13 @@ u8 read_backup(u32 address)
 }
 
 #define read_backup8()                                                        \
-  value = read_backup(address & 0xFFFF);                                      \
+  value = read_backup(address & 0xFFFF)                                       \
 
 #define read_backup16()                                                       \
-  value = read_backup(address & 0xFFFF);                                      \
-  value = value | (value << 8);
+  value = 0                                                                   \
 
 #define read_backup32()                                                       \
-  value = read_backup(address & 0xFFFF);                                      \
-  value = value | (value << 8);                                               \
-  value = value | (value << 16);
+  value = 0                                                                   \
 
 #define write_eeprom8(addr, value)
 
@@ -933,13 +929,6 @@ cpu_alert_type function_cc write_io_register16(u32 address, u32 value)
     case REG_TM2CNT: trigger_timer(2, value); break;
     case REG_TM3CNT: trigger_timer(3, value); break;
 
-    // Serial port registers
-    case REG_SIOCNT:
-      return write_siocnt(value);
-
-    case REG_RCNT:
-      return write_rcnt(value);
-
     // Interrupt flag, clears the bits it tries to write
     case REG_IF:
       write_ioreg(REG_IF, read_ioreg(REG_IF) & (~value));
@@ -1040,11 +1029,9 @@ void function_cc write_backup(u32 address, u32 value)
 {
   value &= 0xFF;
 
-  if(backup_type == BACKUP_EEPROM)
-    return;
-
-  if(backup_type == BACKUP_UNKN)
+  if(backup_type == BACKUP_NONE)
     backup_type = BACKUP_SRAM;
+
 
   // gamepak SRAM or Flash ROM
   if((address == 0x5555) && (flash_mode != FLASH_WRITE_MODE))
@@ -1098,7 +1085,7 @@ void function_cc write_backup(u32 address, u32 value)
           // Erase chip
           if(flash_mode == FLASH_ERASE_MODE)
           {
-            memset(gamepak_backup, 0xFF, 1024 * 128);
+            memset(gamepak_backup, 0xFF, 1024 * 64 * flash_bank_cnt);
             flash_mode = FLASH_BASE_MODE;
           }
           break;
@@ -1150,6 +1137,9 @@ void function_cc write_backup(u32 address, u32 value)
     if(backup_type == BACKUP_SRAM)
     {
       // Write value to SRAM
+      // Hit 64KB territory?
+      if(address >= 0x8000)
+        sram_bankcount = SRAM_SIZE_64KB;
       gamepak_backup[address] = value;
     }
   }
@@ -1194,24 +1184,16 @@ typedef enum
 #define RTC_WRITE_TIME_FULL           1
 #define RTC_WRITE_STATUS              2
 
-static bool rtc_enabled = false, rumble_enabled = false;
-
-// I/O registers (for RTC, rumble, etc)
-u8 gpio_regs[3];
-
-// RTC tracking variables
 u32 rtc_state = RTC_DISABLED;
 u32 rtc_write_mode;
+u8 rtc_registers[3];
 u32 rtc_command;
-u64 rtc_data;
-u32 rtc_data_bits;
+u32 rtc_data[12];
 u32 rtc_status = 0x40;
+u32 rtc_data_bytes;
 s32 rtc_bit_count;
 
-// Rumble trackin vars, not really preserved (it's just aproximate)
-static u32 rumble_enable_tick, rumble_ticks;
-
-static u8 encode_bcd(u8 value)
+static u32 encode_bcd(u8 value)
 {
   int l = 0;
   int h = 0;
@@ -1223,189 +1205,224 @@ static u8 encode_bcd(u8 value)
   return h * 16 + l;
 }
 
-void update_gpio_romregs() {
-  if (rtc_enabled || rumble_enabled) {
-    // Update the registers in the ROM mapped buffer.
-    u8 *map = memory_map_read[0x8000000 >> 15];
-    if (map) {
-      if (gpio_regs[2]) {
-        // Registers are visible, readable:
-        address16(map, 0xC4) = eswap16(gpio_regs[0]);
-        address16(map, 0xC6) = eswap16(gpio_regs[1]);
-        address16(map, 0xC8) = eswap16(gpio_regs[2]);
-      } else {
-        // Registers are write-only, just read out zero
-        address16(map, 0xC4) = 0;
-        address16(map, 0xC6) = 0;
-        address16(map, 0xC8) = 0;
-      }
-    }
-  }
-}
+// RTC writes need to reflect in the bytes [0xC4..0xC9] of the gamepak
+#define write_rtc_register(index, _value)                                     \
+  update_address = 0x80000C4 + (index * 2);                                   \
+  rtc_registers[index] = _value;                                              \
+  rtc_page_index = update_address >> 15;                                      \
+  map = memory_map_read[rtc_page_index];                                      \
+                                                                              \
+  if(map) {                                                                   \
+    address16(map, update_address & 0x7FFF) = eswap16(_value);                \
+  }                                                                           \
 
-#define GPIO_RTC_CLK   0x1
-#define GPIO_RTC_DAT   0x2
-#define GPIO_RTC_CSS   0x4
-
-static void write_rtc(u8 old, u8 new)
+void function_cc write_rtc(u32 address, u32 value)
 {
-  // RTC works using a high CS and falling edge capture for the clock signal.
-  if (!(new & GPIO_RTC_CSS)) {
-    // Chip select is down, reset the RTC protocol. And do not process input.
-    rtc_state = RTC_IDLE;
-    rtc_command = 0;
-    rtc_bit_count = 0;
-    return;
-  }
+  u32 rtc_page_index;
+  u32 update_address;
+  u8 *map;
 
-  // CS low to high transition!
-  if (!(old & GPIO_RTC_CSS))
-    rtc_state = RTC_COMMAND;
+  value &= 0xFFFF;
 
-  if ((old & GPIO_RTC_CLK) && !(new & GPIO_RTC_CLK)) {
-    // Advance clock state, input/ouput data.
-    switch (rtc_state) {
-    case RTC_COMMAND:
-      rtc_command <<= 1;
-      rtc_command |= ((new >> 1) & 1);
-      // 8 bit command read, process:
-      if (++rtc_bit_count == 8) {
-        switch (rtc_command) {
-        case RTC_COMMAND_RESET:
-        case RTC_COMMAND_WRITE_STATUS:
-          rtc_state = RTC_INPUT_DATA;
-          rtc_data = 0;
-          rtc_data_bits = 8;
-          rtc_write_mode = RTC_WRITE_STATUS;
-          break;
-        case RTC_COMMAND_READ_STATUS:
-          rtc_state = RTC_OUTPUT_DATA;
-          rtc_data_bits = 8;
-          rtc_data = rtc_status;
-          break;
-        case RTC_COMMAND_OUTPUT_TIME_FULL:
-          {
-            struct tm *current_time;
-            time_t current_time_flat;
-            time(&current_time_flat);
-            current_time = localtime(&current_time_flat);
-
-            rtc_state = RTC_OUTPUT_DATA;
-            rtc_data_bits = 56;
-            rtc_data = ((u64)encode_bcd(current_time->tm_year)) |
-                       ((u64)encode_bcd(current_time->tm_mon+1)<< 8) |
-                       ((u64)encode_bcd(current_time->tm_mday) << 16) |
-                       ((u64)encode_bcd(current_time->tm_wday) << 24) |
-                       ((u64)encode_bcd(current_time->tm_hour) << 32) |
-                       ((u64)encode_bcd(current_time->tm_min)  << 40) |
-                       ((u64)encode_bcd(current_time->tm_sec)  << 48);
-          }
-          break;
-        case RTC_COMMAND_OUTPUT_TIME:
-          {
-            struct tm *current_time;
-            time_t current_time_flat;
-            time(&current_time_flat);
-            current_time = localtime(&current_time_flat);
-
-            rtc_state = RTC_OUTPUT_DATA;
-            rtc_data_bits = 24;
-            rtc_data = (encode_bcd(current_time->tm_hour)) |
-                       (encode_bcd(current_time->tm_min) << 8) |
-                       (encode_bcd(current_time->tm_sec) << 16);
-          }
-          break;
-        };
-        rtc_bit_count = 0;
-      }
-      break;
-
-    case RTC_INPUT_DATA:
-      rtc_data <<= 1;
-      rtc_data |= ((new >> 1) & 1);
-      rtc_data_bits--;
-      if (!rtc_data_bits) {
-        rtc_status = rtc_data; // HACK: assuming write status here.
+  switch(address)
+  {
+    // RTC command
+    // Bit 0: SCHK, perform action
+    // Bit 1: IO, input/output command data
+    // Bit 2: CS, select input/output? If high make I/O write only
+    case 0xC4:
+      if(rtc_state == RTC_DISABLED)
         rtc_state = RTC_IDLE;
+      if(!(rtc_registers[0] & 0x04))
+        value = (rtc_registers[0] & 0x02) | (value & ~0x02);
+      if(rtc_registers[2] & 0x01)
+      {
+        // To begin writing a command 1, 5 must be written to the command
+        // registers.
+        if((rtc_state == RTC_IDLE) && (rtc_registers[0] == 0x01) &&
+         (value == 0x05))
+        {
+          // We're now ready to begin receiving a command.
+          write_rtc_register(0, value);
+          rtc_state = RTC_COMMAND;
+          rtc_command = 0;
+          rtc_bit_count = 7;
+        }
+        else
+        {
+          write_rtc_register(0, value);
+          switch(rtc_state)
+          {
+            // Accumulate RTC command by receiving the next bit, and if we
+            // have accumulated enough bits to form a complete command
+            // execute it.
+            case RTC_COMMAND:
+              if(rtc_registers[0] & 0x01)
+              {
+                rtc_command |= ((value & 0x02) >> 1) << rtc_bit_count;
+                rtc_bit_count--;
+              }
+
+              // Have we received a full RTC command? If so execute it.
+              if(rtc_bit_count < 0)
+              {
+                switch(rtc_command)
+                {
+                  // Resets RTC
+                  case RTC_COMMAND_RESET:
+                    rtc_state = RTC_IDLE;
+                    memset(rtc_registers, 0, sizeof(rtc_registers));
+                    break;
+
+                  // Sets status of RTC
+                  case RTC_COMMAND_WRITE_STATUS:
+                    rtc_state = RTC_INPUT_DATA;
+                    rtc_data_bytes = 1;
+                    rtc_write_mode = RTC_WRITE_STATUS;
+                    break;
+
+                  // Outputs current status of RTC
+                  case RTC_COMMAND_READ_STATUS:
+                    rtc_state = RTC_OUTPUT_DATA;
+                    rtc_data_bytes = 1;
+                    rtc_data[0] = rtc_status;
+                    break;
+
+                  // Actually outputs the time, all of it
+                  case RTC_COMMAND_OUTPUT_TIME_FULL:
+                  {
+                    struct tm *current_time;
+                    time_t current_time_flat;
+
+                    time(&current_time_flat);
+                    current_time = localtime(&current_time_flat);
+
+                    rtc_state = RTC_OUTPUT_DATA;
+                    rtc_data_bytes = 7;
+                    rtc_data[0] = encode_bcd(current_time->tm_year);
+                    rtc_data[1] = encode_bcd(current_time->tm_mon + 1);
+                    rtc_data[2] = encode_bcd(current_time->tm_mday);
+                    rtc_data[3] = encode_bcd(current_time->tm_wday);
+                    rtc_data[4] = encode_bcd(current_time->tm_hour);
+                    rtc_data[5] = encode_bcd(current_time->tm_min);
+                    rtc_data[6] = encode_bcd(current_time->tm_sec);
+
+                    break;
+                  }
+
+                  // Only outputs the current time of day.
+                  case RTC_COMMAND_OUTPUT_TIME:
+                  {
+                    struct tm *current_time;
+                    time_t current_time_flat;
+
+                    time(&current_time_flat);
+                    current_time = localtime(&current_time_flat);
+
+                    rtc_state = RTC_OUTPUT_DATA;
+                    rtc_data_bytes = 3;
+                    rtc_data[0] = encode_bcd(current_time->tm_hour);
+                    rtc_data[1] = encode_bcd(current_time->tm_min);
+                    rtc_data[2] = encode_bcd(current_time->tm_sec);
+                    break;
+                  }
+                }
+                rtc_bit_count = 0;
+              }
+              break;
+
+            // Receive parameters from the game as input to the RTC
+            // for a given command. Read one bit at a time.
+            case RTC_INPUT_DATA:
+              // Bit 1 of parameter A must be high for input
+              if(rtc_registers[1] & 0x02)
+              {
+                // Read next bit for input
+                if(!(value & 0x01))
+                {
+                  rtc_data[rtc_bit_count >> 3] |=
+                   ((value & 0x01) << (7 - (rtc_bit_count & 0x07)));
+                }
+                else
+                {
+                  rtc_bit_count++;
+
+                  if(rtc_bit_count == (signed)(rtc_data_bytes * 8))
+                  {
+                    rtc_state = RTC_IDLE;
+                    switch(rtc_write_mode)
+                    {
+                      case RTC_WRITE_STATUS:
+                        rtc_status = rtc_data[0];
+                        break;
+
+                      default:
+                        break;
+                    }
+                  }
+                }
+              }
+              break;
+
+            case RTC_OUTPUT_DATA:
+              // Bit 1 of parameter A must be low for output
+              if(!(rtc_registers[1] & 0x02))
+              {
+                // Write next bit to output, on bit 1 of parameter B
+                if(!(value & 0x01))
+                {
+                  u8 current_output_byte = rtc_registers[2];
+
+                  current_output_byte =
+                   (current_output_byte & ~0x02) |
+                   (((rtc_data[rtc_bit_count >> 3] >>
+                   (rtc_bit_count & 0x07)) & 0x01) << 1);
+
+                  write_rtc_register(0, current_output_byte);
+
+                }
+                else
+                {
+                  rtc_bit_count++;
+
+                  if(rtc_bit_count == (signed)(rtc_data_bytes * 8))
+                  {
+                    rtc_state = RTC_IDLE;
+                    memset(rtc_registers, 0, sizeof(rtc_registers));
+                  }
+                }
+              }
+              break;
+
+            default:
+              break;
+          }
+        }
+      }
+      else
+      {
+        write_rtc_register(2, value);
       }
       break;
 
-    case RTC_OUTPUT_DATA:
-      // Output the next bit from rtc_data
-      if (!(gpio_regs[1] & 0x2)) {
-        // Only output if the port is set to OUT!
-        u32 bit = rtc_data & 1;
-        gpio_regs[0] = (new & ~0x2) | ((bit) << 1);
-      }
-      rtc_data >>= 1;
-      rtc_data_bits--;
-
-      if (!rtc_data_bits)
-        rtc_state = RTC_IDLE;   // Finish transmission!
-
+    // Write parameter A
+    case 0xC6:
+      write_rtc_register(1, value);
       break;
-    };
+
+    // Write parameter B
+    case 0xC8:
+      write_rtc_register(2, value);
+      break;
   }
 }
 
-void write_rumble(bool oldv, bool newv) {
-  if (newv && !oldv)
-    rumble_enable_tick = cpu_ticks;
-  else if (!newv && oldv) {
-    rumble_ticks += (cpu_ticks - rumble_enable_tick);
-    rumble_enable_tick = 0;
-  }
-}
+#define write_rtc8()                                                          \
 
-void rumble_frame_reset() {
-  // Reset the tick initial value to frame start (only if active)
-  rumble_ticks = 0;
-  if (rumble_enable_tick)
-    rumble_enable_tick = cpu_ticks;
-}
+#define write_rtc16()                                                         \
+  write_rtc(address & 0xFF, value)                                            \
 
-float rumble_active_pct() {
-  // Calculate the percentage of Rumble active for this frame.
-  u32 active_ticks = rumble_ticks;
-  // If the rumble is still active, account for the due cycles
-  if (rumble_enable_tick)
-    active_ticks += (cpu_ticks - rumble_enable_tick);
-
-  return active_ticks / (GBC_BASE_RATE / 60);
-}
-
-void function_cc write_gpio(u32 address, u32 value) {
-  u8 prev_value = gpio_regs[0];
-  switch(address) {
-  case 0xC4:
-    // Any writes do not affect input pins:
-    gpio_regs[0] = (gpio_regs[0] & ~gpio_regs[1]) | (value & gpio_regs[1]);
-    break;
-  case 0xC6:
-    gpio_regs[1] = value & 0xF;
-    break;
-  case 0xC8:   /* I/O port control */
-    gpio_regs[2] = value & 1;
-    break;
-  };
-
-  // If the game has an RTC, ensure it gets the data
-  if (rtc_enabled && (prev_value & 0x7) != (gpio_regs[0] & 0x7))
-    write_rtc(prev_value & 0x7, gpio_regs[0] & 0x7);
-
-  if (rumble_enabled && (prev_value & 0x8) != (gpio_regs[0] & 0x8))
-    write_rumble(prev_value & 0x8, gpio_regs[0] & 0x8);
-
-  // Reflect the values
-  update_gpio_romregs();
-}
-
-#define write_gpio8()                                                         \
-
-#define write_gpio16()                                                        \
-  write_gpio(address & 0xFF, value)                                           \
-
-#define write_gpio32()                                                        \
+#define write_rtc32()                                                         \
 
 #define write_memory(type)                                                    \
   switch(address >> 24)                                                       \
@@ -1448,7 +1465,7 @@ void function_cc write_gpio(u32 address, u32 value) {
                                                                               \
     case 0x08:                                                                \
       /* gamepak ROM or RTC */                                                \
-      write_gpio##type();                                                     \
+      write_rtc##type();                                                      \
       break;                                                                  \
                                                                               \
     case 0x09:                                                                \
@@ -1538,6 +1555,104 @@ cpu_alert_type function_cc write_memory32(u32 address, u32 value)
   return CPU_ALERT_NONE;
 }
 
+char backup_filename[512];
+
+u32 load_backup(char *name)
+{
+  RFILE *fd = filestream_open(name, RETRO_VFS_FILE_ACCESS_READ,
+                              RETRO_VFS_FILE_ACCESS_HINT_NONE);
+
+  if(fd)
+  {
+    int64_t backup_size = filestream_get_size(fd);
+
+    filestream_read(fd, gamepak_backup, backup_size);
+    filestream_close(fd);
+
+    // The size might give away what kind of backup it is.
+    switch(backup_size)
+    {
+      case 0x200:
+        backup_type = BACKUP_EEPROM;
+        eeprom_size = EEPROM_512_BYTE;
+        break;
+
+      case 0x2000:
+        backup_type = BACKUP_EEPROM;
+        eeprom_size = EEPROM_8_KBYTE;
+        break;
+
+      case 0x8000:
+        backup_type = BACKUP_SRAM;
+        sram_bankcount = SRAM_SIZE_32KB;
+        break;
+
+      // Could be either flash or SRAM, go with flash
+      case 0x10000:
+        backup_type = BACKUP_FLASH;
+        sram_bankcount = SRAM_SIZE_64KB;
+        break;
+
+      case 0x20000:
+        backup_type = BACKUP_FLASH;
+        flash_bank_cnt = FLASH_SIZE_128KB;
+        break;
+    }
+    return 1;
+  }
+  else
+  {
+    backup_type = BACKUP_NONE;
+    memset(gamepak_backup, 0xFF, 1024 * 128);
+  }
+
+  return 0;
+}
+
+u32 save_backup(char *name)
+{
+  if(backup_type != BACKUP_NONE)
+  {
+    RFILE *fd = filestream_open(name, RETRO_VFS_FILE_ACCESS_WRITE,
+                                RETRO_VFS_FILE_ACCESS_HINT_NONE);
+
+    if(fd)
+    {
+      u32 backup_size = 0;
+
+      switch(backup_type)
+      {
+        case BACKUP_SRAM:
+          backup_size = 0x8000 * sram_bankcount;
+          break;
+
+        case BACKUP_FLASH:
+          backup_size = 0x10000 * flash_bank_cnt;
+          break;
+
+        case BACKUP_EEPROM:
+          backup_size = 0x200 * eeprom_size;
+          break;
+
+        default:
+          break;
+      }
+
+      filestream_write(fd, gamepak_backup, backup_size);
+      filestream_close(fd);
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+void update_backup(void)
+{
+  if (!use_libretro_save_method)
+    save_backup(backup_filename);
+}
+
 typedef struct
 {
    char gamepak_title[13];
@@ -1594,22 +1709,6 @@ static void load_game_config_over(gamepak_info_t *gpinfo)
        flash_bank_cnt = FLASH_SIZE_128KB;
      }
 
-     if (gbaover[i].flags & FLAGS_RTC)
-       rtc_enabled = true;
-
-     if (gbaover[i].flags & FLAGS_RUMBLE)
-       rumble_enabled = true;
-
-     if (gbaover[i].flags & FLAGS_EEPROM)
-       backup_type_reset = BACKUP_EEPROM;
-
-     if (serial_mode == SERIAL_MODE_AUTO) {
-       if (gbaover[i].flags & FLAGS_RFU)
-         serial_mode = SERIAL_MODE_RFU;
-       if (gbaover[i].flags & FLAGS_GBA_PLAYER)
-         serial_mode = SERIAL_MODE_GBP;
-     }
-
      if (gbaover[i].translation_gate_target_1 != 0)
      {
         translation_gate_target_pc[translation_gate_targets] = gbaover[i].translation_gate_target_1;
@@ -1655,14 +1754,14 @@ typedef enum
   DMA_REGION_IO           = 5,
   DMA_REGION_EXT          = 6,
   DMA_REGION_GAMEPAK      = 7,
-  DMA_REGION_BUS          = 8,
-  DMA_REGION_COUNT        = 9
+  DMA_REGION_BIOS         = 8,
+  DMA_REGION_NULL         = 9
 } dma_region_type;
 
 const dma_region_type dma_region_map[17] =
 {
-  DMA_REGION_BUS,           // 0x00 - BUS
-  DMA_REGION_BUS,           // 0x01 - BUS
+  DMA_REGION_BIOS,          // 0x00 - BIOS
+  DMA_REGION_NULL,          // 0x01 - Nothing
   DMA_REGION_EWRAM,         // 0x02 - EWRAM
   DMA_REGION_IWRAM,         // 0x03 - IWRAM
   DMA_REGION_IO,            // 0x04 - I/O registers
@@ -1677,7 +1776,7 @@ const dma_region_type dma_region_map[17] =
   DMA_REGION_EXT,           // 0x0D - EEPROM
   DMA_REGION_EXT,           // 0x0E - gamepak SRAM/flash ROM
   DMA_REGION_EXT,           // 0x0F - gamepak SRAM/flash ROM
-  DMA_REGION_BUS            // 0x10 - Out of region (assuming open bus)
+  DMA_REGION_NULL           // 0x10 - Not possible (undefined?)
 };
 
 #define dma_print(src_op, dest_op, tfsize)                                    \
@@ -1696,7 +1795,7 @@ const dma_region_type dma_region_map[17] =
 #define dma_vars_io(type)
 #define dma_vars_vram(type)
 #define dma_vars_palette_ram(type)
-#define dma_vars_bus(type)
+#define dma_vars_bios(type)
 #define dma_vars_ext(type)
 
 #define dma_oam_ram_src()
@@ -1754,9 +1853,10 @@ const dma_region_type dma_region_map[17] =
   read_value = readaddress##tfsize(type##_address_block,                      \
    type##_ptr & 0x7FFF)                                                       \
 
-// DMAing from the BIOS/open zone causes previous DMA values to be read
+// DMAing from the BIOS is funny, just returns 0..
 
-#define dma_read_bus(type, tfsize)
+#define dma_read_bios(type, tfsize)                                           \
+  read_value = 0                                                              \
 
 #define dma_read_ext(type, tfsize)                                            \
   read_value = read_memory##tfsize(type##_ptr)                                \
@@ -1815,211 +1915,208 @@ cpu_alert_type dma_tf_loop##tfsize(                                           \
   bool wb, u32 length, dma_transfer_type *dma)                                \
 {                                                                             \
   u32 i;                                                                      \
-  u32 read_value = dma_bus_val;                                               \
+  u32 read_value;                                                             \
   cpu_alert_type alerts = CPU_ALERT_NONE;                                     \
   u32 src_region = MIN(src_ptr >> 24, 16);                                    \
   u32 dest_region = MIN(dest_ptr >> 24, 16);                                  \
   dma_region_type src_region_type = dma_region_map[src_region];               \
   dma_region_type dest_region_type = dma_region_map[dest_region];             \
                                                                               \
-  switch(src_region_type + dest_region_type * DMA_REGION_COUNT)               \
+  switch(src_region_type | (dest_region_type << 4))                           \
   {                                                                           \
     default:                                                                  \
       /* Do nothing (read-only destination or unmapped area...) */            \
       return CPU_ALERT_NONE;                                                  \
                                                                               \
-    case DMA_REGION_BUS + DMA_REGION_IWRAM * DMA_REGION_COUNT:                \
-      dma_tfloop(bus, iwram, src_strd, dest_strd, tfsize);                    \
+    case (DMA_REGION_BIOS | (DMA_REGION_IWRAM << 4)):                         \
+      dma_tfloop(bios, iwram, src_strd, dest_strd, tfsize);                   \
                                                                               \
-    case DMA_REGION_IWRAM + DMA_REGION_IWRAM * DMA_REGION_COUNT:              \
+    case (DMA_REGION_IWRAM | (DMA_REGION_IWRAM << 4)):                        \
       dma_tfloop(iwram, iwram, src_strd, dest_strd, tfsize);                  \
                                                                               \
-    case DMA_REGION_EWRAM + DMA_REGION_IWRAM * DMA_REGION_COUNT:              \
+    case (DMA_REGION_EWRAM | (DMA_REGION_IWRAM << 4)):                        \
       dma_tfloop(ewram, iwram, src_strd, dest_strd, tfsize);                  \
                                                                               \
-    case DMA_REGION_VRAM + DMA_REGION_IWRAM * DMA_REGION_COUNT:               \
+    case (DMA_REGION_VRAM | (DMA_REGION_IWRAM << 4)):                         \
       dma_tfloop(vram, iwram, src_strd, dest_strd, tfsize);                   \
                                                                               \
-    case DMA_REGION_PALETTE_RAM + DMA_REGION_IWRAM * DMA_REGION_COUNT:        \
+    case (DMA_REGION_PALETTE_RAM | (DMA_REGION_IWRAM << 4)):                  \
       dma_tfloop(palette_ram, iwram, src_strd, dest_strd, tfsize);            \
                                                                               \
-    case DMA_REGION_OAM_RAM + DMA_REGION_IWRAM * DMA_REGION_COUNT:            \
+    case (DMA_REGION_OAM_RAM | (DMA_REGION_IWRAM << 4)):                      \
       dma_tfloop(oam_ram, iwram, src_strd, dest_strd, tfsize);                \
                                                                               \
-    case DMA_REGION_IO + DMA_REGION_IWRAM * DMA_REGION_COUNT:                 \
+    case (DMA_REGION_IO | (DMA_REGION_IWRAM << 4)):                           \
       dma_tfloop(io, iwram, src_strd, dest_strd, tfsize);                     \
                                                                               \
-    case DMA_REGION_GAMEPAK + DMA_REGION_IWRAM * DMA_REGION_COUNT:            \
+    case (DMA_REGION_GAMEPAK | (DMA_REGION_IWRAM << 4)):                      \
       dma_tfloop(gamepak, iwram, src_strd, dest_strd, tfsize);                \
                                                                               \
-    case DMA_REGION_EXT + DMA_REGION_IWRAM * DMA_REGION_COUNT:                \
+    case (DMA_REGION_EXT | (DMA_REGION_IWRAM << 4)):                          \
       dma_tfloop(ext, iwram, src_strd, dest_strd, tfsize);                    \
                                                                               \
-    case DMA_REGION_BUS + DMA_REGION_EWRAM * DMA_REGION_COUNT:                \
-      dma_tfloop(bus, ewram, src_strd, dest_strd, tfsize);                    \
+    case (DMA_REGION_BIOS | (DMA_REGION_EWRAM << 4)):                         \
+      dma_tfloop(bios, ewram, src_strd, dest_strd, tfsize);                   \
                                                                               \
-    case DMA_REGION_IWRAM + DMA_REGION_EWRAM * DMA_REGION_COUNT:              \
+    case (DMA_REGION_IWRAM | (DMA_REGION_EWRAM << 4)):                        \
       dma_tfloop(iwram, ewram, src_strd, dest_strd, tfsize);                  \
                                                                               \
-    case DMA_REGION_EWRAM + DMA_REGION_EWRAM * DMA_REGION_COUNT:              \
+    case (DMA_REGION_EWRAM | (DMA_REGION_EWRAM << 4)):                        \
       dma_tfloop(ewram, ewram, src_strd, dest_strd, tfsize);                  \
                                                                               \
-    case DMA_REGION_VRAM + DMA_REGION_EWRAM * DMA_REGION_COUNT:               \
+    case (DMA_REGION_VRAM | (DMA_REGION_EWRAM << 4)):                         \
       dma_tfloop(vram, ewram, src_strd, dest_strd, tfsize);                   \
                                                                               \
-    case DMA_REGION_PALETTE_RAM + DMA_REGION_EWRAM * DMA_REGION_COUNT:        \
+    case (DMA_REGION_PALETTE_RAM | (DMA_REGION_EWRAM << 4)):                  \
       dma_tfloop(palette_ram, ewram, src_strd, dest_strd, tfsize);            \
                                                                               \
-    case DMA_REGION_OAM_RAM + DMA_REGION_EWRAM * DMA_REGION_COUNT:            \
+    case (DMA_REGION_OAM_RAM | (DMA_REGION_EWRAM << 4)):                      \
       dma_tfloop(oam_ram, ewram, src_strd, dest_strd, tfsize);                \
                                                                               \
-    case DMA_REGION_IO + DMA_REGION_EWRAM * DMA_REGION_COUNT:                 \
+    case (DMA_REGION_IO | (DMA_REGION_EWRAM << 4)):                           \
       dma_tfloop(io, ewram, src_strd, dest_strd, tfsize);                     \
                                                                               \
-    case DMA_REGION_GAMEPAK + DMA_REGION_EWRAM * DMA_REGION_COUNT:            \
+    case (DMA_REGION_GAMEPAK | (DMA_REGION_EWRAM << 4)):                      \
       dma_tfloop(gamepak, ewram, src_strd, dest_strd, tfsize);                \
                                                                               \
-    case DMA_REGION_EXT + DMA_REGION_EWRAM * DMA_REGION_COUNT:                \
+    case (DMA_REGION_EXT | (DMA_REGION_EWRAM << 4)):                          \
       dma_tfloop(ext, ewram, src_strd, dest_strd, tfsize);                    \
                                                                               \
-    case DMA_REGION_BUS + DMA_REGION_VRAM * DMA_REGION_COUNT:                 \
-      dma_tfloop(bus, vram, src_strd, dest_strd, tfsize);                     \
+    case (DMA_REGION_BIOS | (DMA_REGION_VRAM << 4)):                          \
+      dma_tfloop(bios, vram, src_strd, dest_strd, tfsize);                    \
                                                                               \
-    case DMA_REGION_IWRAM + DMA_REGION_VRAM * DMA_REGION_COUNT:               \
+    case (DMA_REGION_IWRAM | (DMA_REGION_VRAM << 4)):                         \
       dma_tfloop(iwram, vram, src_strd, dest_strd, tfsize);                   \
                                                                               \
-    case DMA_REGION_EWRAM + DMA_REGION_VRAM * DMA_REGION_COUNT:               \
+    case (DMA_REGION_EWRAM | (DMA_REGION_VRAM << 4)):                         \
       dma_tfloop(ewram, vram, src_strd, dest_strd, tfsize);                   \
                                                                               \
-    case DMA_REGION_VRAM + DMA_REGION_VRAM * DMA_REGION_COUNT:                \
+    case (DMA_REGION_VRAM | (DMA_REGION_VRAM << 4)):                          \
       dma_tfloop(vram, vram, src_strd, dest_strd, tfsize);                    \
                                                                               \
-    case DMA_REGION_PALETTE_RAM + DMA_REGION_VRAM * DMA_REGION_COUNT:         \
+    case (DMA_REGION_PALETTE_RAM | (DMA_REGION_VRAM << 4)):                   \
       dma_tfloop(palette_ram, vram, src_strd, dest_strd, tfsize);             \
                                                                               \
-    case DMA_REGION_OAM_RAM + DMA_REGION_VRAM * DMA_REGION_COUNT:             \
+    case (DMA_REGION_OAM_RAM | (DMA_REGION_VRAM << 4)):                       \
       dma_tfloop(oam_ram, vram, src_strd, dest_strd, tfsize);                 \
                                                                               \
-    case DMA_REGION_IO + DMA_REGION_VRAM * DMA_REGION_COUNT:                  \
+    case (DMA_REGION_IO | (DMA_REGION_VRAM << 4)):                            \
       dma_tfloop(io, vram, src_strd, dest_strd, tfsize);                      \
                                                                               \
-    case DMA_REGION_GAMEPAK + DMA_REGION_VRAM * DMA_REGION_COUNT:             \
+    case (DMA_REGION_GAMEPAK | (DMA_REGION_VRAM << 4)):                       \
       dma_tfloop(gamepak, vram, src_strd, dest_strd,tfsize);                  \
                                                                               \
-    case DMA_REGION_EXT + DMA_REGION_VRAM * DMA_REGION_COUNT:                 \
+    case (DMA_REGION_EXT | (DMA_REGION_VRAM << 4)):                           \
       dma_tfloop(ext, vram, src_strd, dest_strd, tfsize);                     \
                                                                               \
-    case DMA_REGION_BUS + DMA_REGION_PALETTE_RAM * DMA_REGION_COUNT:          \
-      dma_tfloop(bus, palette_ram, src_strd, dest_strd, tfsize);              \
+    case (DMA_REGION_BIOS | (DMA_REGION_PALETTE_RAM << 4)):                   \
+      dma_tfloop(bios, palette_ram, src_strd, dest_strd, tfsize);             \
                                                                               \
-    case DMA_REGION_IWRAM + DMA_REGION_PALETTE_RAM * DMA_REGION_COUNT:        \
+    case (DMA_REGION_IWRAM | (DMA_REGION_PALETTE_RAM << 4)):                  \
       dma_tfloop(iwram, palette_ram, src_strd, dest_strd, tfsize);            \
                                                                               \
-    case DMA_REGION_EWRAM + DMA_REGION_PALETTE_RAM * DMA_REGION_COUNT:        \
+    case (DMA_REGION_EWRAM | (DMA_REGION_PALETTE_RAM << 4)):                  \
       dma_tfloop(ewram, palette_ram, src_strd, dest_strd, tfsize);            \
                                                                               \
-    case DMA_REGION_VRAM + DMA_REGION_PALETTE_RAM * DMA_REGION_COUNT:         \
+    case (DMA_REGION_VRAM | (DMA_REGION_PALETTE_RAM << 4)):                   \
       dma_tfloop(vram, palette_ram, src_strd, dest_strd, tfsize);             \
                                                                               \
-    case DMA_REGION_PALETTE_RAM + DMA_REGION_PALETTE_RAM * DMA_REGION_COUNT:  \
+    case (DMA_REGION_PALETTE_RAM | (DMA_REGION_PALETTE_RAM << 4)):            \
       dma_tfloop(palette_ram, palette_ram, src_strd, dest_strd, tfsize);      \
                                                                               \
-    case DMA_REGION_OAM_RAM + DMA_REGION_PALETTE_RAM * DMA_REGION_COUNT:      \
+    case (DMA_REGION_OAM_RAM | (DMA_REGION_PALETTE_RAM << 4)):                \
       dma_tfloop(oam_ram, palette_ram, src_strd, dest_strd, tfsize);          \
                                                                               \
-    case DMA_REGION_IO + DMA_REGION_PALETTE_RAM * DMA_REGION_COUNT:           \
+    case (DMA_REGION_IO | (DMA_REGION_PALETTE_RAM << 4)):                     \
       dma_tfloop(io, palette_ram, src_strd, dest_strd, tfsize);               \
                                                                               \
-    case DMA_REGION_GAMEPAK + DMA_REGION_PALETTE_RAM * DMA_REGION_COUNT:      \
+    case (DMA_REGION_GAMEPAK | (DMA_REGION_PALETTE_RAM << 4)):                \
       dma_tfloop(gamepak, palette_ram, src_strd, dest_strd, tfsize);          \
                                                                               \
-    case DMA_REGION_EXT + DMA_REGION_PALETTE_RAM * DMA_REGION_COUNT:          \
+    case (DMA_REGION_EXT | (DMA_REGION_PALETTE_RAM << 4)):                    \
       dma_tfloop(ext, palette_ram, src_strd, dest_strd, tfsize);              \
                                                                               \
-    case DMA_REGION_BUS + DMA_REGION_OAM_RAM * DMA_REGION_COUNT:              \
-      dma_tfloop(bus, oam_ram, src_strd, dest_strd, tfsize);                  \
+    case (DMA_REGION_BIOS | (DMA_REGION_OAM_RAM << 4)):                       \
+      dma_tfloop(bios, oam_ram, src_strd, dest_strd, tfsize);                 \
                                                                               \
-    case DMA_REGION_IWRAM + DMA_REGION_OAM_RAM * DMA_REGION_COUNT:            \
+    case (DMA_REGION_IWRAM | (DMA_REGION_OAM_RAM << 4)):                      \
       dma_tfloop(iwram, oam_ram, src_strd, dest_strd, tfsize);                \
                                                                               \
-    case DMA_REGION_EWRAM + DMA_REGION_OAM_RAM * DMA_REGION_COUNT:            \
+    case (DMA_REGION_EWRAM | (DMA_REGION_OAM_RAM << 4)):                      \
       dma_tfloop(ewram, oam_ram, src_strd, dest_strd, tfsize);                \
                                                                               \
-    case DMA_REGION_VRAM + DMA_REGION_OAM_RAM * DMA_REGION_COUNT:             \
+    case (DMA_REGION_VRAM | (DMA_REGION_OAM_RAM << 4)):                       \
       dma_tfloop(vram, oam_ram, src_strd, dest_strd, tfsize);                 \
                                                                               \
-    case DMA_REGION_PALETTE_RAM + DMA_REGION_OAM_RAM * DMA_REGION_COUNT:      \
+    case (DMA_REGION_PALETTE_RAM | (DMA_REGION_OAM_RAM << 4)):                \
       dma_tfloop(palette_ram, oam_ram, src_strd, dest_strd, tfsize);          \
                                                                               \
-    case DMA_REGION_OAM_RAM + DMA_REGION_OAM_RAM * DMA_REGION_COUNT:          \
+    case (DMA_REGION_OAM_RAM | (DMA_REGION_OAM_RAM << 4)):                    \
       dma_tfloop(oam_ram, oam_ram, src_strd, dest_strd, tfsize);              \
                                                                               \
-    case DMA_REGION_IO + DMA_REGION_OAM_RAM * DMA_REGION_COUNT:               \
+    case (DMA_REGION_IO | (DMA_REGION_OAM_RAM << 4)):                         \
       dma_tfloop(io, oam_ram, src_strd, dest_strd, tfsize);                   \
                                                                               \
-    case DMA_REGION_GAMEPAK + DMA_REGION_OAM_RAM * DMA_REGION_COUNT:          \
+    case (DMA_REGION_GAMEPAK | (DMA_REGION_OAM_RAM << 4)):                    \
       dma_tfloop(gamepak, oam_ram, src_strd, dest_strd, tfsize);              \
                                                                               \
-    case DMA_REGION_EXT + DMA_REGION_OAM_RAM * DMA_REGION_COUNT:              \
+    case (DMA_REGION_EXT | (DMA_REGION_OAM_RAM << 4)):                        \
       dma_tfloop(ext, oam_ram, src_strd, dest_strd, tfsize);                  \
                                                                               \
-    case DMA_REGION_BUS + DMA_REGION_IO * DMA_REGION_COUNT:                   \
-      dma_tfloop(bus, io, src_strd, dest_strd, tfsize);                       \
+    case (DMA_REGION_BIOS | (DMA_REGION_IO << 4)):                            \
+      dma_tfloop(bios, io, src_strd, dest_strd, tfsize);                      \
                                                                               \
-    case DMA_REGION_IWRAM + DMA_REGION_IO * DMA_REGION_COUNT:                 \
+    case (DMA_REGION_IWRAM | (DMA_REGION_IO << 4)):                           \
       dma_tfloop(iwram, io, src_strd, dest_strd, tfsize);                     \
                                                                               \
-    case DMA_REGION_EWRAM + DMA_REGION_IO * DMA_REGION_COUNT:                 \
+    case (DMA_REGION_EWRAM | (DMA_REGION_IO << 4)):                           \
       dma_tfloop(ewram, io, src_strd, dest_strd, tfsize);                     \
                                                                               \
-    case DMA_REGION_VRAM + DMA_REGION_IO * DMA_REGION_COUNT:                  \
+    case (DMA_REGION_VRAM | (DMA_REGION_IO << 4)):                            \
       dma_tfloop(vram, io, src_strd, dest_strd, tfsize);                      \
                                                                               \
-    case DMA_REGION_PALETTE_RAM + DMA_REGION_IO * DMA_REGION_COUNT:           \
+    case (DMA_REGION_PALETTE_RAM | (DMA_REGION_IO << 4)):                     \
       dma_tfloop(palette_ram, io, src_strd, dest_strd, tfsize);               \
                                                                               \
-    case DMA_REGION_OAM_RAM + DMA_REGION_IO * DMA_REGION_COUNT:               \
+    case (DMA_REGION_OAM_RAM | (DMA_REGION_IO << 4)):                         \
       dma_tfloop(oam_ram, io, src_strd, dest_strd, tfsize);                   \
                                                                               \
-    case DMA_REGION_IO + DMA_REGION_IO * DMA_REGION_COUNT:                    \
+    case (DMA_REGION_IO | (DMA_REGION_IO << 4)):                              \
       dma_tfloop(io, io, src_strd, dest_strd, tfsize);                        \
                                                                               \
-    case DMA_REGION_GAMEPAK + DMA_REGION_IO * DMA_REGION_COUNT:               \
+    case (DMA_REGION_GAMEPAK | (DMA_REGION_IO << 4)):                         \
       dma_tfloop(gamepak, io, src_strd, dest_strd, tfsize);                   \
                                                                               \
-    case DMA_REGION_EXT + DMA_REGION_IO * DMA_REGION_COUNT:                   \
+    case (DMA_REGION_EXT | (DMA_REGION_IO << 4)):                             \
       dma_tfloop(ext, io, src_strd, dest_strd, tfsize);                       \
                                                                               \
-    case DMA_REGION_BUS + DMA_REGION_EXT * DMA_REGION_COUNT:                  \
-      dma_tfloop(bus, ext, src_strd, dest_strd, tfsize);                      \
+    case (DMA_REGION_BIOS | (DMA_REGION_EXT << 4)):                           \
+      dma_tfloop(bios, ext, src_strd, dest_strd, tfsize);                     \
                                                                               \
-    case DMA_REGION_IWRAM + DMA_REGION_EXT * DMA_REGION_COUNT:                \
+    case (DMA_REGION_IWRAM | (DMA_REGION_EXT << 4)):                          \
       dma_tfloop(iwram, ext, src_strd, dest_strd, tfsize);                    \
                                                                               \
-    case DMA_REGION_EWRAM + DMA_REGION_EXT * DMA_REGION_COUNT:                \
+    case (DMA_REGION_EWRAM | (DMA_REGION_EXT << 4)):                          \
       dma_tfloop(ewram, ext, src_strd, dest_strd, tfsize);                    \
                                                                               \
-    case DMA_REGION_VRAM + DMA_REGION_EXT * DMA_REGION_COUNT:                 \
+    case (DMA_REGION_VRAM | (DMA_REGION_EXT << 4)):                           \
       dma_tfloop(vram, ext, src_strd, dest_strd, tfsize);                     \
                                                                               \
-    case DMA_REGION_PALETTE_RAM + DMA_REGION_EXT * DMA_REGION_COUNT:          \
+    case (DMA_REGION_PALETTE_RAM | (DMA_REGION_EXT << 4)):                    \
       dma_tfloop(palette_ram, ext, src_strd, dest_strd, tfsize);              \
                                                                               \
-    case DMA_REGION_OAM_RAM + DMA_REGION_EXT * DMA_REGION_COUNT:              \
+    case (DMA_REGION_OAM_RAM | (DMA_REGION_EXT << 4)):                        \
       dma_tfloop(oam_ram, ext, src_strd, dest_strd, tfsize);                  \
                                                                               \
-    case DMA_REGION_IO + DMA_REGION_EXT * DMA_REGION_COUNT:                   \
+    case (DMA_REGION_IO | (DMA_REGION_EXT << 4)):                             \
       dma_tfloop(io, ext, src_strd, dest_strd, tfsize);                       \
                                                                               \
-    case DMA_REGION_GAMEPAK + DMA_REGION_EXT * DMA_REGION_COUNT:              \
+    case (DMA_REGION_GAMEPAK | (DMA_REGION_EXT << 4)):                        \
       dma_tfloop(gamepak, ext, src_strd, dest_strd, tfsize);                  \
                                                                               \
-    case DMA_REGION_EXT + DMA_REGION_EXT * DMA_REGION_COUNT:                  \
+    case (DMA_REGION_EXT | (DMA_REGION_EXT << 4)):                            \
       dma_tfloop(ext, ext, src_strd, dest_strd, tfsize);                      \
   }                                                                           \
-                                                                              \
-  /* Remember the last value copied in case we read from a bad zone */        \
-  dma_bus_val = read_value;                                                   \
                                                                               \
   dma->source_address = src_ptr;                                              \
   if (wb)   /* Update destination pointer if requested */                     \
@@ -2054,9 +2151,9 @@ static cpu_alert_type dma_transfer_copy(
 cpu_alert_type dma_transfer(unsigned dma_chan, int *usedcycles)
 {
   dma_transfer_type *dmach = &dma[dma_chan];
-  u32 src_ptr = 0x0FFFFFFF & dmach->source_address & (
+  u32 src_ptr = dmach->source_address & (
                    dmach->length_type == DMA_16BIT ? ~1U : ~3U);
-  u32 dst_ptr = 0x0FFFFFFF & dmach->dest_address & (
+  u32 dst_ptr = dmach->dest_address & (
                    dmach->length_type == DMA_16BIT ? ~1U : ~3U);
   cpu_alert_type ret = CPU_ALERT_NONE;
   u32 tfsizes = dmach->length_type == DMA_16BIT ? 1 : 2;
@@ -2202,9 +2299,12 @@ u8 *load_gamepak_page(u32 physical_index)
   // Map it to the read handlers now
   map_rom_entry(read, physical_index, swap_location, gamepak_size >> 15);
 
-  // When mapping page 0, we might need to reflect the GPIO regs.
-  if (physical_index == 0)
-    update_gpio_romregs();
+  // If RTC is active page the RTC register bytes so they can be read
+  if ((rtc_state != RTC_DISABLED) && (physical_index == 0)) {
+    address16(swap_location, 0xC4) = eswap16(rtc_registers[0]);
+    address16(swap_location, 0xC6) = eswap16(rtc_registers[1]);
+    address16(swap_location, 0xC8) = eswap16(rtc_registers[2]);
+  }
 
   return swap_location;
 }
@@ -2285,21 +2385,22 @@ void init_memory(void)
 
   reload_timing_info();
 
-  backup_type = backup_type_reset;
+  backup_type = BACKUP_NONE;
+
+  sram_bankcount = SRAM_SIZE_32KB;
+  //flash_size = FLASH_SIZE_64KB;
+
   flash_bank_num = 0;
   flash_command_position = 0;
   eeprom_size = EEPROM_512_BYTE;
   eeprom_mode = EEPROM_BASE_MODE;
   eeprom_address = 0;
   eeprom_counter = 0;
-  rumble_enable_tick = 0;
-  rumble_ticks = 0;
-  dma_bus_val = 0;
 
   flash_mode = FLASH_BASE_MODE;
 
   rtc_state = RTC_DISABLED;
-  memset(gpio_regs, 0, sizeof(gpio_regs));
+  memset(rtc_registers, 0, sizeof(rtc_registers));
   reg[REG_BUS_VALUE] = 0xe129f000;
 }
 
@@ -2320,9 +2421,10 @@ void memory_term(void)
 bool memory_check_savestate(const u8 *src)
 {
   static const char *vars32[] = {
-    "backup-type","flash-mode", "flash-cmd-pos", "flash-bank-num", "flash-dev-id",
-    "flash-size", "eeprom-size", "eeprom-mode", "eeprom-addr", "eeprom-counter",
-    "rtc-state", "rtc-write-mode", "rtc-cmd", "rtc-status", "rtc-data-bit-cnt", "rtc-bit-cnt",
+    "backup-type", "sram-size",
+    "flash-mode", "flash-cmd-pos", "flash-bank-num", "flash-dev-id", "flash-size",
+    "eeprom-size", "eeprom-mode", "eeprom-addr", "eeprom-counter",
+    "rtc-state", "rtc-write-mode", "rtc-cmd", "rtc-status", "rtc-data-byte-cnt", "rtc-bit-cnt",
   };
   static const char *dmavars32[] = {
     "src-addr", "dst-addr", "src-dir", "dst-dir",
@@ -2341,8 +2443,7 @@ bool memory_check_savestate(const u8 *src)
       !bson_contains_key(memdoc, "vram", BSON_TYPE_BIN) ||
       !bson_contains_key(memdoc, "oamram", BSON_TYPE_BIN) ||
       !bson_contains_key(memdoc, "palram", BSON_TYPE_BIN) ||
-      !bson_contains_key(memdoc, "ioregs", BSON_TYPE_BIN) ||
-      !bson_contains_key(memdoc, "dma-bus", BSON_TYPE_INT32))
+      !bson_contains_key(memdoc, "ioregs", BSON_TYPE_BIN))
      return false;
 
   // Check backup variables
@@ -2350,7 +2451,7 @@ bool memory_check_savestate(const u8 *src)
     if (!bson_contains_key(bakdoc, vars32[i], BSON_TYPE_INT32))
       return false;
 
-  if (!bson_contains_key(bakdoc, "gpio-regs", BSON_TYPE_BIN) ||
+  if (!bson_contains_key(bakdoc, "rtc-regs", BSON_TYPE_BIN) ||
       !bson_contains_key(bakdoc, "rtc-data-words", BSON_TYPE_ARR))
       return false;
 
@@ -2372,7 +2473,6 @@ bool memory_check_savestate(const u8 *src)
 bool memory_read_savestate(const u8 *src)
 {
   int i;
-  u32 rtc_data_array[2];
   const u8 *memdoc = bson_find_key(src, "memory");
   const u8 *bakdoc = bson_find_key(src, "backup");
   const u8 *dmadoc = bson_find_key(src, "dma");
@@ -2386,9 +2486,9 @@ bool memory_read_savestate(const u8 *src)
     bson_read_bytes(memdoc, "oamram", oam_ram, sizeof(oam_ram)) &&
     bson_read_bytes(memdoc, "palram", palette_ram, sizeof(palette_ram)) &&
     bson_read_bytes(memdoc, "ioregs", io_registers, sizeof(io_registers)) &&
-    bson_read_int32(memdoc, "dma-bus", &dma_bus_val) &&
 
     bson_read_int32(bakdoc, "backup-type", &backup_type) &&
+    bson_read_int32(bakdoc, "sram-size", &sram_bankcount) &&
 
     bson_read_int32(bakdoc, "flash-mode", &flash_mode) &&
     bson_read_int32(bakdoc, "flash-cmd-pos", &flash_command_position) &&
@@ -2401,15 +2501,15 @@ bool memory_read_savestate(const u8 *src)
     bson_read_int32(bakdoc, "eeprom-addr", &eeprom_address) &&
     bson_read_int32(bakdoc, "eeprom-counter", &eeprom_counter) &&
 
-    bson_read_bytes(bakdoc, "gpio-regs", gpio_regs, sizeof(gpio_regs)) &&
-
     bson_read_int32(bakdoc, "rtc-state", &rtc_state) &&
     bson_read_int32(bakdoc, "rtc-write-mode", &rtc_write_mode) &&
     bson_read_int32(bakdoc, "rtc-cmd", &rtc_command) &&
     bson_read_int32(bakdoc, "rtc-status", &rtc_status) &&
-    bson_read_int32(bakdoc, "rtc-data-bit-cnt", &rtc_data_bits) &&
+    bson_read_int32(bakdoc, "rtc-data-byte-cnt", &rtc_data_bytes) &&
     bson_read_int32(bakdoc, "rtc-bit-cnt", (u32*)&rtc_bit_count) &&
-    bson_read_int32_array(bakdoc, "rtc-data-words", rtc_data_array, 2)))
+    bson_read_bytes(bakdoc, "rtc-regs", rtc_registers, sizeof(rtc_registers)) &&
+    bson_read_int32_array(bakdoc, "rtc-data-words", rtc_data,
+                            sizeof(rtc_data)/sizeof(rtc_data[0]))))
     return false;
 
   for (i = 0; i < DMA_CHAN_CNT; i++)
@@ -2430,8 +2530,6 @@ bool memory_read_savestate(const u8 *src)
       return false;
   }
 
-  rtc_data = rtc_data_array[0] | (((u64)rtc_data_array[1]) << 32);
-
   return true;
 }
 
@@ -2439,8 +2537,6 @@ unsigned memory_write_savestate(u8 *dst)
 {
   int i;
   u8 *wbptr, *wbptr2, *startp = dst;
-  u32 rtc_data_array[2] = { (u32)rtc_data, (u32)(rtc_data >> 32) };
-
   bson_start_document(dst, "memory", wbptr);
   bson_write_bytes(dst, "iwram", &iwram[0x8000], 0x8000);
   bson_write_bytes(dst, "ewram", ewram, 0x40000);
@@ -2448,11 +2544,11 @@ unsigned memory_write_savestate(u8 *dst)
   bson_write_bytes(dst, "oamram", oam_ram, sizeof(oam_ram));
   bson_write_bytes(dst, "palram", palette_ram, sizeof(palette_ram));
   bson_write_bytes(dst, "ioregs", io_registers, sizeof(io_registers));
-  bson_write_int32(dst, "dma-bus", dma_bus_val);
   bson_finish_document(dst, wbptr);
 
   bson_start_document(dst, "backup", wbptr);
   bson_write_int32(dst, "backup-type", (u32)backup_type);
+  bson_write_int32(dst, "sram-size", sram_bankcount);
 
   bson_write_int32(dst, "flash-mode", flash_mode);
   bson_write_int32(dst, "flash-cmd-pos", flash_command_position);
@@ -2465,14 +2561,15 @@ unsigned memory_write_savestate(u8 *dst)
   bson_write_int32(dst, "eeprom-addr", eeprom_address);
   bson_write_int32(dst, "eeprom-counter", eeprom_counter);
 
-  bson_write_bytes(dst, "gpio-regs", gpio_regs, sizeof(gpio_regs));
   bson_write_int32(dst, "rtc-state", rtc_state);
   bson_write_int32(dst, "rtc-write-mode", rtc_write_mode);
   bson_write_int32(dst, "rtc-cmd", rtc_command);
   bson_write_int32(dst, "rtc-status", rtc_status);
-  bson_write_int32(dst, "rtc-data-bit-cnt", rtc_data_bits);
+  bson_write_int32(dst, "rtc-data-byte-cnt", rtc_data_bytes);
   bson_write_int32(dst, "rtc-bit-cnt", rtc_bit_count);
-  bson_write_int32array(dst, "rtc-data-words", rtc_data_array, 2);
+  bson_write_bytes(dst, "rtc-regs", rtc_registers, sizeof(rtc_registers));
+  bson_write_int32array(dst, "rtc-data-words", rtc_data,
+                          sizeof(rtc_data)/sizeof(rtc_data[0]));
   bson_finish_document(dst, wbptr);
 
   bson_start_document(dst, "dma", wbptr);
@@ -2539,13 +2636,31 @@ static s32 load_gamepak_raw(const char *name)
   return -1;
 }
 
-u32 load_gamepak(const struct retro_game_info* info, const char *name,
-                 int force_rtc, int force_rumble, int force_serial)
+u32 load_gamepak(const struct retro_game_info* info, const char *name)
 {
+   char *p;
+   char gamepak_filename[512];
    gamepak_info_t gpinfo;
 
    if (load_gamepak_raw(name))
       return -1;
+
+   strncpy(gamepak_filename, name, sizeof(gamepak_filename));
+   gamepak_filename[sizeof(gamepak_filename) - 1] = 0;
+
+   p = strrchr(gamepak_filename, PATH_SEPARATOR_CHAR);
+   if (p)
+      p++;
+   else
+      p = gamepak_filename;
+
+   snprintf(backup_filename, sizeof(backup_filename), "%s%c%s", save_path, PATH_SEPARATOR_CHAR, p);
+   p = strrchr(backup_filename, '.');
+   if (p)
+      strcpy(p, ".sav");
+
+   if (!use_libretro_save_method)
+     load_backup(backup_filename);
 
    // Buffer 0 always has the first 1MB chunk of the ROM
    memset(&gpinfo, 0, sizeof(gpinfo));
@@ -2557,18 +2672,8 @@ u32 load_gamepak(const struct retro_game_info* info, const char *name,
    translation_gate_targets = 0;
    flash_device_id = FLASH_DEVICE_MACRONIX_64KB;
    flash_bank_cnt = FLASH_SIZE_64KB;
-   rtc_enabled = false;
-   rumble_enabled = false;
-   backup_type_reset = BACKUP_UNKN;
-   serial_mode = force_serial;
 
    load_game_config_over(&gpinfo);
-
-   // Forced RTC / Rumble modes, override the autodetect logic.
-   if (force_rtc != FEAT_AUTODETECT)
-      rtc_enabled = (force_rtc == FEAT_ENABLE);
-   if (force_rumble != FEAT_AUTODETECT)
-      rumble_enabled = (force_rumble == FEAT_ENABLE);
 
    return 0;
 }

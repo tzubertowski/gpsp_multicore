@@ -76,6 +76,7 @@ extern u32 skip_next_frame;
 extern u32 flush_ram_count;
 
 extern char main_path[512];
+extern char save_path[512];
 
 u16 rand_gen();
 void rand_seed(u32 data);

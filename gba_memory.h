@@ -21,10 +21,7 @@
 #define MEMORY_H
 
 #include "libretro.h"
-
-#define FEAT_AUTODETECT  -1
-#define FEAT_DISABLE      0
-#define FEAT_ENABLE       1
+extern int use_libretro_save_method;
 
 #define DMA_CHAN_CNT   4
 
@@ -225,11 +222,7 @@ u32 function_cc read_eeprom(void);
 void function_cc write_eeprom(u32 address, u32 value);
 u8 read_backup(u32 address);
 void function_cc write_backup(u32 address, u32 value);
-void function_cc write_gpio(u32 address, u32 value);
-
-void write_rumble(bool oldv, bool newv);
-void rumble_frame_reset();
-float rumble_active_pct();
+void function_cc write_rtc(u32 address, u32 value);
 
 /* EDIT: Shouldn't this be extern ?! */
 extern const u32 def_seq_cycles[16][2];
@@ -245,9 +238,10 @@ extern char gamepak_filename[512];
 
 cpu_alert_type dma_transfer(unsigned dma_chan, int *cycles);
 u8 *memory_region(u32 address, u32 *memory_limit);
-u32 load_gamepak(const struct retro_game_info* info, const char *name,
-                 int force_rtc, int force_rumble, int force_serial);
+u32 load_gamepak(const struct retro_game_info* info, const char *name);
+u32 load_backup(char *name);
 s32 load_bios(char *name);
+void update_backup(void);
 void init_memory(void);
 void init_gamepak_buffer(void);
 bool gamepak_must_swap(void);
@@ -276,7 +270,7 @@ extern u32 reg[64];
 #define BACKUP_SRAM       0
 #define BACKUP_FLASH      1
 #define BACKUP_EEPROM     2
-#define BACKUP_UNKN       3
+#define BACKUP_NONE       3
 
 #define SRAM_SIZE_32KB    1
 #define SRAM_SIZE_64KB    2

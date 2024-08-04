@@ -178,7 +178,6 @@ static t_client_broadcast rfu_peer_bcst[MAX_RFU_PEERS];
 
 // Callbacks used to send and force-receive data.
 void netpacket_send(uint16_t client_id, const void *buf, size_t len);
-void netpacket_poll_receive();
 
 static void rfu_net_send_cmd(int client_id, u32 ptype, u32 h) {
   u32 pkt[4] = {
@@ -867,7 +866,6 @@ bool rfu_update(unsigned cycles) {
   if (rfu_comstate == RFU_COMSTATE_WAITEVENT) {
     // Force receive packets so that we can perhaps abort the wait
     // This helps minimize latency (othweise we need to wait a full frame!)
-    netpacket_poll_receive();
 
     // Check if we are running our of time to respond.
     rfu_timeout_cycles -= MIN(cycles, rfu_timeout_cycles);
