@@ -153,7 +153,7 @@ else ifeq ($(platform), tvos-arm64)
 	fpic := -fPIC
 	SHARED := -dynamiclib
 	CPU_ARCH := arm
-	CFLAGS += -DIOS -DHAVE_POSIX_MEMALIGN -marm
+	CFLAGS += -DIOS -DHAVE_POSIX_MEMALIGN
 
 	ifeq ($(IOSSDK),)
 		IOSSDK := $(shell xcodebuild -version -sdk appletvos Path)
