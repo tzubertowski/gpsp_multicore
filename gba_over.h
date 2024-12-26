@@ -1413,10 +1413,12 @@ static const ini_t gbaover[] = {
    },
    {
       // Pokemon Fire Red (J)
+      // Added RTC even though it is not featured on the original game.
+      // This helps emulating ROM hacks.
       "POKEMON FIRE",              /* gamepak_title        */
       "BPRJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
+      FLAGS_FLASH_128KB | FLAGS_RTC | FLAGS_RFU,  /* flags */
       0x80008b2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1427,7 +1429,7 @@ static const ini_t gbaover[] = {
       "POKEMON FIRE",              /* gamepak_title        */
       "BPRE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
+      FLAGS_FLASH_128KB | FLAGS_RTC | FLAGS_RFU,  /* flags */
       0x80008b2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1438,7 +1440,7 @@ static const ini_t gbaover[] = {
       "POKEMON FIRE",              /* gamepak_title        */
       "BPRS",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
+      FLAGS_FLASH_128KB | FLAGS_RTC | FLAGS_RFU,  /* flags */
       0x80008b2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1449,7 +1451,7 @@ static const ini_t gbaover[] = {
       "POKEMON FIRE",              /* gamepak_title        */
       "BPRD",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
+      FLAGS_FLASH_128KB | FLAGS_RTC | FLAGS_RFU,  /* flags */
       0x80008b2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1460,7 +1462,7 @@ static const ini_t gbaover[] = {
       "POKEMON FIRE",              /* gamepak_title        */
       "BPRI",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
+      FLAGS_FLASH_128KB | FLAGS_RTC | FLAGS_RFU,  /* flags */
       0x80008b2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1471,7 +1473,7 @@ static const ini_t gbaover[] = {
       "POKEMON FIRE",              /* gamepak_title        */
       "BPRF",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
+      FLAGS_FLASH_128KB | FLAGS_RTC | FLAGS_RFU,  /* flags */
       0x80008b2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1483,7 +1485,7 @@ static const ini_t gbaover[] = {
       "POKEMON LEAF",              /* gamepak_title        */
       "BPGE",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
+      FLAGS_FLASH_128KB | FLAGS_RTC | FLAGS_RFU,  /* flags */
       0x80008b2,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1494,7 +1496,7 @@ static const ini_t gbaover[] = {
       "POKEMON LEAF",              /* gamepak_title        */
       "BPGS",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
+      FLAGS_FLASH_128KB | FLAGS_RTC | FLAGS_RFU,  /* flags */
       0x80008b6,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1505,7 +1507,7 @@ static const ini_t gbaover[] = {
       "POKEMON LEAF",              /* gamepak_title        */
       "BPGD",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
+      FLAGS_FLASH_128KB | FLAGS_RTC | FLAGS_RFU,  /* flags */
       0x80008b6,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1516,7 +1518,7 @@ static const ini_t gbaover[] = {
       "POKEMON LEAF",              /* gamepak_title        */
       "BPGI",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
+      FLAGS_FLASH_128KB | FLAGS_RTC | FLAGS_RFU,  /* flags */
       0x80008b6,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1527,7 +1529,7 @@ static const ini_t gbaover[] = {
       "POKEMON LEAF",              /* gamepak_title        */
       "BPGF",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
+      FLAGS_FLASH_128KB | FLAGS_RTC | FLAGS_RFU,  /* flags */
       0x80008b6,                   /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
@@ -1538,7 +1540,7 @@ static const ini_t gbaover[] = {
       "POKEMON LEAF",              /* gamepak_title        */
       "BPGJ",                      /* gamepak_code         */
       "01",                        /* gamepak_maker        */
-      FLAGS_FLASH_128KB | FLAGS_RFU,  /* flags             */
+      FLAGS_FLASH_128KB | FLAGS_RTC | FLAGS_RFU,  /* flags */
       0,                           /* idle_loop_target_pc  */
       0,                           /* translation_gate_target_1 */
       0,                           /* translation_gate_target_2 */
