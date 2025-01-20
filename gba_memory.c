@@ -1262,7 +1262,8 @@ static void write_rtc(u8 old, u8 new)
   if (!(old & GPIO_RTC_CSS))
     rtc_state = RTC_COMMAND;
 
-  if ((old & GPIO_RTC_CLK) && !(new & GPIO_RTC_CLK)) {
+  // Capture data on raising edge
+  if (!(old & GPIO_RTC_CLK) && (new & GPIO_RTC_CLK)) {
     // Advance clock state, input/ouput data.
     switch (rtc_state) {
     case RTC_COMMAND:
