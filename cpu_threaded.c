@@ -3425,3 +3425,63 @@ void flush_dynarec_caches(void)
   flush_translation_cache_ram();
 }
 
+void partial_flush_ram_full(u32 address)
+{
+  u8 *smc_data;
+  u8 *ewram_smc_data = &ewram[0x40000];
+  u8 *iwram_smc_data = iwram;
+
+  switch (address >> 24)
+  {
+    case 0x02: /* EWRAM */
+      smc_data = ewram_smc_data + (address & 0x3FFFE);
+      break;
+    case 0x03: /* IWRAM */
+      smc_data = iwram_smc_data + (address & 0x7FFE);
+      break;
+    default:   /* no smc_data */
+      return;
+  }
+
+  u8 *smc_data_area, *smc_data_area_end, *smc_data_right ;
+  smc_data_right = smc_data; // Save this pointer to go to the right later
+
+  switch (address >> 24)
+  {
+    case 0x02: /* EWRAM */
+      smc_data_area = ewram_smc_data;
+      smc_data_area_end = ewram_smc_data + 0x40000;
+      break;
+    case 0x03: /* IWRAM */
+      smc_data_area = iwram_smc_data;
+      smc_data_area_end = iwram_smc_data + 0x8000;
+      break;
+  }
+  
+  *((u16*) smc_data) = 0;
+
+  while (1)
+  {
+    smc_data = smc_data - 2;
+    if (smc_data < smc_data_area)
+      smc_data = smc_data_area_end - 2; // Wrap to the end
+    if (*((u16*) smc_data) != 0)
+      *((u16*) smc_data) = 0;
+    else 
+      {
+      break; }
+  }
+
+  smc_data = smc_data_right;
+
+  while (1)
+  {
+    smc_data = smc_data + 2;
+    if (smc_data == smc_data_area_end)
+      smc_data = smc_data_area; // Wrap to the beginning
+    if (*((u16*) smc_data) != 0)
+      *((u16*) smc_data) = 0;
+    else
+      break;
+  }
+}
