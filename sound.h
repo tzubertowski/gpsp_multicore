@@ -101,6 +101,10 @@ extern u32 gbc_sound_last_cpu_ticks;
 extern const u32 sound_frequency;
 extern u32 sound_on;
 
+// Pre-calculated frequency lookup tables for SF2000 optimization
+extern const u32 tone_frequency_lut[2048];
+extern const u32 wave_frequency_lut[2048];
+
 void sound_timer_queue32(u32 channel, u32 value);
 unsigned sound_timer(fixed8_24 frequency_step, u32 channel);
 void sound_reset_fifo(u32 channel);

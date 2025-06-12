@@ -26,6 +26,8 @@ gbc_sound_struct gbc_sound_channel[4];
 const u32 sound_frequency = GBA_SOUND_FREQUENCY;
 
 u32 sound_on;
+
+#include "frequency_luts.h"
 static s16 sound_buffer[BUFFER_SIZE];
 static u32 sound_buffer_base;
 

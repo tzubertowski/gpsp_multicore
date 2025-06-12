@@ -43,13 +43,12 @@
   render_gbc_sound();                                                         \
   u32 rate = value & 0x7FF;                                                   \
   gbc_sound_channel[channel].rate = rate;                                     \
-  gbc_sound_channel[channel].frequency_step =                                 \
-   float_to_fp16_16(((131072.0 / (2048 - rate)) * 8.0) / sound_frequency);    \
+  gbc_sound_channel[channel].frequency_step = tone_frequency_lut[rate];    \
   gbc_sound_channel[channel].length_status = (value >> 14) & 0x01;            \
   if(value & 0x8000)                                                          \
   {                                                                           \
     gbc_sound_channel[channel].active_flag = 1;                               \
-    gbc_sound_channel[channel].sample_index -= float_to_fp16_16(1.0 / 12.0);  \
+    gbc_sound_channel[channel].sample_index -= 5461;  /* 1.0/12.0 in fp16_16 format */  \
     gbc_sound_channel[channel].envelope_ticks =                               \
      gbc_sound_channel[channel].envelope_initial_ticks;                       \
     gbc_sound_channel[channel].envelope_volume =                              \
@@ -103,8 +102,7 @@ static const u32 gbc_sound_wave_volume[4] = { 0, 16384, 8192, 4096 };
   render_gbc_sound();                                                         \
   u32 rate = value & 0x7FF;                                                   \
   gbc_sound_channel[2].rate = rate;                                           \
-  gbc_sound_channel[2].frequency_step =                                       \
-   float_to_fp16_16((2097152.0 / (2048 - rate)) / sound_frequency);           \
+  gbc_sound_channel[2].frequency_step = wave_frequency_lut[rate];           \
   gbc_sound_channel[2].length_status = (value >> 14) & 0x01;                  \
   if(value & 0x8000)                                                          \
   {                                                                           \

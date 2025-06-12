@@ -481,6 +481,14 @@ u32 function_cc update_gba(int remaining_cycles)
     // Figure out when we need to stop CPU execution. The next event is
     // a video event or a timer event, whatever happens first.
     execute_cycles = MAX(video_count, 0);
+    
+#ifdef SF2000
+    // SF2000 optimization: batch more cycles together to reduce dynarec overhead
+    // Only do this when we have a reasonable chunk and no critical events pending
+    if (execute_cycles > 500 && execute_cycles < 2000) {
+      execute_cycles = MIN(execute_cycles * 2, 4000);  // Double the execution chunk
+    }
+#endif
     {
       u32 cc = serial_next_event();
       execute_cycles = MIN(execute_cycles, cc);
