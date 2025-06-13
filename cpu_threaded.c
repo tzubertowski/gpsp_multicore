@@ -2663,13 +2663,8 @@ u8 function_cc *block_lookup_address_arm(u32 pc)
     }
   }
 
-#ifndef SF2000
-  printf("bad jump %x (%x)\n", pc, reg[REG_PC]);
-  fflush(stdout);
+  // PERFORMANCE: Disable logging in hot path
   return NULL;
-#else
-  xlog("bad jump %x (%x)\n", pc, reg[REG_PC]);
-#endif
 }
 
 u8 function_cc *block_lookup_address_thumb(u32 pc)
@@ -2682,13 +2677,8 @@ u8 function_cc *block_lookup_address_thumb(u32 pc)
       return ret;
     }
   }
-  #ifndef SF2000
-   printf("bad jump %x (%x)\n", pc, reg[REG_PC]);
-   fflush(stdout);
-   return NULL;
-  #else
-    xlog("bad jump %x (%x)\n", pc, reg[REG_PC]);
-  #endif
+  // PERFORMANCE: Disable logging in hot path
+  return NULL;
 }
 
 
