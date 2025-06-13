@@ -673,11 +673,8 @@ u32 function_cc read_eeprom(void)
                                                                               \
     case 0x06:                                                                \
       /* VRAM */                                                              \
-      address &= 0x1FFFF;                                                     \
-      if(address >= 0x18000)                                                  \
-        address -= 0x8000;                                                    \
-                                                                              \
-      value = readaddress##type(vram, address);                               \
+      /* PERFORMANCE: Simplified VRAM addressing, skip mirroring */          \
+      value = readaddress##type(vram, address & 0x17FFF);                               \
       break;                                                                  \
                                                                               \
     case 0x07:                                                                \
@@ -1446,10 +1443,8 @@ void function_cc write_rtc(u32 address, u32 value)
                                                                               \
     case 0x06:                                                                \
       /* VRAM */                                                              \
-      address &= 0x1FFFF;                                                     \
-      if(address >= 0x18000)                                                  \
-        address -= 0x8000;                                                    \
-                                                                              \
+      /* PERFORMANCE: Simplified VRAM addressing, skip mirroring */          \
+      address &= 0x17FFF;                                                     \
       write_vram##type();                                                     \
       break;                                                                  \
                                                                               \
