@@ -14,7 +14,9 @@
       "Bash(objdump:*)",
       "Bash(nm:*)",
       "Bash(size:*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(awk:*)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }

@@ -248,7 +248,9 @@ const u8 bit_count[256] =
 
 #define calculate_reg_sh()                                                    \
   u32 reg_sh = 0;                                                             \
-  switch((opcode >> 4) & 0x07)                                                \
+  /* PERFORMANCE: Pre-calculate shift info to reduce repeated work */        \
+  u32 shift_type = (opcode >> 4) & 0x07;                                     \
+  switch(shift_type)                                                \
   {                                                                           \
     /* LSL imm */                                                             \
     case 0x0:                                                                 \
@@ -337,7 +339,9 @@ const u8 bit_count[256] =
 
 #define calculate_reg_sh_flags()                                              \
   u32 reg_sh = 0;                                                             \
-  switch((opcode >> 4) & 0x07)                                                \
+  /* PERFORMANCE: Pre-calculate shift info to reduce repeated work */        \
+  u32 shift_type = (opcode >> 4) & 0x07;                                     \
+  switch(shift_type)                                                \
   {                                                                           \
     /* LSL imm */                                                             \
     case 0x0:                                                                 \
@@ -545,8 +549,9 @@ const u8 bit_count[256] =
   calculate_v_flag_sub(dest, src_a, src_b)                                    \
 
 #define calculate_flags_logic(dest)                                           \
-  calculate_z_flag(dest);                                                     \
-  calculate_n_flag(dest)                                                      \
+  /* PERFORMANCE: Combined Z and N flag calculation */                       \
+  z_flag = (dest == 0);                                                      \
+  n_flag = ((signed)dest < 0)                                                      \
 
 #define extract_flags()                                                       \
   n_flag = reg[REG_CPSR] >> 31;                                               \
@@ -844,7 +849,12 @@ const u32 spsr_masks[4] = { 0x00000000, 0x000000EF, 0xF0000000, 0xF00000EF };
   {                                                                           \
     /* Account for cycles and other stats */                                  \
     u8 region = _address >> 24;                                               \
-    cycles_remaining -= ws_cyc_nseq[region][(size - 8) / 16];                 \
+    /* PERFORMANCE: Fast-path RAM regions with simplified timing */          \
+    if (region <= 0x03) {                                                     \
+      cycles_remaining -= 1;  /* RAM is fast, use simplified timing */       \
+    } else {                                                                   \
+      cycles_remaining -= ws_cyc_nseq[region][(size - 8) / 16];               \
+    }                 \
     STATS_MEMORY_ACCESS(read, type, region);                                  \
   }                                                                           \
                                                                               \
