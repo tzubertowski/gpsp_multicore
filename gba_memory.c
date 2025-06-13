@@ -639,6 +639,16 @@ u32 function_cc read_eeprom(void)
 #define read_memory(type)                                                     \
   switch(address >> 24)                                                       \
   {                                                                           \
+    case 0x02:                                                                \
+      /* external work RAM */                                                 \
+      value = readaddress##type(ewram, (address & 0x3FFFF));                  \
+      break;                                                                  \
+                                                                              \
+    case 0x03:                                                                \
+      /* internal work RAM */                                                 \
+      value = readaddress##type(iwram, (address & 0x7FFF) + 0x8000);          \
+      break;                                                                  \
+                                                                              \
     case 0x00:                                                                \
       /* BIOS */                                                              \
       if (address < 0x4000) {                                                 \
@@ -649,16 +659,6 @@ u32 function_cc read_eeprom(void)
       } else {                                                                \
         read_open##type();                                                    \
       }                                                                       \
-      break;                                                                  \
-                                                                              \
-    case 0x02:                                                                \
-      /* external work RAM */                                                 \
-      value = readaddress##type(ewram, (address & 0x3FFFF));                  \
-      break;                                                                  \
-                                                                              \
-    case 0x03:                                                                \
-      /* internal work RAM */                                                 \
-      value = readaddress##type(iwram, (address & 0x7FFF) + 0x8000);          \
       break;                                                                  \
                                                                               \
     case 0x04:                                                                \

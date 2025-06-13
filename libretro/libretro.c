@@ -208,20 +208,14 @@ static void video_post_process_cc(void)
 {
    uint16_t *src = gba_screen_pixels;
    uint16_t *dst = gba_processed_pixels;
-   size_t x, y;
-
-   for (y = 0; y < GBA_SCREEN_HEIGHT; y++)
+   
+   /* Optimized: Single loop, better cache locality, reduced pointer arithmetic */
+   const size_t total_pixels = GBA_SCREEN_HEIGHT * GBA_SCREEN_PITCH;
+   for (size_t i = 0; i < total_pixels; i++)
    {
-      for (x = 0; x < GBA_SCREEN_PITCH; x++)
-      {
-         u16 src_color = *(src + x);
-
-         /* Convert colour to RGB555 and perform lookup */
-         *(dst + x) = *(gba_cc_lut + (((src_color & 0xFFC0) >> 1) | (src_color & 0x1F)));
-      }
-
-      src += GBA_SCREEN_PITCH;
-      dst += GBA_SCREEN_PITCH;
+      u16 src_color = src[i];
+      /* Convert colour to RGB555 and perform lookup */
+      dst[i] = gba_cc_lut[(src_color & 0xFFC0) >> 1 | (src_color & 0x1F)];
    }
 }
 
@@ -230,28 +224,22 @@ static void video_post_process_mix(void)
    uint16_t *src_curr = gba_screen_pixels;
    uint16_t *src_prev = gba_screen_pixels_prev;
    uint16_t *dst      = gba_processed_pixels;
-   size_t x, y;
 
-   for (y = 0; y < GBA_SCREEN_HEIGHT; y++)
+   /* Optimized: Single loop, better cache usage, reduced memory ops */
+   const size_t total_pixels = GBA_SCREEN_HEIGHT * GBA_SCREEN_PITCH;
+   for (size_t i = 0; i < total_pixels; i++)
    {
-      for (x = 0; x < GBA_SCREEN_PITCH; x++)
-      {
-         /* Get colours from current + previous frames (RGB565) */
-         uint16_t rgb_curr = *(src_curr + x);
-         uint16_t rgb_prev = *(src_prev + x);
+      /* Get colours from current + previous frames (RGB565) */
+      uint16_t rgb_curr = src_curr[i];
+      uint16_t rgb_prev = src_prev[i];
 
-         /* Store colours for next frame */
-         *(src_prev + x)   = rgb_curr;
+      /* Store colours for next frame */
+      src_prev[i] = rgb_curr;
 
-         /* Mix colours
-          * > "Mixing Packed RGB Pixels Efficiently"
-          *   http://blargg.8bitalley.com/info/rgb_mixing.html */
-         *(dst + x)        = (rgb_curr + rgb_prev + ((rgb_curr ^ rgb_prev) & 0x821)) >> 1;
-      }
-
-      src_curr += GBA_SCREEN_PITCH;
-      src_prev += GBA_SCREEN_PITCH;
-      dst      += GBA_SCREEN_PITCH;
+      /* Mix colours
+       * > "Mixing Packed RGB Pixels Efficiently"
+       *   http://blargg.8bitalley.com/info/rgb_mixing.html */
+      dst[i] = (rgb_curr + rgb_prev + ((rgb_curr ^ rgb_prev) & 0x821)) >> 1;
    }
 }
 
@@ -260,31 +248,25 @@ static void video_post_process_cc_mix(void)
    uint16_t *src_curr = gba_screen_pixels;
    uint16_t *src_prev = gba_screen_pixels_prev;
    uint16_t *dst      = gba_processed_pixels;
-   size_t x, y;
 
-   for (y = 0; y < GBA_SCREEN_HEIGHT; y++)
+   /* Optimized: Single loop, minimal memory operations */
+   const size_t total_pixels = GBA_SCREEN_HEIGHT * GBA_SCREEN_PITCH;
+   for (size_t i = 0; i < total_pixels; i++)
    {
-      for (x = 0; x < GBA_SCREEN_PITCH; x++)
-      {
-         /* Get colours from current + previous frames (RGB565) */
-         uint16_t rgb_curr = *(src_curr + x);
-         uint16_t rgb_prev = *(src_prev + x);
+      /* Get colours from current + previous frames (RGB565) */
+      uint16_t rgb_curr = src_curr[i];
+      uint16_t rgb_prev = src_prev[i];
 
-         /* Store colours for next frame */
-         *(src_prev + x)   = rgb_curr;
+      /* Store colours for next frame */
+      src_prev[i] = rgb_curr;
 
-         /* Mix colours
-          * > "Mixing Packed RGB Pixels Efficiently"
-          *   http://blargg.8bitalley.com/info/rgb_mixing.html */
-         uint16_t rgb_mix  = (rgb_curr + rgb_prev + ((rgb_curr ^ rgb_prev) & 0x821)) >> 1;
+      /* Mix colours
+       * > "Mixing Packed RGB Pixels Efficiently"
+       *   http://blargg.8bitalley.com/info/rgb_mixing.html */
+      uint16_t rgb_mix = (rgb_curr + rgb_prev + ((rgb_curr ^ rgb_prev) & 0x821)) >> 1;
 
-         /* Convert colour to RGB555 and perform lookup */
-         *(dst + x) = *(gba_cc_lut + (((rgb_mix & 0xFFC0) >> 1) | (rgb_mix & 0x1F)));
-      }
-
-      src_curr += GBA_SCREEN_PITCH;
-      src_prev += GBA_SCREEN_PITCH;
-      dst      += GBA_SCREEN_PITCH;
+      /* Convert colour to RGB555 and perform lookup */
+      dst[i] = gba_cc_lut[(rgb_mix & 0xFFC0) >> 1 | (rgb_mix & 0x1F)];
    }
 }
 

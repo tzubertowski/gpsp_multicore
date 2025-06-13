@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(apt-get:*)",
+      "Bash(apt-get install:*)",
+      "Bash(cat:*)",
+      "Bash(gcc:*)",
+      "Bash(./perf_test)",
+      "Bash(perf record:*)",
+      "Bash(LD_LIBRARY_PATH=. ./perf_test)",
+      "Bash(time:*)",
+      "Bash(objdump:*)",
+      "Bash(nm:*)",
+      "Bash(size:*)",
+      "Bash(rg:*)"
+    ],
+    "deny": []
+  }
+}

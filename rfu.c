@@ -179,6 +179,11 @@ static t_client_broadcast rfu_peer_bcst[MAX_RFU_PEERS];
 // Callbacks used to send and force-receive data.
 void netpacket_send(uint16_t client_id, const void *buf, size_t len);
 
+// Stub implementation for libretro builds without networking
+void netpacket_send(uint16_t client_id, const void *buf, size_t len) {
+  // Network functionality not implemented in this build
+}
+
 static void rfu_net_send_cmd(int client_id, u32 ptype, u32 h) {
   u32 pkt[4] = {
     netorder32(NET_RFU_HEADER),  // RFU1 header
