@@ -555,8 +555,9 @@ const u8 bit_count[256] =
   v_flag = (reg[REG_CPSR] >> 28) & 0x01;                                      \
 
 #define collapse_flags()                                                      \
-  reg[REG_CPSR] = (n_flag << 31) | (z_flag << 30) | (c_flag << 29) |          \
-   (v_flag << 28) | (reg[REG_CPSR] & 0xFF)                                    \
+  /* PERFORMANCE: Streamlined flag collapse */                                 \
+  reg[REG_CPSR] = (reg[REG_CPSR] & 0xFF) |                                     \
+    (n_flag << 31) | (z_flag << 30) | (c_flag << 29) | (v_flag << 28)                                    \
 
 #define check_pc_region()                                                     \
   new_pc_region = (reg[REG_PC] >> 15);                                        \
