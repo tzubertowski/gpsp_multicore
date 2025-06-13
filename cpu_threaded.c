@@ -3417,6 +3417,14 @@ void flush_dynarec_caches(void)
 
 void partial_flush_ram_full(u32 address)
 {
+#if defined(MIPS_ARCH)
+  /* PERFORMANCE: Most 2D games don't use SMC - reduce flush frequency for soft FPU MIPS */
+  static u32 flush_counter = 0;
+  if ((++flush_counter & 0x3) != 0) {
+    return; // Skip 75% of flushes for performance
+  }
+#endif
+
   u8 *smc_data;
   u8 *ewram_smc_data = &ewram[0x40000];
   u8 *iwram_smc_data = iwram;

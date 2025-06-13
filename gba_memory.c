@@ -396,6 +396,15 @@ void reload_timing_info()
   int i;
   uint16_t waitcnt = read_ioreg(REG_WAITCNT);
 
+#if defined(MIPS_ARCH)
+  /* PERFORMANCE: Aggressive timing for soft FPU MIPS - skip waitstates */
+  for (i = 0x8; i <= 0xD; i++) {
+    ws_cyc_seq[i][0] = 1;   /* All ROM sequential access = 1 cycle */
+    ws_cyc_seq[i][1] = 1;   /* All ROM 32-bit sequential = 1 cycle */
+    ws_cyc_nseq[i][0] = 1;  /* All ROM non-sequential = 1 cycle */
+    ws_cyc_nseq[i][1] = 1;  /* All ROM 32-bit non-sequential = 1 cycle */
+  }
+#else
   /* Sequential 16 and 32 bit accesses to ROM */
   ws_cyc_seq[0x8][0] = ws_cyc_seq[0x9][0] = 1 + ws0_seq[(waitcnt >>  4) & 1];
   ws_cyc_seq[0xA][0] = ws_cyc_seq[0xB][0] = 1 + ws1_seq[(waitcnt >>  7) & 1];
@@ -417,6 +426,7 @@ void reload_timing_info()
     /* 32 bit accesses are a non-seq (16) + seq access (16) */
     ws_cyc_nseq[i][1] = 1 + ws_cyc_nseq[i][0] + ws_cyc_seq[i][0];
   }
+#endif
 }
 
 u8 read_backup(u32 address)
