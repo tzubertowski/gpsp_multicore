@@ -1725,6 +1725,31 @@ static void merge_blend(u32 start, u32 end, u16 *dst, u32 *src) {
 
   bool can_saturate = blend_a + blend_b > 16;
 
+#ifdef SF2000
+  // SF2000 PALETTE OPTIMIZATION: Simple local cache for blend function
+  u16 palette_cache[4] = {0};
+  u16 cache_indices[4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
+  u32 cache_pos = 0;
+  
+  auto cached_palette_lookup = [&](u16 idx) -> u16 {
+    // Check if already in cache
+    for (int i = 0; i < 4; i++) {
+      if (cache_indices[i] == idx) {
+        return palette_cache[i];
+      }
+    }
+    // Not in cache, add it
+    u16 value = palette_ram_converted[idx];
+    palette_cache[cache_pos] = value;
+    cache_indices[cache_pos] = idx;
+    cache_pos = (cache_pos + 1) & 3; // Round-robin replacement
+    return value;
+  };
+#define PALETTE_LOOKUP(idx) (cached_palette_lookup(idx))
+#else
+#define PALETTE_LOOKUP(idx) (palette_ram_converted[idx])
+#endif
+
   if (can_saturate) {
     // If blending can result in saturation, we need to clamp output values.
     while (start < end) {
@@ -1736,8 +1761,8 @@ static void merge_blend(u32 start, u32 end, u16 *dst, u32 *src) {
       bool do_blend    = (pixpair & 0x04000200) == 0x04000200;
       if ((st_objs && force_blend) || (do_blend && bldtype == BLEND_ONLY)) {
         // Top pixel is 1st target, pixel below is 2nd target. Blend!
-        u16 p1 = palette_ram_converted[(pixpair >>  0) & 0x1FF];
-        u16 p2 = palette_ram_converted[(pixpair >> 16) & 0x1FF];
+        u16 p1 = PALETTE_LOOKUP((pixpair >>  0) & 0x1FF);
+        u16 p2 = PALETTE_LOOKUP((pixpair >> 16) & 0x1FF);
         u32 p1e = (p1 | (p1 << 16)) & BLND_MSK;
         u32 p2e = (p2 | (p2 << 16)) & BLND_MSK;
         u32 pfe = (((p1e * blend_a) + (p2e * blend_b)) >> 4);
@@ -1757,7 +1782,7 @@ static void merge_blend(u32 start, u32 end, u16 *dst, u32 *src) {
       else if ((bldtype == BLEND_DARK || bldtype == BLEND_BRIGHT) &&
                (pixpair & 0x200) == 0x200) {
         // Top pixel is 1st-target, can still apply bright/dark effect.
-        u16 pidx = palette_ram_converted[pixpair & 0x1FF];
+        u16 pidx = PALETTE_LOOKUP(pixpair & 0x1FF);
         u32 epixel = (pidx | (pidx << 16)) & BLND_MSK;
         u32 pa = bldtype == BLEND_DARK ? 0 : ((BLND_MSK * brightf) >> 4) & BLND_MSK;
         u32 pb = ((epixel * (16 - brightf)) >> 4) & BLND_MSK;
@@ -1765,7 +1790,7 @@ static void merge_blend(u32 start, u32 end, u16 *dst, u32 *src) {
         dst[start++] = (epixel >> 16) | epixel;
       }
       else {
-        dst[start++] = palette_ram_converted[pixpair & 0x1FF];   // No effects
+        dst[start++] = PALETTE_LOOKUP(pixpair & 0x1FF);   // No effects
       }
     }
   } else {
@@ -1775,8 +1800,8 @@ static void merge_blend(u32 start, u32 end, u16 *dst, u32 *src) {
       bool force_blend = (pixpair & 0x04000800) == 0x04000800;
       if ((st_objs && force_blend) || (do_blend && bldtype == BLEND_ONLY)) {
         // Top pixel is 1st target, pixel below is 2nd target. Blend!
-        u16 p1 = palette_ram_converted[(pixpair >>  0) & 0x1FF];
-        u16 p2 = palette_ram_converted[(pixpair >> 16) & 0x1FF];
+        u16 p1 = PALETTE_LOOKUP((pixpair >>  0) & 0x1FF);
+        u16 p2 = PALETTE_LOOKUP((pixpair >> 16) & 0x1FF);
         u32 p1e = (p1 | (p1 << 16)) & BLND_MSK;
         u32 p2e = (p2 | (p2 << 16)) & BLND_MSK;
         u32 pfe = (((p1e * blend_a) + (p2e * blend_b)) >> 4) & BLND_MSK;
@@ -1785,7 +1810,7 @@ static void merge_blend(u32 start, u32 end, u16 *dst, u32 *src) {
       else if ((bldtype == BLEND_DARK || bldtype == BLEND_BRIGHT) &&
                (pixpair & 0x200) == 0x200) {
         // Top pixel is 1st-target, can still apply bright/dark effect.
-        u16 pidx = palette_ram_converted[pixpair & 0x1FF];
+        u16 pidx = PALETTE_LOOKUP(pixpair & 0x1FF);
         u32 epixel = (pidx | (pidx << 16)) & BLND_MSK;
         u32 pa = bldtype == BLEND_DARK ? 0 : ((BLND_MSK * brightf) >> 4) & BLND_MSK;
         u32 pb = ((epixel * (16 - brightf)) >> 4) & BLND_MSK;
@@ -1793,10 +1818,14 @@ static void merge_blend(u32 start, u32 end, u16 *dst, u32 *src) {
         dst[start++] = (epixel >> 16) | epixel;
       }
       else {
-        dst[start++] = palette_ram_converted[pixpair & 0x1FF];   // No effects
+        dst[start++] = PALETTE_LOOKUP(pixpair & 0x1FF);   // No effects
       }
     }
   }
+
+#ifdef SF2000
+#undef PALETTE_LOOKUP
+#endif
 }
 
 // Applies brighten/darken effect to a bunch of color-indexed pixels.
@@ -1804,9 +1833,34 @@ template <blendtype bldtype>
 static void merge_brightness(u32 start, u32 end, u16 *srcdst) {
   u32 brightness = MIN(16, read_ioreg(REG_BLDY) & 0x1F);
 
+#ifdef SF2000
+  // SF2000 PALETTE OPTIMIZATION: Simple local cache for brightness function  
+  u16 palette_cache[4] = {0};
+  u16 cache_indices[4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
+  u32 cache_pos = 0;
+  
+  auto cached_palette_lookup = [&](u16 idx) -> u16 {
+    // Check if already in cache
+    for (int i = 0; i < 4; i++) {
+      if (cache_indices[i] == idx) {
+        return palette_cache[i];
+      }
+    }
+    // Not in cache, add it
+    u16 value = palette_ram_converted[idx];
+    palette_cache[cache_pos] = value;
+    cache_indices[cache_pos] = idx;
+    cache_pos = (cache_pos + 1) & 3; // Round-robin replacement
+    return value;
+  };
+#define PALETTE_LOOKUP(idx) (cached_palette_lookup(idx))
+#else
+#define PALETTE_LOOKUP(idx) (palette_ram_converted[idx])
+#endif
+
   while (start < end) {
     u16 spix = srcdst[start];
-    u16 pixcol = palette_ram_converted[spix & 0x1FF];
+    u16 pixcol = PALETTE_LOOKUP(spix & 0x1FF);
 
     if ((spix & 0x200) == 0x200) {
       // Pixel is 1st target, can apply color effect.
@@ -1819,6 +1873,10 @@ static void merge_brightness(u32 start, u32 end, u16 *srcdst) {
 
     srcdst[start++] = pixcol;
   }
+
+#ifdef SF2000
+#undef PALETTE_LOOKUP
+#endif
 }
 
 // Fills a segment using the backdrop color (in the right mode).
