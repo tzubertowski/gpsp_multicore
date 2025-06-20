@@ -594,6 +594,10 @@ ifeq ($(FRONTEND_SUPPORTS_RGB565), 1)
 	CFLAGS += -DFRONTEND_SUPPORTS_RGB565
 endif
 
+ifeq ($(SF2000), 1)
+	CFLAGS += -DSF2000
+endif
+
 
 ifeq ($(platform), ctr)
 ifeq ($(HAVE_DYNAREC), 1)
