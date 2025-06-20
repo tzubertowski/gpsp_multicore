@@ -1693,6 +1693,36 @@ static void merge_blend(u32 start, u32 end, u16 *dst, u32 *src) {
   u32 blend_a = MIN(16, (bldalpha >> 0) & 0x1F);
   u32 blend_b = MIN(16, (bldalpha >> 8) & 0x1F);
 
+#ifdef SF2000
+  // SF2000 BLEND OPTIMIZATION: Skip expensive blending when unnecessary
+  if (bldtype == BLEND_ONLY && (blend_a == 0 || blend_b == 0)) {
+    // One layer is fully transparent - just copy the opaque layer
+    while (start < end) {
+      u32 pixpair = src[start];
+      bool force_blend = (pixpair & 0x04000800) == 0x04000800;
+      bool do_blend    = (pixpair & 0x04000200) == 0x04000200;
+      if ((st_objs && force_blend) || do_blend) {
+        // Choose the non-transparent layer
+        u16 pixel_idx = blend_a == 0 ? ((pixpair >> 16) & 0x1FF) : (pixpair & 0x1FF);
+        dst[start++] = palette_ram_converted[pixel_idx];
+      } else {
+        dst[start++] = palette_ram_converted[pixpair & 0x1FF];
+      }
+    }
+    return;
+  }
+  
+  // Skip brightness effects when factor is 0
+  if ((bldtype == BLEND_BRIGHT || bldtype == BLEND_DARK) && brightf == 0) {
+    // No brightness change - just copy pixels
+    while (start < end) {
+      dst[start] = palette_ram_converted[src[start] & 0x1FF];
+      start++;
+    }
+    return;
+  }
+#endif
+
   bool can_saturate = blend_a + blend_b > 16;
 
   if (can_saturate) {
