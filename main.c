@@ -182,7 +182,7 @@ static void draw_splash_text(u16 *screen_buffer, const char *text, int x, int y,
     int py = y + j;
     if (py >= 0 && py < GBA_SCREEN_HEIGHT) {
       for (k = 0; k < GBA_SCREEN_WIDTH; k++) {
-        if (temp_line[k] != 0) {
+        if (temp_line[k] == color) {  // Check if pixel was set to text color
           screen_buffer[py * GBA_SCREEN_WIDTH + (GBA_SCREEN_WIDTH - 1 - k)] = temp_line[k];
         }
       }
@@ -193,10 +193,10 @@ static void draw_splash_text(u16 *screen_buffer, const char *text, int x, int y,
 // Display custom splash screen
 static void show_custom_splash() {
   extern u16* gba_screen_pixels;
-  u16 bg_color = 0x0000;    // Black background
-  u16 text_color = 0x7FFF;  // White text
-  u16 accent_color = 0x03E0; // Green accent
-  u16 red_color = 0x001F;   // Red color for BETA BUILD
+  u16 bg_color = 0xF5BB;    // #FBB7DF background (RGB565: R31,G45,B27)
+  u16 text_color = 0xFFFF;  // White text
+  u16 accent_color = 0xFFFF; // White accent
+  u16 red_color = 0xFFFF;   // White for UNSTABLE BUILD
   
   // Clear screen to black
   memset(gba_screen_pixels, 0, GBA_SCREEN_BUFFER_SIZE);
@@ -207,33 +207,23 @@ static void show_custom_splash() {
     gba_screen_pixels[i] = bg_color;
   }
   
-  // Draw border
+  // Draw black border
   for (i = 0; i < GBA_SCREEN_WIDTH; i++) {
-    gba_screen_pixels[i] = accent_color; // Top border
-    gba_screen_pixels[(GBA_SCREEN_HEIGHT - 1) * GBA_SCREEN_WIDTH + i] = accent_color; // Bottom border
+    gba_screen_pixels[i] = 0x0000; // Top border
+    gba_screen_pixels[(GBA_SCREEN_HEIGHT - 1) * GBA_SCREEN_WIDTH + i] = 0x0000; // Bottom border
   }
   for (i = 0; i < GBA_SCREEN_HEIGHT; i++) {
-    gba_screen_pixels[i * GBA_SCREEN_WIDTH] = accent_color; // Left border
-    gba_screen_pixels[i * GBA_SCREEN_WIDTH + (GBA_SCREEN_WIDTH - 1)] = accent_color; // Right border
+    gba_screen_pixels[i * GBA_SCREEN_WIDTH] = 0x0000; // Left border
+    gba_screen_pixels[i * GBA_SCREEN_WIDTH + (GBA_SCREEN_WIDTH - 1)] = 0x0000; // Right border
   }
   
   // Draw splash text - using reversed strings for mirrored display
-  draw_splash_text(gba_screen_pixels, "DLIUB ATEB", 90, 40, red_color);
-  draw_splash_text(gba_screen_pixels, "hsulf yromem laitrap + PSgp", 10, 60, accent_color);
-  draw_splash_text(gba_screen_pixels, "999accmydna yb deifidoM", 45, 80, text_color);
-  draw_splash_text(gba_screen_pixels, "ytsorP yb delipmoC", 60, 100, text_color);
-  draw_splash_text(gba_screen_pixels, "drocsid HR @", 85, 115, text_color);
+  draw_splash_text(gba_screen_pixels, "DLIUB ELBATSNU", 70, 40, red_color);
+  draw_splash_text(gba_screen_pixels, "NOITIDE ETIRWER OEDIV", 40, 80, text_color);
+  draw_splash_text(gba_screen_pixels, "YTSORP YB DEDDOM", 70, 120, accent_color);
+  draw_splash_text(gba_screen_pixels, "5202601r2 reV", 80, 140, text_color);
   
-  // Add a subtitle
-  draw_splash_text(gba_screen_pixels, "noitidE ecnamrofreP decnahnE", 15, 135, accent_color);
-  
-  // Add some simple graphics (diagonal lines)
-  for (i = 0; i < 40; i++) {
-    if (20 + i < GBA_SCREEN_WIDTH && 20 + i < GBA_SCREEN_HEIGHT) {
-      gba_screen_pixels[(20 + i) * GBA_SCREEN_WIDTH + (20 + i)] = accent_color;
-      gba_screen_pixels[(20 + i) * GBA_SCREEN_WIDTH + (220 - i)] = accent_color;
-    }
-  }
+  // Clean design without diagonal lines
 }
 
 static unsigned update_timers(irq_type *irq_raised, unsigned completed_cycles)
