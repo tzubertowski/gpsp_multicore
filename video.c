@@ -21,6 +21,16 @@
 
 u16* gba_screen_pixels = NULL;
 
+#ifdef SF2000
+// SF2000 LEAN CACHE: Only the most beneficial optimizations
+static u32 last_bg_control[4] = {0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF};
+static u16 *last_map_base[4] = {NULL, NULL, NULL, NULL};
+
+// Single palette cache entry for hot path
+static u16 last_palette_index = 0xFFFF;
+static u16 last_palette_color = 0;
+#endif
+
 #define get_screen_pixels()   gba_screen_pixels
 #define get_screen_pitch()    GBA_SCREEN_PITCH
 
@@ -34,6 +44,19 @@ static void render_scanline_conditional_tile(u32 start, u32 end, u16 *scanline,
 static void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
  u32 enable_flags, u32 dispcnt, u32 bldcnt, const bitmap_layer_render_struct
  *layer_renderers);
+
+#ifdef SF2000
+// SF2000 LEAN CACHE: Simple single-entry palette cache
+static inline u16 fast_palette_lookup(u16 index) {
+  if (last_palette_index == index) {
+    return last_palette_color;
+  }
+  
+  last_palette_index = index;
+  last_palette_color = palette_ram_converted[index & 0x1FF];
+  return last_palette_color;
+}
+#endif
 
 #define tile_expand_base_normal(index)                                        \
   current_pixel = palette[current_pixel];                                     \
@@ -870,6 +893,7 @@ static void render_scanline_text_base_normal(u32 layer,
   u32 bg_control = read_ioreg(REG_BGxCNT(layer));
   u32 map_size = (bg_control >> 14) & 0x03;
   u32 map_width = map_widths[map_size];
+  
   u32 horizontal_offset =
    (read_ioreg(REG_BG0HOFS + (layer * 2)) + start) & 511;
   u32 vertical_offset = (read_ioreg(REG_VCOUNT) +
@@ -883,7 +907,17 @@ static void render_scanline_text_base_normal(u32 layer,
   render_scanline_dest_normal *dest_ptr =
    ((render_scanline_dest_normal *)scanline) + start;
 
+#ifdef SF2000
+  // SF2000 CHEEKY CACHE: Cache map base calculation
+  u16 *map_base;
+  if (last_bg_control[layer] != bg_control) {
+    last_bg_control[layer] = bg_control;
+    last_map_base[layer] = (u16 *)(vram + ((bg_control >> 8) & 0x1F) * (1024 * 2));
+  }
+  map_base = last_map_base[layer];
+#else
   u16 *map_base = (u16 *)(vram + ((bg_control >> 8) & 0x1F) * (1024 * 2));
+#endif
   u16 *map_ptr, *second_ptr;
   u8 *tile_ptr;
 
@@ -3537,7 +3571,7 @@ fill_line_builder(color32);
 // Alpha blend two pixels (pixel_top and pixel_bottom).
 
 #ifdef SF2000
-// SF2000 MIPS soft FPU optimization: use bit shifts instead of multiply
+// SF2000 LEAN: Just the bit shift optimizations
 #define blend_pixel()                                                         \
   pixel_bottom = palette_ram_converted[(pixel_pair >> 16) & 0x1FF];           \
   pixel_bottom = (pixel_bottom | (pixel_bottom << 16)) & BLND_MSK;            \
@@ -3554,7 +3588,7 @@ fill_line_builder(color32);
 // The operation is optimized towards saturation not occuring.
 
 #ifdef SF2000
-// SF2000 MIPS soft FPU optimization for saturated blend
+// SF2000 LEAN: Just the bit shift optimizations for saturated blend
 #define blend_saturate_pixel()                                                \
   pixel_bottom = palette_ram_converted[(pixel_pair >> 16) & 0x1FF];           \
   pixel_bottom = (pixel_bottom | (pixel_bottom << 16)) & BLND_MSK;            \
