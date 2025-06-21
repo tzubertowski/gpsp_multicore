@@ -23,6 +23,12 @@
 void update_scanline(void);
 void video_reload_counters(void);
 
+#ifdef SF2000
+// PARTIAL FLUSH: Function declarations
+void set_partial_flush_enabled(u8 enabled);
+void mark_vram_dirty(u32 address, u32 size);
+#endif
+
 extern s32 affine_reference_x[2];
 extern s32 affine_reference_y[2];
 
