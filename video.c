@@ -871,9 +871,9 @@ static void render_scanline_text_base_normal(u32 layer,
   u32 map_size = (bg_control >> 14) & 0x03;
   u32 map_width = map_widths[map_size];
   u32 horizontal_offset =
-   (read_ioreg(REG_BG0HOFS + (layer * 2)) + start) % 512;
+   (read_ioreg(REG_BG0HOFS + (layer * 2)) + start) & 511;
   u32 vertical_offset = (read_ioreg(REG_VCOUNT) +
-   read_ioreg(REG_BG0VOFS + (layer * 2))) % 512;
+   read_ioreg(REG_BG0VOFS + (layer * 2))) & 511;
   u32 current_pixel;
   u32 current_pixels;
   u32 partial_tile_run = 0;
@@ -891,12 +891,12 @@ static void render_scanline_text_base_normal(u32 layer,
 
   if((map_size & 0x02) && (vertical_offset >= 256))
   {
-    map_base += ((map_width / 8) * 32) +
-     (((vertical_offset - 256) / 8) * 32);
+    map_base += ((map_width >> 3) << 5) +
+     (((vertical_offset - 256) >> 3) << 5);
   }
   else
   {
-    map_base += (((vertical_offset % 256) / 8) * 32);
+    map_base += (((vertical_offset & 255) >> 3) << 5);
   }
 
   if(map_size & 0x01)
@@ -904,19 +904,19 @@ static void render_scanline_text_base_normal(u32 layer,
     if(horizontal_offset >= 256)
     {
       horizontal_offset -= 256;
-      map_ptr = map_base + (32 * 32) + (horizontal_offset / 8);
+      map_ptr = map_base + (32 * 32) + (horizontal_offset >> 3);
       second_ptr = map_base;
     }
     else
     {
-      map_ptr = map_base + (horizontal_offset / 8);
+      map_ptr = map_base + (horizontal_offset >> 3);
       second_ptr = map_base + (32 * 32);
     }
   }
   else
   {
-    horizontal_offset %= 256;
-    map_ptr = map_base + (horizontal_offset / 8);
+    horizontal_offset &= 255;
+    map_ptr = map_base + (horizontal_offset >> 3);
     second_ptr = map_base;
   }
 
@@ -928,7 +928,7 @@ static void render_scanline_text_base_normal(u32 layer,
       */
 
      /* Render a single scanline of text tiles */
-     u32 vertical_pixel_offset = (vertical_offset % 8) *
+     u32 vertical_pixel_offset = (vertical_offset & 7) *
         tile_width_8bpp;
      s32 vertical_pixel_flip =
         ((tile_size_8bpp - tile_width_8bpp) -
@@ -941,7 +941,7 @@ static void render_scanline_text_base_normal(u32 layer,
      u32 pixel_run = 256 - (horizontal_offset % 256);
      u32 current_tile;
 
-     map_base += ((vertical_offset % 256) / 8) * 32;
+     map_base += ((vertical_offset & 255) >> 3) << 5;
      partial_tile_offset = (horizontal_offset % 8);
 
      if(pixel_run >= end)
@@ -992,7 +992,7 @@ static void render_scanline_text_base_normal(u32 layer,
       */
 
      /* Render a single scanline of text tiles */
-     u32 vertical_pixel_offset = (vertical_offset % 8) *
+     u32 vertical_pixel_offset = (vertical_offset & 7) *
         tile_width_4bpp;
      s32 vertical_pixel_flip =
         ((tile_size_4bpp - tile_width_4bpp) -
@@ -1005,7 +1005,7 @@ static void render_scanline_text_base_normal(u32 layer,
      u32 pixel_run = 256 - (horizontal_offset % 256);
      u32 current_tile;
 
-     map_base += ((vertical_offset % 256) / 8) * 32;
+     map_base += ((vertical_offset & 255) >> 3) << 5;
      partial_tile_offset = (horizontal_offset % 8);
 
      if(pixel_run >= end)
@@ -1058,9 +1058,9 @@ static void render_scanline_text_transparent_normal(u32 layer,
   u32 map_size = (bg_control >> 14) & 0x03;
   u32 map_width = map_widths[map_size];
   u32 horizontal_offset =
-   (read_ioreg(REG_BG0HOFS + (layer * 2)) + start) % 512;
+   (read_ioreg(REG_BG0HOFS + (layer * 2)) + start) & 511;
   u32 vertical_offset = (read_ioreg(REG_VCOUNT) +
-   read_ioreg(REG_BG0VOFS + (layer * 2))) % 512;
+   read_ioreg(REG_BG0VOFS + (layer * 2))) & 511;
   u32 current_pixel;
   u32 current_pixels;
   u32 partial_tile_run = 0;
@@ -1078,12 +1078,12 @@ static void render_scanline_text_transparent_normal(u32 layer,
 
   if((map_size & 0x02) && (vertical_offset >= 256))
   {
-    map_base += ((map_width / 8) * 32) +
-     (((vertical_offset - 256) / 8) * 32);
+    map_base += ((map_width >> 3) << 5) +
+     (((vertical_offset - 256) >> 3) << 5);
   }
   else
   {
-    map_base += (((vertical_offset % 256) / 8) * 32);
+    map_base += (((vertical_offset & 255) >> 3) << 5);
   }
 
   if(map_size & 0x01)
@@ -1091,19 +1091,19 @@ static void render_scanline_text_transparent_normal(u32 layer,
     if(horizontal_offset >= 256)
     {
       horizontal_offset -= 256;
-      map_ptr = map_base + (32 * 32) + (horizontal_offset / 8);
+      map_ptr = map_base + (32 * 32) + (horizontal_offset >> 3);
       second_ptr = map_base;
     }
     else
     {
-      map_ptr = map_base + (horizontal_offset / 8);
+      map_ptr = map_base + (horizontal_offset >> 3);
       second_ptr = map_base + (32 * 32);
     }
   }
   else
   {
-    horizontal_offset %= 256;
-    map_ptr = map_base + (horizontal_offset / 8);
+    horizontal_offset &= 255;
+    map_ptr = map_base + (horizontal_offset >> 3);
     second_ptr = map_base;
   }
 
@@ -1116,7 +1116,7 @@ static void render_scanline_text_transparent_normal(u32 layer,
 
      /* Render a single scanline of text tiles */
 
-     u32 vertical_pixel_offset = (vertical_offset % 8) *
+     u32 vertical_pixel_offset = (vertical_offset & 7) *
         tile_width_8bpp;
      s32 vertical_pixel_flip =
         ((tile_size_8bpp - tile_width_8bpp) -
@@ -1127,7 +1127,7 @@ static void render_scanline_text_transparent_normal(u32 layer,
      u32 pixel_run = 256 - (horizontal_offset % 256);
      u32 current_tile;
 
-     map_base += ((vertical_offset % 256) / 8) * 32;
+     map_base += ((vertical_offset & 255) >> 3) << 5;
      partial_tile_offset = (horizontal_offset % 8);
 
      if(pixel_run >= end)
@@ -1179,7 +1179,7 @@ static void render_scanline_text_transparent_normal(u32 layer,
 
      /* Render a single scanline of text tiles */
 
-     u32 vertical_pixel_offset = (vertical_offset % 8) *
+     u32 vertical_pixel_offset = (vertical_offset & 7) *
         tile_width_4bpp;
      s32 vertical_pixel_flip =
         ((tile_size_4bpp - tile_width_4bpp) -
@@ -1190,7 +1190,7 @@ static void render_scanline_text_transparent_normal(u32 layer,
      u32 pixel_run = 256 - (horizontal_offset % 256);
      u32 current_tile;
 
-     map_base += ((vertical_offset % 256) / 8) * 32;
+     map_base += ((vertical_offset & 255) >> 3) << 5;
      partial_tile_offset = (horizontal_offset % 8);
 
      if(pixel_run >= end)
@@ -1244,9 +1244,9 @@ static void render_scanline_text_base_color16(u32 layer,
   u32 map_size = (bg_control >> 14) & 0x03;
   u32 map_width = map_widths[map_size];
   u32 horizontal_offset =
-   (read_ioreg(REG_BG0HOFS + (layer * 2)) + start) % 512;
+   (read_ioreg(REG_BG0HOFS + (layer * 2)) + start) & 511;
   u32 vertical_offset = (read_ioreg(REG_VCOUNT) +
-   read_ioreg(REG_BG0VOFS + (layer * 2))) % 512;
+   read_ioreg(REG_BG0VOFS + (layer * 2))) & 511;
   u32 current_pixel;
   u32 current_pixels;
   u32 partial_tile_run = 0;
@@ -1264,12 +1264,12 @@ static void render_scanline_text_base_color16(u32 layer,
 
   if((map_size & 0x02) && (vertical_offset >= 256))
   {
-    map_base += ((map_width / 8) * 32) +
-     (((vertical_offset - 256) / 8) * 32);
+    map_base += ((map_width >> 3) << 5) +
+     (((vertical_offset - 256) >> 3) << 5);
   }
   else
   {
-    map_base += (((vertical_offset % 256) / 8) * 32);
+    map_base += (((vertical_offset & 255) >> 3) << 5);
   }
 
   if(map_size & 0x01)
@@ -1277,19 +1277,19 @@ static void render_scanline_text_base_color16(u32 layer,
     if(horizontal_offset >= 256)
     {
       horizontal_offset -= 256;
-      map_ptr = map_base + (32 * 32) + (horizontal_offset / 8);
+      map_ptr = map_base + (32 * 32) + (horizontal_offset >> 3);
       second_ptr = map_base;
     }
     else
     {
-      map_ptr = map_base + (horizontal_offset / 8);
+      map_ptr = map_base + (horizontal_offset >> 3);
       second_ptr = map_base + (32 * 32);
     }
   }
   else
   {
-    horizontal_offset %= 256;
-    map_ptr = map_base + (horizontal_offset / 8);
+    horizontal_offset &= 255;
+    map_ptr = map_base + (horizontal_offset >> 3);
     second_ptr = map_base;
   }
 
@@ -1301,7 +1301,7 @@ static void render_scanline_text_base_color16(u32 layer,
       */
 
      /* Render a single scanline of text tiles */
-     u32 vertical_pixel_offset = (vertical_offset % 8) *
+     u32 vertical_pixel_offset = (vertical_offset & 7) *
         tile_width_8bpp;
      s32 vertical_pixel_flip =
         ((tile_size_8bpp - tile_width_8bpp) -
@@ -1312,7 +1312,7 @@ static void render_scanline_text_base_color16(u32 layer,
      u32 pixel_run = 256 - (horizontal_offset % 256);
      u32 current_tile;
 
-     map_base += ((vertical_offset % 256) / 8) * 32;
+     map_base += ((vertical_offset & 255) >> 3) << 5;
      partial_tile_offset = (horizontal_offset % 8);
 
      if(pixel_run >= end)
@@ -1363,7 +1363,7 @@ static void render_scanline_text_base_color16(u32 layer,
       */
 
      /* Render a single scanline of text tiles */
-     u32 vertical_pixel_offset = (vertical_offset % 8) *
+     u32 vertical_pixel_offset = (vertical_offset & 7) *
         tile_width_4bpp;
      s32 vertical_pixel_flip =
         ((tile_size_4bpp - tile_width_4bpp) -
@@ -1374,7 +1374,7 @@ static void render_scanline_text_base_color16(u32 layer,
      u32 pixel_run = 256 - (horizontal_offset % 256);
      u32 current_tile;
 
-     map_base += ((vertical_offset % 256) / 8) * 32;
+     map_base += ((vertical_offset & 255) >> 3) << 5;
      partial_tile_offset = (horizontal_offset % 8);
 
      if(pixel_run >= end)
@@ -1429,9 +1429,9 @@ static void render_scanline_text_transparent_color16(u32 layer,
   u32 map_size = (bg_control >> 14) & 0x03;
   u32 map_width = map_widths[map_size];
   u32 horizontal_offset =
-   (read_ioreg(REG_BG0HOFS + (layer * 2)) + start) % 512;
+   (read_ioreg(REG_BG0HOFS + (layer * 2)) + start) & 511;
   u32 vertical_offset = (read_ioreg(REG_VCOUNT) +
-   read_ioreg(REG_BG0VOFS + (layer * 2))) % 512;
+   read_ioreg(REG_BG0VOFS + (layer * 2))) & 511;
   u32 current_pixel;
   u32 current_pixels;
   u32 partial_tile_run = 0;
@@ -1449,12 +1449,12 @@ static void render_scanline_text_transparent_color16(u32 layer,
 
   if((map_size & 0x02) && (vertical_offset >= 256))
   {
-    map_base += ((map_width / 8) * 32) +
-     (((vertical_offset - 256) / 8) * 32);
+    map_base += ((map_width >> 3) << 5) +
+     (((vertical_offset - 256) >> 3) << 5);
   }
   else
   {
-    map_base += (((vertical_offset % 256) / 8) * 32);
+    map_base += (((vertical_offset & 255) >> 3) << 5);
   }
 
   if(map_size & 0x01)
@@ -1462,19 +1462,19 @@ static void render_scanline_text_transparent_color16(u32 layer,
     if(horizontal_offset >= 256)
     {
       horizontal_offset -= 256;
-      map_ptr = map_base + (32 * 32) + (horizontal_offset / 8);
+      map_ptr = map_base + (32 * 32) + (horizontal_offset >> 3);
       second_ptr = map_base;
     }
     else
     {
-      map_ptr = map_base + (horizontal_offset / 8);
+      map_ptr = map_base + (horizontal_offset >> 3);
       second_ptr = map_base + (32 * 32);
     }
   }
   else
   {
-    horizontal_offset %= 256;
-    map_ptr = map_base + (horizontal_offset / 8);
+    horizontal_offset &= 255;
+    map_ptr = map_base + (horizontal_offset >> 3);
     second_ptr = map_base;
   }
 
@@ -1486,7 +1486,7 @@ static void render_scanline_text_transparent_color16(u32 layer,
       */
 
      /* Render a single scanline of text tiles */
-     u32 vertical_pixel_offset = (vertical_offset % 8) *
+     u32 vertical_pixel_offset = (vertical_offset & 7) *
         tile_width_8bpp;
      s32 vertical_pixel_flip =
         ((tile_size_8bpp - tile_width_8bpp) -
@@ -1497,7 +1497,7 @@ static void render_scanline_text_transparent_color16(u32 layer,
      u32 pixel_run = 256 - (horizontal_offset % 256);
      u32 current_tile;
 
-     map_base += ((vertical_offset % 256) / 8) * 32;
+     map_base += ((vertical_offset & 255) >> 3) << 5;
      partial_tile_offset = (horizontal_offset % 8);
 
      if(pixel_run >= end)
@@ -1548,7 +1548,7 @@ static void render_scanline_text_transparent_color16(u32 layer,
       */
 
      /* Render a single scanline of text tiles */
-     u32 vertical_pixel_offset = (vertical_offset % 8) *
+     u32 vertical_pixel_offset = (vertical_offset & 7) *
         tile_width_4bpp;
      s32 vertical_pixel_flip =
         ((tile_size_4bpp - tile_width_4bpp) -
@@ -1559,7 +1559,7 @@ static void render_scanline_text_transparent_color16(u32 layer,
      u32 pixel_run = 256 - (horizontal_offset % 256);
      u32 current_tile;
 
-     map_base += ((vertical_offset % 256) / 8) * 32;
+     map_base += ((vertical_offset & 255) >> 3) << 5;
      partial_tile_offset = (horizontal_offset % 8);
 
      if(pixel_run >= end)
@@ -1614,9 +1614,9 @@ static void render_scanline_text_base_color32(u32 layer,
   u32 map_size = (bg_control >> 14) & 0x03;
   u32 map_width = map_widths[map_size];
   u32 horizontal_offset =
-   (read_ioreg(REG_BG0HOFS + (layer * 2)) + start) % 512;
+   (read_ioreg(REG_BG0HOFS + (layer * 2)) + start) & 511;
   u32 vertical_offset = (read_ioreg(REG_VCOUNT) +
-   read_ioreg(REG_BG0VOFS + (layer * 2))) % 512;
+   read_ioreg(REG_BG0VOFS + (layer * 2))) & 511;
   u32 current_pixel;
   u32 current_pixels;
   u32 partial_tile_run = 0;
@@ -1634,12 +1634,12 @@ static void render_scanline_text_base_color32(u32 layer,
 
   if((map_size & 0x02) && (vertical_offset >= 256))
   {
-    map_base += ((map_width / 8) * 32) +
-     (((vertical_offset - 256) / 8) * 32);
+    map_base += ((map_width >> 3) << 5) +
+     (((vertical_offset - 256) >> 3) << 5);
   }
   else
   {
-    map_base += (((vertical_offset % 256) / 8) * 32);
+    map_base += (((vertical_offset & 255) >> 3) << 5);
   }
 
   if(map_size & 0x01)
@@ -1647,19 +1647,19 @@ static void render_scanline_text_base_color32(u32 layer,
     if(horizontal_offset >= 256)
     {
       horizontal_offset -= 256;
-      map_ptr = map_base + (32 * 32) + (horizontal_offset / 8);
+      map_ptr = map_base + (32 * 32) + (horizontal_offset >> 3);
       second_ptr = map_base;
     }
     else
     {
-      map_ptr = map_base + (horizontal_offset / 8);
+      map_ptr = map_base + (horizontal_offset >> 3);
       second_ptr = map_base + (32 * 32);
     }
   }
   else
   {
-    horizontal_offset %= 256;
-    map_ptr = map_base + (horizontal_offset / 8);
+    horizontal_offset &= 255;
+    map_ptr = map_base + (horizontal_offset >> 3);
     second_ptr = map_base;
   }
 
@@ -1671,7 +1671,7 @@ static void render_scanline_text_base_color32(u32 layer,
       */
 
      /* Render a single scanline of text tiles */
-     u32 vertical_pixel_offset = (vertical_offset % 8) *
+     u32 vertical_pixel_offset = (vertical_offset & 7) *
         tile_width_8bpp;
      s32 vertical_pixel_flip =
         ((tile_size_8bpp - tile_width_8bpp) -
@@ -1682,7 +1682,7 @@ static void render_scanline_text_base_color32(u32 layer,
      u32 pixel_run = 256 - (horizontal_offset % 256);
      u32 current_tile;
 
-     map_base += ((vertical_offset % 256) / 8) * 32;
+     map_base += ((vertical_offset & 255) >> 3) << 5;
      partial_tile_offset = (horizontal_offset % 8);
 
      if(pixel_run >= end)
@@ -1733,7 +1733,7 @@ static void render_scanline_text_base_color32(u32 layer,
       */
 
      /* Render a single scanline of text tiles */
-     u32 vertical_pixel_offset = (vertical_offset % 8) *
+     u32 vertical_pixel_offset = (vertical_offset & 7) *
         tile_width_4bpp;
      s32 vertical_pixel_flip =
         ((tile_size_4bpp - tile_width_4bpp) -
@@ -1744,7 +1744,7 @@ static void render_scanline_text_base_color32(u32 layer,
      u32 pixel_run = 256 - (horizontal_offset % 256);
      u32 current_tile;
 
-     map_base += ((vertical_offset % 256) / 8) * 32;
+     map_base += ((vertical_offset & 255) >> 3) << 5;
      partial_tile_offset = (horizontal_offset % 8);
 
      if(pixel_run >= end)
@@ -1799,9 +1799,9 @@ static void render_scanline_text_transparent_color32(u32 layer,
   u32 map_size = (bg_control >> 14) & 0x03;
   u32 map_width = map_widths[map_size];
   u32 horizontal_offset =
-   (read_ioreg(REG_BG0HOFS + (layer * 2)) + start) % 512;
+   (read_ioreg(REG_BG0HOFS + (layer * 2)) + start) & 511;
   u32 vertical_offset = (read_ioreg(REG_VCOUNT) +
-   read_ioreg(REG_BG0VOFS + (layer * 2))) % 512;
+   read_ioreg(REG_BG0VOFS + (layer * 2))) & 511;
   u32 current_pixel;
   u32 current_pixels;
   u32 partial_tile_run = 0;
@@ -1819,12 +1819,12 @@ static void render_scanline_text_transparent_color32(u32 layer,
 
   if((map_size & 0x02) && (vertical_offset >= 256))
   {
-    map_base += ((map_width / 8) * 32) +
-     (((vertical_offset - 256) / 8) * 32);
+    map_base += ((map_width >> 3) << 5) +
+     (((vertical_offset - 256) >> 3) << 5);
   }
   else
   {
-    map_base += (((vertical_offset % 256) / 8) * 32);
+    map_base += (((vertical_offset & 255) >> 3) << 5);
   }
 
   if(map_size & 0x01)
@@ -1832,19 +1832,19 @@ static void render_scanline_text_transparent_color32(u32 layer,
     if(horizontal_offset >= 256)
     {
       horizontal_offset -= 256;
-      map_ptr = map_base + (32 * 32) + (horizontal_offset / 8);
+      map_ptr = map_base + (32 * 32) + (horizontal_offset >> 3);
       second_ptr = map_base;
     }
     else
     {
-      map_ptr = map_base + (horizontal_offset / 8);
+      map_ptr = map_base + (horizontal_offset >> 3);
       second_ptr = map_base + (32 * 32);
     }
   }
   else
   {
-    horizontal_offset %= 256;
-    map_ptr = map_base + (horizontal_offset / 8);
+    horizontal_offset &= 255;
+    map_ptr = map_base + (horizontal_offset >> 3);
     second_ptr = map_base;
   }
 
@@ -1856,7 +1856,7 @@ static void render_scanline_text_transparent_color32(u32 layer,
       */
 
      /* Render a single scanline of text tiles */
-     u32 vertical_pixel_offset = (vertical_offset % 8) *
+     u32 vertical_pixel_offset = (vertical_offset & 7) *
         tile_width_8bpp;
      s32 vertical_pixel_flip =
         ((tile_size_8bpp - tile_width_8bpp) -
@@ -1867,7 +1867,7 @@ static void render_scanline_text_transparent_color32(u32 layer,
      u32 pixel_run = 256 - (horizontal_offset % 256);
      u32 current_tile;
 
-     map_base += ((vertical_offset % 256) / 8) * 32;
+     map_base += ((vertical_offset & 255) >> 3) << 5;
      partial_tile_offset = (horizontal_offset % 8);
 
      if(pixel_run >= end)
@@ -1920,7 +1920,7 @@ static void render_scanline_text_transparent_color32(u32 layer,
       */
 
      /* Render a single scanline of text tiles */
-     u32 vertical_pixel_offset = (vertical_offset % 8) *
+     u32 vertical_pixel_offset = (vertical_offset & 7) *
         tile_width_4bpp;
      s32 vertical_pixel_flip =
         ((tile_size_4bpp - tile_width_4bpp) -
@@ -1931,7 +1931,7 @@ static void render_scanline_text_transparent_color32(u32 layer,
      u32 pixel_run = 256 - (horizontal_offset % 256);
      u32 current_tile;
 
-     map_base += ((vertical_offset % 256) / 8) * 32;
+     map_base += ((vertical_offset & 255) >> 3) << 5;
      partial_tile_offset = (horizontal_offset % 8);
 
      if(pixel_run >= end)
@@ -1986,9 +1986,9 @@ static void render_scanline_text_base_alpha(u32 layer,
   u32 map_size = (bg_control >> 14) & 0x03;
   u32 map_width = map_widths[map_size];
   u32 horizontal_offset =
-   (read_ioreg(REG_BG0HOFS + (layer * 2)) + start) % 512;
+   (read_ioreg(REG_BG0HOFS + (layer * 2)) + start) & 511;
   u32 vertical_offset = (read_ioreg(REG_VCOUNT) +
-   read_ioreg(REG_BG0VOFS + (layer * 2))) % 512;
+   read_ioreg(REG_BG0VOFS + (layer * 2))) & 511;
   u32 current_pixel;
   u32 current_pixels;
   u32 partial_tile_run = 0;
@@ -2006,12 +2006,12 @@ static void render_scanline_text_base_alpha(u32 layer,
 
   if((map_size & 0x02) && (vertical_offset >= 256))
   {
-    map_base += ((map_width / 8) * 32) +
-     (((vertical_offset - 256) / 8) * 32);
+    map_base += ((map_width >> 3) << 5) +
+     (((vertical_offset - 256) >> 3) << 5);
   }
   else
   {
-    map_base += (((vertical_offset % 256) / 8) * 32);
+    map_base += (((vertical_offset & 255) >> 3) << 5);
   }
 
   if(map_size & 0x01)
@@ -2019,19 +2019,19 @@ static void render_scanline_text_base_alpha(u32 layer,
     if(horizontal_offset >= 256)
     {
       horizontal_offset -= 256;
-      map_ptr = map_base + (32 * 32) + (horizontal_offset / 8);
+      map_ptr = map_base + (32 * 32) + (horizontal_offset >> 3);
       second_ptr = map_base;
     }
     else
     {
-      map_ptr = map_base + (horizontal_offset / 8);
+      map_ptr = map_base + (horizontal_offset >> 3);
       second_ptr = map_base + (32 * 32);
     }
   }
   else
   {
-    horizontal_offset %= 256;
-    map_ptr = map_base + (horizontal_offset / 8);
+    horizontal_offset &= 255;
+    map_ptr = map_base + (horizontal_offset >> 3);
     second_ptr = map_base;
   }
 
@@ -2043,7 +2043,7 @@ static void render_scanline_text_base_alpha(u32 layer,
       */
 
      /* Render a single scanline of text tiles */
-     u32 vertical_pixel_offset = (vertical_offset % 8) *
+     u32 vertical_pixel_offset = (vertical_offset & 7) *
         tile_width_8bpp;
      s32 vertical_pixel_flip =
         ((tile_size_8bpp - tile_width_8bpp) -
@@ -2054,7 +2054,7 @@ static void render_scanline_text_base_alpha(u32 layer,
      u32 pixel_run = 256 - (horizontal_offset % 256);
      u32 current_tile;
 
-     map_base += ((vertical_offset % 256) / 8) * 32;
+     map_base += ((vertical_offset & 255) >> 3) << 5;
      partial_tile_offset = (horizontal_offset % 8);
 
      if(pixel_run >= end)
@@ -2105,7 +2105,7 @@ static void render_scanline_text_base_alpha(u32 layer,
       */
 
      /* Render a single scanline of text tiles */
-     u32 vertical_pixel_offset = (vertical_offset % 8) *
+     u32 vertical_pixel_offset = (vertical_offset & 7) *
         tile_width_4bpp;
      s32 vertical_pixel_flip =
         ((tile_size_4bpp - tile_width_4bpp) -
@@ -2116,7 +2116,7 @@ static void render_scanline_text_base_alpha(u32 layer,
      u32 pixel_run = 256 - (horizontal_offset % 256);
      u32 current_tile;
 
-     map_base += ((vertical_offset % 256) / 8) * 32;
+     map_base += ((vertical_offset & 255) >> 3) << 5;
      partial_tile_offset = (horizontal_offset % 8);
 
      if(pixel_run >= end)
@@ -2169,9 +2169,9 @@ static void render_scanline_text_transparent_alpha(u32 layer,
   u32 map_size = (bg_control >> 14) & 0x03;
   u32 map_width = map_widths[map_size];
   u32 horizontal_offset =
-   (read_ioreg(REG_BG0HOFS + (layer * 2)) + start) % 512;
+   (read_ioreg(REG_BG0HOFS + (layer * 2)) + start) & 511;
   u32 vertical_offset = (read_ioreg(REG_VCOUNT) +
-   read_ioreg(REG_BG0VOFS + (layer * 2))) % 512;
+   read_ioreg(REG_BG0VOFS + (layer * 2))) & 511;
   u32 current_pixel;
   u32 current_pixels;
   u32 partial_tile_run = 0;
@@ -2189,12 +2189,12 @@ static void render_scanline_text_transparent_alpha(u32 layer,
 
   if((map_size & 0x02) && (vertical_offset >= 256))
   {
-    map_base += ((map_width / 8) * 32) +
-     (((vertical_offset - 256) / 8) * 32);
+    map_base += ((map_width >> 3) << 5) +
+     (((vertical_offset - 256) >> 3) << 5);
   }
   else
   {
-    map_base += (((vertical_offset % 256) / 8) * 32);
+    map_base += (((vertical_offset & 255) >> 3) << 5);
   }
 
   if(map_size & 0x01)
@@ -2202,19 +2202,19 @@ static void render_scanline_text_transparent_alpha(u32 layer,
     if(horizontal_offset >= 256)
     {
       horizontal_offset -= 256;
-      map_ptr = map_base + (32 * 32) + (horizontal_offset / 8);
+      map_ptr = map_base + (32 * 32) + (horizontal_offset >> 3);
       second_ptr = map_base;
     }
     else
     {
-      map_ptr = map_base + (horizontal_offset / 8);
+      map_ptr = map_base + (horizontal_offset >> 3);
       second_ptr = map_base + (32 * 32);
     }
   }
   else
   {
-    horizontal_offset %= 256;
-    map_ptr = map_base + (horizontal_offset / 8);
+    horizontal_offset &= 255;
+    map_ptr = map_base + (horizontal_offset >> 3);
     second_ptr = map_base;
   }
 
@@ -2226,7 +2226,7 @@ static void render_scanline_text_transparent_alpha(u32 layer,
       */
 
      /* Render a single scanline of text tiles */
-     u32 vertical_pixel_offset = (vertical_offset % 8) *
+     u32 vertical_pixel_offset = (vertical_offset & 7) *
         tile_width_8bpp;
      s32 vertical_pixel_flip =
         ((tile_size_8bpp - tile_width_8bpp) -
@@ -2237,7 +2237,7 @@ static void render_scanline_text_transparent_alpha(u32 layer,
      u32 pixel_run = 256 - (horizontal_offset % 256);
      u32 current_tile;
 
-     map_base += ((vertical_offset % 256) / 8) * 32;
+     map_base += ((vertical_offset & 255) >> 3) << 5;
      partial_tile_offset = (horizontal_offset % 8);
 
      if(pixel_run >= end)
@@ -2288,7 +2288,7 @@ static void render_scanline_text_transparent_alpha(u32 layer,
       */
 
      /* Render a single scanline of text tiles */
-     u32 vertical_pixel_offset = (vertical_offset % 8) *
+     u32 vertical_pixel_offset = (vertical_offset & 7) *
         tile_width_4bpp;
      s32 vertical_pixel_flip =
         ((tile_size_4bpp - tile_width_4bpp) -
@@ -2299,7 +2299,7 @@ static void render_scanline_text_transparent_alpha(u32 layer,
      u32 pixel_run = 256 - (horizontal_offset % 256);
      u32 current_tile;
 
-     map_base += ((vertical_offset % 256) / 8) * 32;
+     map_base += ((vertical_offset & 255) >> 3) << 5;
      partial_tile_offset = (horizontal_offset % 8);
 
      if(pixel_run >= end)
@@ -3536,15 +3536,37 @@ fill_line_builder(color32);
 
 // Alpha blend two pixels (pixel_top and pixel_bottom).
 
+#ifdef SF2000
+// SF2000 MIPS soft FPU optimization: use bit shifts instead of multiply
 #define blend_pixel()                                                         \
   pixel_bottom = palette_ram_converted[(pixel_pair >> 16) & 0x1FF];           \
   pixel_bottom = (pixel_bottom | (pixel_bottom << 16)) & BLND_MSK;            \
-  pixel_top = ((pixel_top * blend_a) + (pixel_bottom * blend_b)) >> 4         \
+  pixel_top = ((pixel_top << (blend_a >> 1)) + (pixel_bottom << (blend_b >> 1))) >> 3
+#else
+#define blend_pixel()                                                         \
+  pixel_bottom = palette_ram_converted[(pixel_pair >> 16) & 0x1FF];           \
+  pixel_bottom = (pixel_bottom | (pixel_bottom << 16)) & BLND_MSK;            \
+  pixel_top = ((pixel_top * blend_a) + (pixel_bottom * blend_b)) >> 4
+#endif
 
 
 // Alpha blend two pixels, allowing for saturation (individual channels > 31).
 // The operation is optimized towards saturation not occuring.
 
+#ifdef SF2000
+// SF2000 MIPS soft FPU optimization for saturated blend
+#define blend_saturate_pixel()                                                \
+  pixel_bottom = palette_ram_converted[(pixel_pair >> 16) & 0x1FF];           \
+  pixel_bottom = (pixel_bottom | (pixel_bottom << 16)) & BLND_MSK;            \
+  pixel_top = ((pixel_top << (blend_a >> 1)) + (pixel_bottom << (blend_b >> 1))) >> 3; \
+  if(pixel_top & (OVFR_MSK | OVFG_MSK | OVFB_MSK))                            \
+  {                                                                           \
+    pixel_top = (pixel_top & OVFG_MSK) ? (pixel_top | SATG_MSK) : pixel_top; \
+    pixel_top = (pixel_top & OVFR_MSK) ? (pixel_top | SATR_MSK) : pixel_top; \
+    pixel_top = (pixel_top & OVFB_MSK) ? (pixel_top | SATB_MSK) : pixel_top; \
+    pixel_top &= 0x0000FFFF;                                                  \
+  }
+#else
 #define blend_saturate_pixel()                                                \
   pixel_bottom = palette_ram_converted[(pixel_pair >> 16) & 0x1FF];           \
   pixel_bottom = (pixel_bottom | (pixel_bottom << 16)) & BLND_MSK;            \
@@ -3559,7 +3581,8 @@ fill_line_builder(color32);
                                                                               \
     if(pixel_top & OVFB_MSK)                                                  \
       pixel_top |= SATB_MSK;                                                  \
-  }                                                                           \
+  }
+#endif
 
 #define brighten_pixel()                                                      \
   pixel_top = upper + ((pixel_top * blend) >> 4);                             \
@@ -3659,7 +3682,17 @@ fill_line_builder(color32);
 void expand_blend(u32 *screen_src_ptr, u16 *screen_dest_ptr,
  u32 start, u32 end);
 
-#ifndef ARM_ARCH_BLENDING_OPTS
+#if defined(MIPS_ARCH) && defined(SF2000)
+// MIPS soft FPU optimized blend function
+void expand_blend(u32 *screen_src_ptr, u16 *screen_dest_ptr,
+ u32 start, u32 end)
+{
+  // Use external MIPS assembly implementation for SF2000
+  extern void expand_blend_mips(u32 *screen_src_ptr, u16 *screen_dest_ptr,
+   u32 start, u32 end);
+  expand_blend_mips(screen_src_ptr, screen_dest_ptr, start, end);
+}
+#elif !defined(ARM_ARCH_BLENDING_OPTS)
 
 void expand_blend(u32 *screen_src_ptr, u16 *screen_dest_ptr,
  u32 start, u32 end)
