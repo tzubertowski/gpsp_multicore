@@ -17,10 +17,10 @@ blend_constants:
 
 .text
 .align 2
-.globl expand_blend
-.type expand_blend, @function
+.globl expand_blend_mips
+.type expand_blend_mips, @function
 
-expand_blend:
+expand_blend_mips:
     # Save registers
     addiu $sp, $sp, -32
     sw $s0, 0($sp)
@@ -208,4 +208,4 @@ loop_end:
     jr $ra
     nop
 
-.size expand_blend, .-expand_blend
+.size expand_blend_mips, .-expand_blend_mips
