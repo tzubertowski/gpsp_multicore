@@ -29,6 +29,63 @@ static u16 *last_map_base[4] = {NULL, NULL, NULL, NULL};
 // Single palette cache entry for hot path
 static u16 last_palette_index = 0xFFFF;
 static u16 last_palette_color = 0;
+
+// PARTIAL FLUSH: Track dirty regions for selective rendering
+static u32 dirty_tiles[8] = {0}; // 8x32 = 256 tiles coverage
+static u32 last_vcount = 0;
+static u8 partial_flush_enabled = 1;
+
+// PARTIAL FLUSH: Mark tile region as dirty
+static inline void mark_tile_dirty(u32 tile_x, u32 tile_y) {
+  if (tile_x < 32 && tile_y < 8) {
+    dirty_tiles[tile_y] |= (1U << tile_x);
+  }
+}
+
+// PARTIAL FLUSH: Check if tile needs rendering
+static inline u8 is_tile_dirty(u32 tile_x, u32 tile_y) {
+  if (!partial_flush_enabled) return 1;
+  if (tile_x >= 32 || tile_y >= 8) return 1;
+  return (dirty_tiles[tile_y] & (1U << tile_x)) != 0;
+}
+
+// PARTIAL FLUSH: Clear dirty flags after render
+static inline void clear_dirty_tiles(void) {
+  u32 i;
+  for (i = 0; i < 8; i++) {
+    dirty_tiles[i] = 0;
+  }
+}
+
+// PARTIAL FLUSH: Enable/disable partial flush
+void set_partial_flush_enabled(u8 enabled) {
+  partial_flush_enabled = enabled;
+  if (!enabled) {
+    // Mark all tiles dirty if disabling
+    u32 i;
+    for (i = 0; i < 8; i++) {
+      dirty_tiles[i] = 0xFFFFFFFF;
+    }
+  }
+}
+
+// PARTIAL FLUSH: Mark VRAM region as dirty
+void mark_vram_dirty(u32 address, u32 size) {
+  if (!partial_flush_enabled) return;
+  
+  // Convert VRAM address to tile coordinates
+  u32 offset = address & 0x1FFFF; // VRAM is 128KB
+  u32 tile_start = offset >> 6;   // 64 bytes per 8x8 tile
+  u32 tiles_affected = (size + 63) >> 6;
+  
+  u32 i;
+  for (i = 0; i < tiles_affected && tile_start + i < 256; i++) {
+    u32 tile_id = tile_start + i;
+    u32 tile_x = tile_id & 31;
+    u32 tile_y = tile_id >> 5;
+    mark_tile_dirty(tile_x, tile_y);
+  }
+}
 #endif
 
 #define get_screen_pixels()   gba_screen_pixels
@@ -4554,6 +4611,24 @@ void update_scanline(void)
   u32 vcount = read_ioreg(REG_VCOUNT);
   u16 *screen_offset = get_screen_pixels() + (vcount * pitch);
   u32 video_mode = dispcnt & 0x07;
+
+#ifdef SF2000
+  // PARTIAL FLUSH: Check for frame boundary
+  if (vcount == 0 && last_vcount > 150) {
+    // New frame started, clear dirty tiles
+    clear_dirty_tiles();
+  }
+  last_vcount = vcount;
+  
+  // PARTIAL FLUSH: Mark current scanline tiles as potentially dirty
+  if (partial_flush_enabled) {
+    u32 tile_y = vcount >> 3; // 8 pixels per tile
+    u32 i;
+    for (i = 0; i < 30; i++) { // 240/8 = 30 tiles per line
+      mark_tile_dirty(i, tile_y);
+    }
+  }
+#endif
 
   // If OAM has been modified since the last scanline has been updated then
   // reorder and reprofile the OBJ lists.
