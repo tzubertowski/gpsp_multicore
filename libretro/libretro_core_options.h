@@ -355,6 +355,19 @@ struct retro_core_option_definition option_defs_us[] = {
       },
       "4"
    },
+#ifdef SF2000
+   {
+      "gpsp_fast_forward_audio",
+      "Speed Control Audio",
+      "Enable audio during fast forward and slow motion modes. May cause audio glitches at non-normal speeds.",
+      {
+         { "disabled", "Disabled" },
+         { "enabled",  "Enabled" },
+         { NULL, NULL },
+      },
+      "disabled"
+   },
+#endif
    { NULL, NULL, NULL, {{0}}, NULL },
 };
 

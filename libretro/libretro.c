@@ -92,6 +92,10 @@ int use_libretro_save_method = 0;
 boot_mode selected_boot_mode = boot_game;
 int sprite_limit = 1;
 
+#ifdef SF2000
+static bool fast_forward_audio_enabled = false;
+#endif
+
 u32 idle_loop_target_pc = 0xFFFFFFFF;
 u32 translation_gate_target_pc[MAX_TRANSLATION_GATES];
 u32 translation_gate_targets = 0;
@@ -879,6 +883,16 @@ static void check_variables(int started_from_load)
       if (!strcmp(var.value, "enabled"))
          mappingYXtoLR = true;
    }
+
+   var.key                = "gpsp_fast_forward_audio";
+   var.value              = 0;
+   fast_forward_audio_enabled = false;
+
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+   {
+      if (!strcmp(var.value, "enabled"))
+         fast_forward_audio_enabled = true;
+   }
    #endif
 
    var.key           = "gpsp_turbo_period";
@@ -1184,6 +1198,29 @@ void retro_run(void)
    }
 
    /* This runs just a frame */
+#ifdef SF2000
+   // SPEED CONTROL: Handle speed modes by running multiple or partial frames
+   float speed_mult = get_speed_multiplier();
+   u32 speed_iterations = 1;
+   
+   if (speed_mult >= 2.0f) {
+     // Fast modes: run multiple iterations per frame
+     speed_iterations = (u32)speed_mult;
+   }
+   
+   // Apply frameskip for fast mode with frameskip enabled
+   if (get_speed_frameskip_enabled()) {
+     static u32 frameskip_counter = 0;
+     frameskip_counter++;
+     if (frameskip_counter % 3 == 0) {
+       skip_next_frame = 1;
+     }
+   }
+   
+   // Run emulation for the calculated number of iterations
+   for (u32 i = 0; i < speed_iterations; i++) {
+#endif
+
    #ifdef HAVE_DYNAREC
    if (dynarec_enable)
       execute_arm_translate(execute_cycles);
@@ -1195,7 +1232,29 @@ void retro_run(void)
       execute_arm(execute_cycles);
    }
 
+#ifdef SF2000
+   // For slow modes, skip iterations by using static counter
+   if (speed_mult < 1.0f) {
+     static u32 slow_counter = 0;
+     slow_counter++;
+     if (speed_mult == 0.7f && slow_counter % 10 < 7) {
+       break; // Skip 3 out of 10 iterations for 0.7x speed
+     } else if (speed_mult == 0.5f && slow_counter % 2 == 0) {
+       break; // Skip every other iteration for 0.5x speed
+     }
+   }
+   } // End of speed_iterations loop
+#endif
+
+#ifdef SF2000
+   // SPEED CONTROL: Configurable audio during speed changes
+   float current_speed = get_speed_multiplier();
+   if (current_speed == 1.0f || fast_forward_audio_enabled) {
+     audio_run(); // Run audio at normal speed or if enabled for speed changes
+   }
+#else
    audio_run();
+#endif
    video_run();
 
    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
