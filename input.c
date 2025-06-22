@@ -25,6 +25,12 @@ bool libretro_ff_enabled           = false;
 bool libretro_ff_enabled_prev      = false;
 #ifdef SF2000
 bool mappingYXtoLR                 = false;
+
+// SPEED CONTROL: Select+R and Select+L speed toggles
+static u8 speed_mode_fast = 0;    // 0=normal, 1=fast, 2=fast+frameskip
+static u8 speed_mode_slow = 0;    // 0=normal, 1=0.7x, 2=0.5x
+static bool select_r_pressed_prev = false;
+static bool select_l_pressed_prev = false;
 #endif
 
 unsigned turbo_period      = TURBO_PERIOD_MIN;
@@ -154,6 +160,41 @@ u32 update_input(void)
    else
       turbo_b_counter = 0;
 
+#ifdef SF2000
+   // SPEED CONTROL: Handle Select+R and Select+L combinations
+   bool select_pressed = (new_key & BUTTON_SELECT) != 0;
+   bool r_pressed = (new_key & BUTTON_R) != 0;
+   bool l_pressed = (new_key & BUTTON_L) != 0;
+   
+   bool select_r_combo = select_pressed && r_pressed;
+   bool select_l_combo = select_pressed && l_pressed;
+   
+   // Select+R: Toggle fast speed modes (normal -> fast -> fast+frameskip)
+   if (select_r_combo && !select_r_pressed_prev) {
+     speed_mode_fast = (speed_mode_fast + 1) % 3;
+     // Reset slow mode when using fast mode
+     if (speed_mode_fast != 0) {
+       speed_mode_slow = 0;
+     }
+   }
+   select_r_pressed_prev = select_r_combo;
+   
+   // Select+L: Toggle slow speed modes (normal -> 0.7x -> 0.5x)
+   if (select_l_combo && !select_l_pressed_prev) {
+     speed_mode_slow = (speed_mode_slow + 1) % 3;
+     // Reset fast mode when using slow mode  
+     if (speed_mode_slow != 0) {
+       speed_mode_fast = 0;
+     }
+   }
+   select_l_pressed_prev = select_l_combo;
+   
+   // Clear Select+L/R from the input when used for speed control
+   if (select_r_combo || select_l_combo) {
+     new_key &= ~(BUTTON_SELECT | BUTTON_R | BUTTON_L);
+   }
+#endif
+
    // GBP keypad detection hack (only at game startup!)
    if (serial_mode == SERIAL_MODE_GBP) {
      // During the startup screen (aproximate)
@@ -201,5 +242,41 @@ unsigned input_write_savestate(u8 *dst)
   bson_finish_document(dst, wbptr1);
   return (unsigned int)(dst - startp);
 }
+
+#ifdef SF2000
+// SPEED CONTROL: Get current speed multiplier for timing control
+float get_speed_multiplier(void) {
+  if (speed_mode_fast == 1) {
+    return 2.0f; // Fast mode (2x speed)
+  } else if (speed_mode_fast == 2) {
+    return 3.0f; // Fast mode with frameskip (3x speed)
+  } else if (speed_mode_slow == 1) {
+    return 0.7f; // Slow mode (0.7x speed)
+  } else if (speed_mode_slow == 2) {
+    return 0.5f; // Slow mode (0.5x speed)
+  }
+  return 1.0f; // Normal speed
+}
+
+// SPEED CONTROL: Check if frameskip should be enabled
+bool get_speed_frameskip_enabled(void) {
+  return (speed_mode_fast == 2); // Only enable frameskip in fast mode 2
+}
+
+// SPEED CONTROL: Get current speed mode for UI/OSD display
+void get_speed_mode_info(char *buffer, size_t size) {
+  if (speed_mode_fast == 1) {
+    snprintf(buffer, size, "SPEED: 2x");
+  } else if (speed_mode_fast == 2) {
+    snprintf(buffer, size, "SPEED: 3x+SKIP");
+  } else if (speed_mode_slow == 1) {
+    snprintf(buffer, size, "SPEED: 0.7x");
+  } else if (speed_mode_slow == 2) {
+    snprintf(buffer, size, "SPEED: 0.5x");
+  } else {
+    snprintf(buffer, size, "SPEED: 1x");
+  }
+}
+#endif
 
 

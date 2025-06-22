@@ -70,6 +70,11 @@ extern bool libretro_ff_enabled_prev;
 
 #ifdef SF2000
 extern bool mappingYXtoLR;
+
+// SPEED CONTROL: Function declarations
+float get_speed_multiplier(void);
+bool get_speed_frameskip_enabled(void);
+void get_speed_mode_info(char *buffer, size_t size);
 #endif
 
 extern unsigned turbo_period;
