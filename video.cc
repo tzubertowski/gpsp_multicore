@@ -157,7 +157,11 @@ static inline void rend_part_tile_Nbpp(u32 bg_comb, u32 px_comb,
 ) {
   // Seek to the specified tile, using the tile number and size.
   // tile_base already points to the right tile-line vertical offset
+#ifdef SF2000
+  const u8 *tile_ptr = &tile_base[(tile & 0x3FF) << (is8bpp ? 6 : 5)];  // *64 = <<6, *32 = <<5
+#else
   const u8 *tile_ptr = &tile_base[(tile & 0x3FF) * (is8bpp ? 64 : 32)];
+#endif
   u16 bgcolor = paltbl[0];
 
   // On vertical flip, apply the mirror offset
@@ -226,7 +230,11 @@ static inline void render_tile_Nbpp(
   u32 bg_comb, u32 px_comb, dtype *dest_ptr, u16 tile,
   const u8 *tile_base, int vertical_pixel_flip, const u16 *paltbl
 ) {
+#ifdef SF2000
+  const u8 *tile_ptr = &tile_base[(tile & 0x3FF) << (is8bpp ? 6 : 5)];  // *64 = <<6, *32 = <<5
+#else
   const u8 *tile_ptr = &tile_base[(tile & 0x3FF) * (is8bpp ? 64 : 32)];
+#endif
   u16 bgcolor = paltbl[0];
 
   if (tile & 0x800)
@@ -564,7 +572,11 @@ static void render_scanline_text_mosaic(u32 layer,
     u16 tile = eswap16(*map_ptr);
 
     if (!(i % mosh)) {
-      const u8 *tile_ptr = &tile_base[(tile & 0x3FF) * (is8bpp ? 64 : 32)];
+    #ifdef SF2000
+  const u8 *tile_ptr = &tile_base[(tile & 0x3FF) << (is8bpp ? 6 : 5)];  // *64 = <<6, *32 = <<5
+#else
+  const u8 *tile_ptr = &tile_base[(tile & 0x3FF) * (is8bpp ? 64 : 32)];
+#endif
 
       bool hflip = (tile & 0x400);
       if (tile & 0x800)
@@ -661,13 +673,21 @@ static inline u8 lookup_pix_8bpp(
   // SF2000: Replace expensive division with bit shifts
   u32 mapoff = (px >> 3) + ((py >> 3) << map_pitch);
   // Each tile is 8x8, so 64 bytes each.
+#ifdef SF2000
+  const u8 *tile_ptr = &tile_base[map_base[mapoff] << 6];  // * tile_size_8bpp = *64 = <<6
+#else
   const u8 *tile_ptr = &tile_base[map_base[mapoff] * tile_size_8bpp];
+#endif
   // Read the 8bit color within the tile.
   return tile_ptr[(px & 7) + ((py & 7) << 3)];
 #else
   u32 mapoff = (px / 8) + ((py / 8) << map_pitch);
   // Each tile is 8x8, so 64 bytes each.
+#ifdef SF2000
+  const u8 *tile_ptr = &tile_base[map_base[mapoff] << 6];  // * tile_size_8bpp = *64 = <<6
+#else
   const u8 *tile_ptr = &tile_base[map_base[mapoff] * tile_size_8bpp];
+#endif
   // Read the 8bit color within the tile.
   return tile_ptr[(px % 8) + ((py % 8) * 8)];
 #endif
