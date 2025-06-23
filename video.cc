@@ -2538,9 +2538,18 @@ void update_scanline(void)
   // Mode 0 does not use any affine params at all.
   if (video_mode) {
     // Account for vertical mosaic effect, by correcting affine references.
+#ifdef SF2000
+    const u32 mosaic_reg = read_ioreg(REG_MOSAIC);
+    const u32 bg2cnt = read_ioreg(REG_BG2CNT);
+    const u32 bg3cnt = read_ioreg(REG_BG3CNT);
+    const u32 bgmosv = ((mosaic_reg >> 4) & 0xF) + 1;
+    
+    if (bg2cnt & 0x40) {   // Mosaic enabled for this BG
+#else
     const u32 bgmosv = ((read_ioreg(REG_MOSAIC) >> 4) & 0xF) + 1;
 
     if (read_ioreg(REG_BG2CNT) & 0x40) {   // Mosaic enabled for this BG
+#endif
       if ((vcount % bgmosv) == bgmosv-1) { // Correct after the last line
 #ifdef SF2000
         affine_reference_x[0] += (s16)read_ioreg(REG_BG2PB) * bgmosv;
@@ -2555,7 +2564,11 @@ void update_scanline(void)
       affine_reference_y[0] += (s16)read_ioreg(REG_BG2PD);
     }
 
+#ifdef SF2000
+    if (bg3cnt & 0x40) {
+#else
     if (read_ioreg(REG_BG3CNT) & 0x40) {
+#endif
       if ((vcount % bgmosv) == bgmosv-1) {
 #ifdef SF2000
         affine_reference_x[1] += (s16)read_ioreg(REG_BG3PB) * bgmosv;
