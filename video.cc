@@ -2509,7 +2509,12 @@ void update_scanline(void)
   u32 pitch = get_screen_pitch();
   u16 dispcnt = read_ioreg(REG_DISPCNT);
   u32 vcount = read_ioreg(REG_VCOUNT);
+#ifdef SF2000
+  // SF2000: Optimize multiplication - pitch is always 240 for GBA
+  u16 *screen_offset = get_screen_pixels() + (vcount * 240);
+#else
   u16 *screen_offset = get_screen_pixels() + (vcount * pitch);
+#endif
   u32 video_mode = dispcnt & 0x07;
 
   if(skip_next_frame)
