@@ -1419,13 +1419,8 @@ static void render_affine_object(
   s32 obj_height = is_double ? obji->obj_h * 2 : obji->obj_h;
 
   s32 vcount = read_ioreg(REG_VCOUNT);
-#ifdef SF2000
-  if (mosaic)
-    vcount -= vcount & (mosv - 1);  // Only works if mosv is power of 2
-#else
   if (mosaic)
     vcount -= vcount % mosv;
-#endif
   s32 y_delta = vcount - (obji->obj_y + middle_y);
 
   if (obji->obj_x < (signed)start)
@@ -1444,11 +1439,7 @@ static void render_affine_object(
   dst_ptr += d_start;
 
   bool obj1dmap = read_ioreg(REG_DISPCNT) & 0x40;
-#ifdef SF2000
-  const u32 tile_pitch = obj1dmap ? ((obj_dimw >> 3) * tile_bsize) : 1024;
-#else
   const u32 tile_pitch = obj1dmap ? (obj_dimw / 8) * tile_bsize : 1024;
-#endif
   u32 px_attr = pxcomb | palette | 0x100;  // Combine flags + high palette bit
 
   // Skip pixels outside of the sprite area, until we reach the sprite "inside"
@@ -1475,13 +1466,8 @@ static void render_affine_object(
     if (pixel_x >= obj_dimw || pixel_y >= obj_dimh)
       return;
 
-#ifdef SF2000
-    // For mosaic, we "remember" the last looked up pixel.
-    if (!mosaic || !(i & (mosh - 1))) {  // Only works if mosh is power of 2
-#else
     // For mosaic, we "remember" the last looked up pixel.
     if (!mosaic || !(i % mosh)) {
-#endif
       // Lookup pixel and draw it.
       if (is8bpp) {
         // We lookup the byte directly and render it.
