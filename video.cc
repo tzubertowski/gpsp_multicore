@@ -307,9 +307,11 @@ static void render_scanline_text_fast(u32 layer,
   u32 map_size = (bg_control >> 14) & 0x03;
   u32 map_width = map_widths[map_size];
 #ifdef SF2000
-  // SF2000: Use bit masks instead of expensive modulo
-  u32 hoffset = (start + read_ioreg(REG_BGxHOFS(layer))) & 511;
-  u32 voffset = (vcount + read_ioreg(REG_BGxVOFS(layer))) & 511;
+  // SF2000: Cache register reads and use bit masks
+  u32 bg_hofs = read_ioreg(REG_BGxHOFS(layer));
+  u32 bg_vofs = read_ioreg(REG_BGxVOFS(layer));
+  u32 hoffset = (start + bg_hofs) & 511;
+  u32 voffset = (vcount + bg_vofs) & 511;
 #else
   u32 hoffset = (start + read_ioreg(REG_BGxHOFS(layer))) % 512;
   u32 voffset = (vcount + read_ioreg(REG_BGxVOFS(layer))) % 512;
@@ -520,6 +522,20 @@ template<typename stype, rendtype rdtype, bool isbase, bool is8bpp>
 static void render_scanline_text_mosaic(u32 layer,
  u32 start, u32 end, void *scanline, const u16 * paltbl)
 {
+#ifdef SF2000
+  u32 bg_control = read_ioreg(REG_BGxCNT(layer));
+  u32 mosaic_reg = read_ioreg(REG_MOSAIC);
+  const u32 mosh = (mosaic_reg & 0xF) + 1;
+  const u32 mosv = ((mosaic_reg >> 4) & 0xF) + 1;
+  u16 vcount = read_ioreg(REG_VCOUNT);
+  u32 map_size = (bg_control >> 14) & 0x03;
+  u32 map_width = map_widths[map_size];
+  u32 bg_hofs = read_ioreg(REG_BGxHOFS(layer));
+  u32 bg_vofs = read_ioreg(REG_BGxVOFS(layer));
+  u32 hoffset = (start + bg_hofs) & 511;
+  u16 vmosoff = vcount - (vcount & (mosv - 1));
+  u32 voffset = (vmosoff + bg_vofs) & 511;
+#else
   u32 bg_control = read_ioreg(REG_BGxCNT(layer));
   const u32 mosh = (read_ioreg(REG_MOSAIC) & 0xF) + 1;
   const u32 mosv = ((read_ioreg(REG_MOSAIC) >> 4) & 0xF) + 1;
@@ -529,6 +545,7 @@ static void render_scanline_text_mosaic(u32 layer,
   u32 hoffset = (start + read_ioreg(REG_BGxHOFS(layer))) % 512;
   u16 vmosoff = vcount - vcount % mosv;
   u32 voffset = (vmosoff + read_ioreg(REG_BGxVOFS(layer))) % 512;
+#endif
   stype *dest_ptr = ((stype*)scanline) + start;
 
   u32 bg_comb = color_flags(5), px_comb = color_flags(layer);
