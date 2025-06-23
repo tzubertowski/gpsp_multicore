@@ -404,6 +404,16 @@ void reload_timing_info()
     ws_cyc_nseq[i][0] = 1;  /* All ROM non-sequential = 1 cycle */
     ws_cyc_nseq[i][1] = 1;  /* All ROM 32-bit non-sequential = 1 cycle */
   }
+
+#ifdef SF2000
+  /* SF2000: Even more aggressive - skip ALL memory region timing */
+  for (i = 0x0; i <= 0xF; i++) {
+    ws_cyc_seq[i][0] = 1;   /* All memory regions = 1 cycle */
+    ws_cyc_seq[i][1] = 1; 
+    ws_cyc_nseq[i][0] = 1;
+    ws_cyc_nseq[i][1] = 1;
+  }
+#endif
 #else
   /* Sequential 16 and 32 bit accesses to ROM */
   ws_cyc_seq[0x8][0] = ws_cyc_seq[0x9][0] = 1 + ws0_seq[(waitcnt >>  4) & 1];

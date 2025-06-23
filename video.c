@@ -3801,6 +3801,50 @@ void expand_blend(u32 *screen_src_ptr, u16 *screen_dest_ptr,
   if(blend_b > 16)
     blend_b = 16;
 
+#ifdef SF2000
+  // SMART BLEND SKIPPING: Skip expensive blending in specific safe cases
+  if(blend_a == 0 && blend_b == 0) {
+    // No blending factors - use simplified copy loop
+    for(i = start; i < end; i++) {
+      pixel_pair = screen_src_ptr[i];
+      if((pixel_pair & 0x04000200) == 0x04000200) {
+        // Both layers present, use top layer (preserves text)
+        screen_dest_ptr[i] = palette_ram_converted[pixel_pair & 0x1FF];
+      } else if((pixel_pair & 0x04000000) == 0x04000000) {
+        // Only top layer
+        screen_dest_ptr[i] = palette_ram_converted[pixel_pair & 0x1FF];
+      } else if((pixel_pair & 0x00000200) == 0x00000200) {
+        // Only bottom layer
+        screen_dest_ptr[i] = palette_ram_converted[(pixel_pair >> 16) & 0x1FF];
+      }
+    }
+    return;
+  }
+  
+  // Skip when one factor is 0 (single layer visible)
+  if(blend_a == 0) {
+    // Only bottom layer visible
+    for(i = start; i < end; i++) {
+      pixel_pair = screen_src_ptr[i];
+      if((pixel_pair & 0x00000200) == 0x00000200) {
+        screen_dest_ptr[i] = palette_ram_converted[(pixel_pair >> 16) & 0x1FF];
+      }
+    }
+    return;
+  }
+  
+  if(blend_b == 0) {
+    // Only top layer visible
+    for(i = start; i < end; i++) {
+      pixel_pair = screen_src_ptr[i];
+      if((pixel_pair & 0x04000000) == 0x04000000) {
+        screen_dest_ptr[i] = palette_ram_converted[pixel_pair & 0x1FF];
+      }
+    }
+    return;
+  }
+#endif
+
   // The individual colors can saturate over 31, this should be taken
   // care of in an alternate pass as it incurs a huge additional speedhit.
   if((blend_a + blend_b) > 16)
@@ -3827,6 +3871,26 @@ static void expand_darken(u16 *screen_src_ptr, u16 *screen_dest_ptr,
   if(blend < 0)
     blend = 0;
 
+#ifdef SF2000
+  // BRIGHTNESS EFFECT SKIPPING: Optimized darken operations
+  if(blend == 16) {
+    // No darkening effect, direct copy is safe
+    memcpy(screen_dest_ptr + start, screen_src_ptr + start, (end - start) * sizeof(u16));
+    return;
+  }
+  
+  if(blend == 0) {
+    // Fully dark - but check if we're in a menu/text context
+    u32 vcount = read_ioreg(REG_VCOUNT);
+    if(vcount > 32 && vcount < 128) {
+      // Likely gameplay area, safe to optimize
+      memset(screen_dest_ptr + start, 0, (end - start) * sizeof(u16));
+      return;
+    }
+    // Otherwise fall through for safety (preserve UI/text)
+  }
+#endif
+
   expand_loop(darken, effect_condition_fade(pixel_top), pixel_top);
 }
 
@@ -3843,6 +3907,34 @@ static void expand_brighten(u16 *screen_src_ptr, u16 *screen_dest_ptr,
 
   if(blend > 16)
     blend = 16;
+
+#ifdef SF2000
+  // BRIGHTNESS EFFECT SKIPPING: Optimized brighten operations
+  if(blend == 0) {
+    // No brightening effect, direct copy is safe
+    memcpy(screen_dest_ptr + start, screen_src_ptr + start, (end - start) * sizeof(u16));
+    return;
+  }
+  
+  if(blend >= 15) {
+    // Nearly full white - check for safe optimization
+    u32 vcount = read_ioreg(REG_VCOUNT);
+    if(vcount > 32 && vcount < 128) {
+      // Likely gameplay area, safe to use white fill
+      u32 white_fill = 0x7FFF7FFF; // Two white pixels (15-bit RGB)
+      u32 *dest32 = (u32*)(screen_dest_ptr + start);
+      u32 pixels = (end - start) / 2;
+      for(i = 0; i < pixels; i++) {
+        dest32[i] = white_fill;
+      }
+      if((end - start) & 1) {
+        screen_dest_ptr[end - 1] = 0x7FFF;
+      }
+      return;
+    }
+    // Otherwise fall through for safety
+  }
+#endif
 
   upper = ((BLND_MSK * blend) >> 4) & BLND_MSK;
   blend = 16 - blend;
