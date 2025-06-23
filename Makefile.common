@@ -4,7 +4,8 @@ INCFLAGS   := -I$(CORE_DIR)/libretro -I$(LIBRETRO_COMM_DIR)/include  -I$(CORE_DI
 
 SOURCES_ASM := $(CORE_DIR)/bios_data.S
 
-SOURCES_CC := $(CORE_DIR)/cpu.cc
+SOURCES_CC := $(CORE_DIR)/video.cc \
+              $(CORE_DIR)/cpu.cc
 
 SOURCES_C := $(CORE_DIR)/main.c \
              $(CORE_DIR)/gba_memory.c \
@@ -17,8 +18,7 @@ SOURCES_C := $(CORE_DIR)/main.c \
              $(CORE_DIR)/gbp.c \
              $(CORE_DIR)/rfu.c \
              $(CORE_DIR)/libretro/libretro.c \
-             $(CORE_DIR)/gba_cc_lut.c \
-             $(CORE_DIR)/video.c
+             $(CORE_DIR)/gba_cc_lut.c
 
 ifneq ($(STATIC_LINKING), 1)
 SOURCES_C += \
@@ -44,7 +44,6 @@ ifeq ($(HAVE_DYNAREC), 1)
     SOURCES_ASM += $(CORE_DIR)/arm/arm64_stub.S
   else ifeq ($(CPU_ARCH), mips)
     SOURCES_ASM += $(CORE_DIR)/mips/mips_stub.S
-    SOURCES_ASM += $(CORE_DIR)/mips/mips_video_blend.S
   endif
 endif
 
