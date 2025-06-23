@@ -669,11 +669,7 @@ static inline u8 lookup_pix_8bpp(
   // Each tile is 8x8, so 64 bytes each.
   const u8 *tile_ptr = &tile_base[map_base[mapoff] * tile_size_8bpp];
   // Read the 8bit color within the tile.
-#ifdef SF2000
-  return tile_ptr[(px & 7) + ((py & 7) << 3)];
-#else
   return tile_ptr[(px % 8) + ((py % 8) * 8)];
-#endif
 #endif
 }
 
@@ -1187,13 +1183,8 @@ static void render_object(
 
   if (delta_x < 0) {      // Left part is outside of the screen/window.
     u32 offx = -delta_x;  // How many pixels did we skip from the object?
-#ifdef SF2000
-    s32 block_off = offx >> 3;  // /8 becomes >>3 
-    u32 tile_off = offx & 7;    // %8 becomes &7
-#else
     s32 block_off = offx / 8;
     u32 tile_off = offx % 8;
-#endif
 
     // Skip the first object tiles (skips in the flip direction)
     tile_offset += block_off * tile_size_off;
@@ -1217,11 +1208,7 @@ static void render_object(
   }
 
   // Render full tiles to the scan line.
-#ifdef SF2000
-  s32 num_tiles = cnt >> 3;
-#else
   s32 num_tiles = cnt / 8;
-#endif
   while (num_tiles--) {
     // Render full tiles
     render_obj_tile_Nbpp<stype, rdtype, is8bpp, hflip>(
@@ -1231,11 +1218,7 @@ static void render_object(
   }
 
   // Render any partial tile on the end
-#ifdef SF2000
-  cnt = cnt & 7;
-#else
   cnt = cnt % 8;
-#endif
   if (cnt)
     render_obj_part_tile_Nbpp<stype, rdtype, is8bpp, hflip>(
       px_comb, dst_ptr, 0, cnt, tile_offset, palette, palptr);
@@ -1264,40 +1247,20 @@ static void render_object_mosaic(
   for (u32 i = 0; i < cnt; i++, offx++, dst_ptr++) {
     if (!(i % mosh)) {
       // Load tile pixel color.
-#ifdef SF2000
-      u32 tile_offset = base_tile_offset + ((offx >> 3) * tile_size_off);
-#else
       u32 tile_offset = base_tile_offset + (offx / 8) * tile_size_off;
-#endif
       const u8* tile_ptr = &vram[0x10000 + (tile_offset & 0x7FFF)];
 
       // Lookup for each mode and flip value.
       if (is8bpp) {
         if (hflip)
-#ifdef SF2000
-          pval = tile_ptr[7 - (offx & 7)];
-#else
           pval = tile_ptr[7 - offx % 8];
-#endif
         else
-#ifdef SF2000
-          pval = tile_ptr[offx & 7];
-#else
           pval = tile_ptr[offx % 8];
-#endif
       } else {
         if (hflip)
-#ifdef SF2000
-          pval = (tile_ptr[(7 - (offx & 7)) >> 1] >> (((offx & 1) ^ 1) << 2)) & 0xF;
-#else
           pval = (tile_ptr[(7 - offx % 8) >> 1] >> (((offx & 1) ^ 1) * 4)) & 0xF;
-#endif
         else
-#ifdef SF2000
-          pval = (tile_ptr[((offx & 7) >> 1)] >> ((offx & 1) << 2)) & 0xF;
-#else
           pval = (tile_ptr[(offx % 8) >> 1] >> ((offx & 1) * 4)) & 0xF;
-#endif
       }
     }
 
@@ -1343,29 +1306,14 @@ static void render_affine_object(
   // Object dimensions and boundaries
   u32 obj_dimw = obji->obj_w;
   u32 obj_dimh = obji->obj_h;
-#ifdef SF2000
-  s32 middle_x = is_double ? obji->obj_w : (obji->obj_w >> 1);
-  s32 middle_y = is_double ? obji->obj_h : (obji->obj_h >> 1);
-#else
   s32 middle_x = is_double ? obji->obj_w : (obji->obj_w / 2);
   s32 middle_y = is_double ? obji->obj_h : (obji->obj_h / 2);
-#endif
-#ifdef SF2000
-  s32 obj_width  = is_double ? (obji->obj_w << 1) : obji->obj_w;
-  s32 obj_height = is_double ? (obji->obj_h << 1) : obji->obj_h;
-#else
   s32 obj_width  = is_double ? obji->obj_w * 2 : obji->obj_w;
   s32 obj_height = is_double ? obji->obj_h * 2 : obji->obj_h;
-#endif
 
   s32 vcount = read_ioreg(REG_VCOUNT);
-#ifdef SF2000
-  if (mosaic)
-    vcount -= vcount & (mosv - 1);  // Only works if mosv is power of 2
-#else
   if (mosaic)
     vcount -= vcount % mosv;
-#endif
   s32 y_delta = vcount - (obji->obj_y + middle_y);
 
   if (obji->obj_x < (signed)start)
@@ -1384,11 +1332,7 @@ static void render_affine_object(
   dst_ptr += d_start;
 
   bool obj1dmap = read_ioreg(REG_DISPCNT) & 0x40;
-#ifdef SF2000
-  const u32 tile_pitch = obj1dmap ? ((obj_dimw >> 3) * tile_bsize) : 1024;
-#else
   const u32 tile_pitch = obj1dmap ? (obj_dimw / 8) * tile_bsize : 1024;
-#endif
   u32 px_attr = pxcomb | palette | 0x100;  // Combine flags + high palette bit
 
   // Skip pixels outside of the sprite area, until we reach the sprite "inside"
@@ -1420,46 +1364,24 @@ static void render_affine_object(
       // Lookup pixel and draw it.
       if (is8bpp) {
         // We lookup the byte directly and render it.
-#ifdef SF2000
-        const u32 tile_off =
-          base_tile +                        // Character base
-          ((pixel_y >> 3) * tile_pitch) +    // Skip vertical blocks
-          ((pixel_x >> 3) * tile_bsize) +    // Skip horizontal blocks
-          ((pixel_y & 0x7) << 3) +           // Skip vertical rows (*8 becomes <<3)
-          (pixel_x & 0x7);                   // Skip the horizontal offset
-#else
         const u32 tile_off =
           base_tile +                        // Character base
           ((pixel_y >> 3) * tile_pitch) +    // Skip vertical blocks
           ((pixel_x >> 3) * tile_bsize) +    // Skip horizontal blocks
           ((pixel_y & 0x7) * tile_bwidth) +  // Skip vertical rows to the pixel
           (pixel_x & 0x7);                   // Skip the horizontal offset
-#endif
 
         pixval = vram[0x10000 + (tile_off & 0x7FFF)];   // Read pixel value!
       } else {
-#ifdef SF2000
-        const u32 tile_off =
-          base_tile +                        // Character base
-          ((pixel_y >> 3) * tile_pitch) +    // Skip vertical blocks
-          ((pixel_x >> 3) * tile_bsize) +    // Skip horizontal blocks
-          ((pixel_y & 0x7) << 2) +           // Skip vertical rows (*4 becomes <<2)
-          ((pixel_x >> 1) & 0x3);            // Skip the horizontal offset
-#else
         const u32 tile_off =
           base_tile +                        // Character base
           ((pixel_y >> 3) * tile_pitch) +    // Skip vertical blocks
           ((pixel_x >> 3) * tile_bsize) +    // Skip horizontal blocks
           ((pixel_y & 0x7) * tile_bwidth) +  // Skip vertical rows to the pixel
           ((pixel_x >> 1) & 0x3);            // Skip the horizontal offset
-#endif
 
         u8 pixpair = vram[0x10000 + (tile_off & 0x7FFF)]; // Read 2 pixels @4bpp
-#ifdef SF2000
-        pixval = ((pixel_x & 1) ? (pixpair >> 4) : (pixpair & 0xF));
-#else
         pixval = ((pixel_x & 1) ? pixpair >> 4 : pixpair & 0xF);
-#endif
       }
     }
 
@@ -1500,11 +1422,7 @@ inline static void render_sprite(
   s32 vcount = read_ioreg(REG_VCOUNT);
   bool obj1dmap = read_ioreg(REG_DISPCNT) & 0x40;
   const u32 msk = is8bpp && !obj1dmap ? 0x3FE : 0x3FF;
-#ifdef SF2000
-  const u32 base_tile = (obji->attr2 & msk) << 5;  // *32 becomes <<5
-#else
   const u32 base_tile = (obji->attr2 & msk) * 32;
-#endif
 
   const u32 mosv = (mosaic ? (read_ioreg(REG_MOSAIC) >> 12) & 0xF : 0) + 1;
   const u32 mosh = (mosaic ? (read_ioreg(REG_MOSAIC) >>  8) & 0xF : 0) + 1;
@@ -2619,11 +2537,7 @@ void update_scanline(void)
     const u32 bgmosv = ((read_ioreg(REG_MOSAIC) >> 4) & 0xF) + 1;
 
     if (read_ioreg(REG_BG2CNT) & 0x40) {   // Mosaic enabled for this BG
-#ifdef SF2000
-      if ((vcount & (bgmosv - 1)) == bgmosv-1) { // Correct after the last line
-#else
       if ((vcount % bgmosv) == bgmosv-1) { // Correct after the last line
-#endif
         affine_reference_x[0] += (s16)read_ioreg(REG_BG2PB) * bgmosv;
         affine_reference_y[0] += (s16)read_ioreg(REG_BG2PD) * bgmosv;
       }
