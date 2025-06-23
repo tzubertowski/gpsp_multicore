@@ -198,8 +198,13 @@ static inline void rend_part_tile_Nbpp(u32 bg_comb, u32 px_comb,
     const u16 *subpal = &paltbl[tilepal];
     // Read packed pixel data, skip start pixels
     u32 tilepix = eswap32(*(u32*)tile_ptr);
+#ifdef SF2000
+    if (hflip) tilepix <<= (start << 2);  // *4 becomes <<2
+    else       tilepix >>= (start << 2);  // *4 becomes <<2
+#else
     if (hflip) tilepix <<= (start * 4);
     else       tilepix >>= (start * 4);
+#endif
     // Only 32 bits (8 pixels * 4 bits)
     for (u32 i = start; i < end; i++, dest_ptr++) {
       u8 pval = hflip ? tilepix >> 28 : tilepix & 0xF;
@@ -321,7 +326,11 @@ static void render_scanline_text_fast(u32 layer,
 #ifdef SF2000
   u16 *map_base = (u16 *)&vram[base_block << 11];  // *2048 becomes <<11
 #else
+#ifdef SF2000
+  u16 *map_base = (u16 *)&vram[base_block << 11];  // *2048 becomes <<11
+#else
   u16 *map_base = (u16 *)&vram[base_block * 2048];
+#endif
 #endif
   u16 *map_ptr, *second_ptr;
 
@@ -332,14 +341,22 @@ static void render_scanline_text_fast(u32 layer,
 #ifdef SF2000
     map_base += ((map_width >> 3) << 5);  // /8 * 32 = >>3 <<5
 #else
+#ifdef SF2000
+    map_base += ((map_width >> 3) << 5);  // /8 * 32 = >>3 <<5
+#else
     map_base += ((map_width / 8) * 32);
+#endif
 #endif
 
   // Skip the top tiles within the block
 #ifdef SF2000
   map_base += (((voffset & 255) >> 3) << 5);  // %256 /8 * 32 = &255 >>3 <<5
 #else
+#ifdef SF2000
+  map_base += (((voffset & 255) >> 3) << 5);  // %256 /8 * 32 = &255 >>3 <<5
+#else
   map_base += (((voffset % 256) / 8) * 32);
+#endif
 #endif
 
   // we might need to render from two charblocks, store a second pointer.
@@ -352,14 +369,22 @@ static void render_scanline_text_fast(u32 layer,
 #ifdef SF2000
       map_ptr += 1024;  // 32*32 = 1024 (constant)
 #else
+#ifdef SF2000
+      map_ptr += 1024;  // 32*32 = 1024 (constant)
+#else
       map_ptr += (32 * 32);
+#endif
 #endif
     } else {
       // If we are rendering the left block, we might overrun into the right
 #ifdef SF2000
       second_ptr += 1024;  // 32*32 = 1024 (constant)
 #else
+#ifdef SF2000
+      second_ptr += 1024;  // 32*32 = 1024 (constant)
+#else
       second_ptr += (32 * 32);
+#endif
 #endif
     }
   } else {
@@ -392,7 +417,11 @@ static void render_scanline_text_fast(u32 layer,
 #ifdef SF2000
   u8 *tile_base = &vram[(tilecntrl << 14) + vert_pix_offset];  // *16*1024 becomes <<14
 #else
+#ifdef SF2000
+  u8 *tile_base = &vram[(tilecntrl << 14) + vert_pix_offset];  // *16*1024 becomes <<14
+#else
   u8 *tile_base = &vram[tilecntrl * 16*1024 + vert_pix_offset];
+#endif
 #endif
   // Number of pixels available until the end of the tile block
   u32 pixel_run = 256 - hoffset;
@@ -442,8 +471,13 @@ static void render_scanline_text_fast(u32 layer,
         bg_comb, px_comb, dest_ptr, tile, tile_base, vflip_off, paltbl);
   }
 
+#ifdef SF2000
+  end -= todraw << 3;        // *8 becomes <<3
+  pixel_run -= todraw << 3;  // *8 becomes <<3
+#else
   end -= todraw * 8;
   pixel_run -= todraw * 8;
+#endif
 
   if (!end)
     return;
@@ -503,14 +537,26 @@ static void render_scanline_text_mosaic(u32 layer,
 #ifdef SF2000
   u16 *map_base = (u16 *)&vram[base_block << 11];  // *2048 becomes <<11
 #else
+#ifdef SF2000
+  u16 *map_base = (u16 *)&vram[base_block << 11];  // *2048 becomes <<11
+#else
   u16 *map_base = (u16 *)&vram[base_block * 2048];
+#endif
 #endif
   u16 *map_ptr, *second_ptr;
 
   if ((map_size & 0x02) && (voffset >= 256))
+#ifdef SF2000
+    map_base += ((map_width >> 3) << 5);  // /8 * 32 = >>3 <<5
+#else
     map_base += ((map_width / 8) * 32);
+#endif
 
+#ifdef SF2000
+  map_base += (((voffset & 255) >> 3) << 5);  // %256 /8 * 32 = &255 >>3 <<5
+#else
   map_base += (((voffset % 256) / 8) * 32);
+#endif
 
   second_ptr = map_ptr = map_base;
 
@@ -521,14 +567,22 @@ static void render_scanline_text_mosaic(u32 layer,
 #ifdef SF2000
       map_ptr += 1024;  // 32*32 = 1024 (constant)
 #else
+#ifdef SF2000
+      map_ptr += 1024;  // 32*32 = 1024 (constant)
+#else
       map_ptr += (32 * 32);
+#endif
 #endif
     } else {
       // If we are rendering the left block, we might overrun into the right
 #ifdef SF2000
       second_ptr += 1024;  // 32*32 = 1024 (constant)
 #else
+#ifdef SF2000
+      second_ptr += 1024;  // 32*32 = 1024 (constant)
+#else
       second_ptr += (32 * 32);
+#endif
 #endif
     }
   } else {
@@ -561,7 +615,11 @@ static void render_scanline_text_mosaic(u32 layer,
 #ifdef SF2000
   u8 *tile_base = &vram[(tilecntrl << 14) + vert_pix_offset];  // *16*1024 becomes <<14
 #else
+#ifdef SF2000
+  u8 *tile_base = &vram[(tilecntrl << 14) + vert_pix_offset];  // *16*1024 becomes <<14
+#else
   u8 *tile_base = &vram[tilecntrl * 16*1024 + vert_pix_offset];
+#endif
 #endif
 
   u16 bgcolor = paltbl[0];
