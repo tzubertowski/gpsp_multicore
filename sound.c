@@ -429,8 +429,10 @@ void render_gbc_sound()
     return;
 
 #ifdef SF2000
+  // SF2000: Only skip if master volume AND enable bits are completely off
   u32 master_volume = read_ioreg(REG_SOUNDCNT_L);
-  if ((master_volume & 0x88) == 0) {
+  u32 sound_enable = read_ioreg(REG_SOUNDCNT_X);
+  if ((master_volume & 0x77) == 0 && (sound_enable & 0x80) == 0) {
     gbc_sound_last_cpu_ticks = cpu_ticks;
     write_ioreg(REG_SOUNDCNT_X, sound_status);
     return;
@@ -454,7 +456,7 @@ void render_gbc_sound()
     if(gs->active_flag)
     {
 #ifdef SF2000
-      if (gs->envelope_volume > 0 && (master_volume & 0x11) != 0) {
+      if (gs->envelope_volume > 0) {
 #endif
         sound_status |= 0x01;
         sample_data = &square_pattern_duty[gs->sample_table_idx][0];
@@ -469,7 +471,7 @@ void render_gbc_sound()
     if(gs->active_flag)
     {
 #ifdef SF2000
-      if (gs->envelope_volume > 0 && (master_volume & 0x22) != 0) {
+      if (gs->envelope_volume > 0) {
 #endif
         sound_status |= 0x02;
         sample_data = &square_pattern_duty[gs->sample_table_idx][0];
@@ -499,9 +501,6 @@ void render_gbc_sound()
 
     if((gs->active_flag) && (gs->master_enable))
     {
-#ifdef SF2000
-      if ((master_volume & 0x44) != 0 && gs->envelope_volume > 0) {
-#endif
         sound_status |= 0x04;
         sample_data = wave_samples;
         if(gs->wave_type == 0)
@@ -515,16 +514,13 @@ void render_gbc_sound()
         {
           gbc_sound_render_channel(samples, 64, noenvelope, nosweep);
         }
-#ifdef SF2000
-      }
-#endif
     }
 
     gs = gbc_sound_channel + 3;
     if(gs->active_flag)
     {
 #ifdef SF2000
-      if (gs->envelope_volume > 0 && (master_volume & 0x88) != 0) {
+      if (gs->envelope_volume > 0) {
 #endif
         sound_status |= 0x08;
         envelope_volume = gs->envelope_volume;
