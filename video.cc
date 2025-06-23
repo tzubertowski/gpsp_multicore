@@ -1059,7 +1059,11 @@ static inline void render_obj_part_tile_Nbpp(
   u32 tile_offset, u16 palette, const u16 *pal
 ) {
   // Note that the last VRAM bank wrap around, hence the offset aliasing
+#ifdef SF2000
+  const u8* tile_ptr = &vram[65536 + (tile_offset & 0x7FFF)];  // 0x10000 = 65536
+#else
   const u8* tile_ptr = &vram[0x10000 + (tile_offset & 0x7FFF)];
+#endif
   u32 px_attr = px_comb | palette | 0x100;  // Combine flags + high palette bit
 
   if (is8bpp) {
@@ -1116,7 +1120,11 @@ template<typename dsttype, rendtype rdtype, bool is8bpp, bool hflip>
 static inline void render_obj_tile_Nbpp(u32 px_comb,
   dsttype *dest_ptr, u32 tile_offset, u16 palette, const u16 *pal
 ) {
+#ifdef SF2000
+  const u8* tile_ptr = &vram[65536 + (tile_offset & 0x7FFF)];  // 0x10000 = 65536
+#else
   const u8* tile_ptr = &vram[0x10000 + (tile_offset & 0x7FFF)];
+#endif
   u32 px_attr = px_comb | palette | 0x100;  // Combine flags + high palette bit
 
   if (is8bpp) {
@@ -1248,7 +1256,11 @@ static void render_object_mosaic(
     if (!(i % mosh)) {
       // Load tile pixel color.
       u32 tile_offset = base_tile_offset + (offx / 8) * tile_size_off;
-      const u8* tile_ptr = &vram[0x10000 + (tile_offset & 0x7FFF)];
+    #ifdef SF2000
+  const u8* tile_ptr = &vram[65536 + (tile_offset & 0x7FFF)];  // 0x10000 = 65536
+#else
+  const u8* tile_ptr = &vram[0x10000 + (tile_offset & 0x7FFF)];
+#endif
 
       // Lookup for each mode and flip value.
       if (is8bpp) {

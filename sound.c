@@ -63,9 +63,15 @@ unsigned sound_timer(fixed8_24 frequency_step, u32 channel)
   u32 buffer_index = ds->buffer_index;
   s16 current_sample, next_sample;
 
+#ifdef SF2000
+  current_sample = ds->fifo[ds->fifo_base] << 4;  // *16 becomes <<4
+  ds->fifo_base = (ds->fifo_base + 1) & 31;       // %32 becomes &31
+  next_sample = ds->fifo[ds->fifo_base] << 4;     // *16 becomes <<4
+#else
   current_sample = ds->fifo[ds->fifo_base] * 16;
   ds->fifo_base = (ds->fifo_base + 1) % 32;
   next_sample = ds->fifo[ds->fifo_base] * 16;
+#endif
 
   if(sound_on == 1)
   {
