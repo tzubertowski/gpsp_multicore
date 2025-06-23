@@ -293,8 +293,14 @@ static void render_scanline_text_fast(u32 layer,
   u16 vcount = read_ioreg(REG_VCOUNT);
   u32 map_size = (bg_control >> 14) & 0x03;
   u32 map_width = map_widths[map_size];
+#ifdef SF2000
+  // SF2000: Use bit masks instead of expensive modulo
+  u32 hoffset = (start + read_ioreg(REG_BGxHOFS(layer))) & 511;
+  u32 voffset = (vcount + read_ioreg(REG_BGxVOFS(layer))) & 511;
+#else
   u32 hoffset = (start + read_ioreg(REG_BGxHOFS(layer))) % 512;
   u32 voffset = (vcount + read_ioreg(REG_BGxVOFS(layer))) % 512;
+#endif
   stype *dest_ptr = ((stype*)scanline) + start;
 
   // Calculate combine masks. These store 2 bits of info: 1st and 2nd target.
@@ -311,10 +317,18 @@ static void render_scanline_text_fast(u32 layer,
 
   // Skip the top one/two block(s) if using the bottom half
   if ((map_size & 0x02) && (voffset >= 256))
+#ifdef SF2000
+    map_base += ((map_width >> 3) << 5);  // /8 * 32 = >>3 <<5
+#else
     map_base += ((map_width / 8) * 32);
+#endif
 
   // Skip the top tiles within the block
+#ifdef SF2000
+  map_base += (((voffset & 255) >> 3) << 5);  // %256 /8 * 32 = &255 >>3 <<5
+#else
   map_base += (((voffset % 256) / 8) * 32);
+#endif
 
   // we might need to render from two charblocks, store a second pointer.
   second_ptr = map_ptr = map_base;
@@ -337,7 +351,11 @@ static void render_scanline_text_fast(u32 layer,
 
   // Render a single scanline of text tiles
   u32 tilewidth = is8bpp ? tile_width_8bpp : tile_width_4bpp;
+#ifdef SF2000
+  u32 vert_pix_offset = (voffset & 7) * tilewidth;  // %8 becomes &7
+#else
   u32 vert_pix_offset = (voffset % 8) * tilewidth;
+#endif
   // Calculate the pixel offset between a line and its "flipped" mirror.
   // The values can be {56, 40, 24, 8, -8, -24, -40, -56}
   s32 vflip_off = is8bpp ?
@@ -470,7 +488,11 @@ static void render_scanline_text_mosaic(u32 layer,
 
   // Render a single scanline of text tiles
   u32 tilewidth = is8bpp ? tile_width_8bpp : tile_width_4bpp;
+#ifdef SF2000
+  u32 vert_pix_offset = (voffset & 7) * tilewidth;  // %8 becomes &7
+#else
   u32 vert_pix_offset = (voffset % 8) * tilewidth;
+#endif
   // Calculate the pixel offset between a line and its "flipped" mirror.
   // The values can be {56, 40, 24, 8, -8, -24, -40, -56}
   s32 vflip_off = is8bpp ?
@@ -583,11 +605,20 @@ static inline u8 lookup_pix_8bpp(
   // Pitch represents the log2(number of tiles per row) (from 16 to 128)
   u32 map_pitch = map_size + 4;
   // Given coords (px,py) in the background space, find the tile.
+#ifdef SF2000
+  // SF2000: Replace expensive division with bit shifts
+  u32 mapoff = (px >> 3) + ((py >> 3) << map_pitch);
+  // Each tile is 8x8, so 64 bytes each.
+  const u8 *tile_ptr = &tile_base[map_base[mapoff] * tile_size_8bpp];
+  // Read the 8bit color within the tile.
+  return tile_ptr[(px & 7) + ((py & 7) << 3)];
+#else
   u32 mapoff = (px / 8) + ((py / 8) << map_pitch);
   // Each tile is 8x8, so 64 bytes each.
   const u8 *tile_ptr = &tile_base[map_base[mapoff] * tile_size_8bpp];
   // Read the 8bit color within the tile.
   return tile_ptr[(px % 8) + ((py % 8) * 8)];
+#endif
 }
 
 
