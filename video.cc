@@ -2527,7 +2527,11 @@ void update_scanline(void)
 
   // If the screen is in in forced blank draw pure white.
   if(dispcnt & 0x80)
+#ifdef SF2000
+    memset(screen_offset, 0xff, 480);  // 240 * 2 bytes
+#else
     memset(screen_offset, 0xff, 240*sizeof(u16));
+#endif
   else
     render_scanline_window(screen_offset);
 
@@ -2538,8 +2542,13 @@ void update_scanline(void)
 
     if (read_ioreg(REG_BG2CNT) & 0x40) {   // Mosaic enabled for this BG
       if ((vcount % bgmosv) == bgmosv-1) { // Correct after the last line
+#ifdef SF2000
         affine_reference_x[0] += (s16)read_ioreg(REG_BG2PB) * bgmosv;
         affine_reference_y[0] += (s16)read_ioreg(REG_BG2PD) * bgmosv;
+#else
+        affine_reference_x[0] += (s16)read_ioreg(REG_BG2PB) * bgmosv;
+        affine_reference_y[0] += (s16)read_ioreg(REG_BG2PD) * bgmosv;
+#endif
       }
     } else {
       affine_reference_x[0] += (s16)read_ioreg(REG_BG2PB);
@@ -2548,8 +2557,13 @@ void update_scanline(void)
 
     if (read_ioreg(REG_BG3CNT) & 0x40) {
       if ((vcount % bgmosv) == bgmosv-1) {
+#ifdef SF2000
         affine_reference_x[1] += (s16)read_ioreg(REG_BG3PB) * bgmosv;
         affine_reference_y[1] += (s16)read_ioreg(REG_BG3PD) * bgmosv;
+#else
+        affine_reference_x[1] += (s16)read_ioreg(REG_BG3PB) * bgmosv;
+        affine_reference_y[1] += (s16)read_ioreg(REG_BG3PD) * bgmosv;
+#endif
       }
     } else {
       affine_reference_x[1] += (s16)read_ioreg(REG_BG3PB);
