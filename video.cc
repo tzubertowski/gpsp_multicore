@@ -1712,6 +1712,28 @@ static void merge_blend(u32 start, u32 end, u16 *dst, u32 *src) {
     return;
   }
   
+  // Enhanced optimization: both factors zero means no blending at all
+  if (bldtype == BLEND_ONLY && blend_a == 0 && blend_b == 0) {
+    // No blending factors - simplified copy with layer priority
+    while (start < end) {
+      u32 pixpair = src[start];
+      if ((pixpair & 0x04000200) == 0x04000200) {
+        // Both layers present, use top layer (preserves text/UI)
+        dst[start++] = palette_ram_converted[pixpair & 0x1FF];
+      } else if ((pixpair & 0x04000000) == 0x04000000) {
+        // Only top layer
+        dst[start++] = palette_ram_converted[pixpair & 0x1FF];
+      } else if ((pixpair & 0x00000200) == 0x00000200) {
+        // Only bottom layer
+        dst[start++] = palette_ram_converted[(pixpair >> 16) & 0x1FF];
+      } else {
+        // Fallback
+        dst[start++] = palette_ram_converted[pixpair & 0x1FF];
+      }
+    }
+    return;
+  }
+  
   // Skip brightness effects when factor is 0
   if ((bldtype == BLEND_BRIGHT || bldtype == BLEND_DARK) && brightf == 0) {
     // No brightness change - just copy pixels
@@ -1834,6 +1856,35 @@ static void merge_brightness(u32 start, u32 end, u16 *srcdst) {
   u32 brightness = MIN(16, read_ioreg(REG_BLDY) & 0x1F);
 
 #ifdef SF2000
+  // SF2000 FAST BRIGHTNESS: Skip when no effect or extreme values in gameplay areas
+  if (brightness == 0) {
+    return; // No effect applied
+  }
+  
+  if (bldtype == BLEND_BRIGHT && brightness >= 15) {
+    // Nearly full white - check for safe optimization in gameplay area
+    u32 vcount = read_ioreg(REG_VCOUNT);
+    if (vcount > 32 && vcount < 128) {
+      // Likely gameplay area, safe to use white fill
+      for (u32 i = start; i < end; i++) {
+        srcdst[i] = 0x7FFF; // White pixel (15-bit RGB)
+      }
+      return;
+    }
+  }
+  
+  if (bldtype == BLEND_DARK && brightness >= 15) {
+    // Nearly full black - check for safe optimization in gameplay area  
+    u32 vcount = read_ioreg(REG_VCOUNT);
+    if (vcount > 32 && vcount < 128) {
+      // Likely gameplay area, safe to use black fill
+      for (u32 i = start; i < end; i++) {
+        srcdst[i] = 0; // Black pixel
+      }
+      return;
+    }
+  }
+
   // SF2000 PALETTE OPTIMIZATION: Simple local cache for brightness function  
   u16 palette_cache[4] = {0};
   u16 cache_indices[4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
