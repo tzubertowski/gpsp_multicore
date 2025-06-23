@@ -1772,9 +1772,19 @@ typedef enum
 template <blendtype bldtype, bool st_objs>
 static void merge_blend(u32 start, u32 end, u16 *dst, u32 *src) {
   u32 bldalpha = read_ioreg(REG_BLDALPHA);
+#ifdef SF2000
+  // SF2000: Optimize MIN operations - 0x1F mask already limits to 0-31
+  u32 bldy_val = read_ioreg(REG_BLDY) & 0x1F;
+  u32 brightf = bldy_val > 16 ? 16 : bldy_val;
+  u32 blend_a_val = (bldalpha >> 0) & 0x1F;
+  u32 blend_b_val = (bldalpha >> 8) & 0x1F;
+  u32 blend_a = blend_a_val > 16 ? 16 : blend_a_val;
+  u32 blend_b = blend_b_val > 16 ? 16 : blend_b_val;
+#else
   u32 brightf = MIN(16, read_ioreg(REG_BLDY) & 0x1F);
   u32 blend_a = MIN(16, (bldalpha >> 0) & 0x1F);
   u32 blend_b = MIN(16, (bldalpha >> 8) & 0x1F);
+#endif
 
 #ifdef SF2000
   // SF2000 BLEND OPTIMIZATION: Skip expensive blending when unnecessary
@@ -2034,7 +2044,12 @@ static void render_backdrop(u32 start, u32 end, u16 *scanline) {
   u32 bd_1st_target = ((bldcnt >> 0x5) & 0x01);
 
   if (bd_1st_target && effect == COL_EFFECT_BRIGHT) {
+#ifdef SF2000
+    u32 bldy_val = read_ioreg(REG_BLDY) & 0x1F;
+    u32 brightness = bldy_val > 16 ? 16 : bldy_val;
+#else
     u32 brightness = MIN(16, read_ioreg(REG_BLDY) & 0x1F);
+#endif
 
     // Unpack 16 bit pixel for fast blending operation
     u32 epixel = (pixcol | (pixcol << 16)) & BLND_MSK;
@@ -2044,7 +2059,12 @@ static void render_backdrop(u32 start, u32 end, u16 *scanline) {
     pixcol = (epixel >> 16) | epixel;
   }
   else if (bd_1st_target && effect == COL_EFFECT_DARK) {
+#ifdef SF2000
+    u32 bldy_val = read_ioreg(REG_BLDY) & 0x1F;
+    u32 brightness = bldy_val > 16 ? 16 : bldy_val;
+#else
     u32 brightness = MIN(16, read_ioreg(REG_BLDY) & 0x1F);
+#endif
     u32 epixel = (pixcol | (pixcol << 16)) & BLND_MSK;
     epixel = ((epixel * (16 - brightness)) >> 4) & BLND_MSK;  // Pixel color
     pixcol = (epixel >> 16) | epixel;
