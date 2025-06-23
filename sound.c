@@ -95,9 +95,13 @@ unsigned sound_timer(fixed8_24 frequency_step, u32 channel)
         /* render samples RIGHT */
         while(fifo_fractional <= 0xFFFFFF)
         {
+#ifdef SF2000
+           s16 dest_sample = current_sample + 
+              ((next_sample - current_sample) * (fifo_fractional >> 16)) >> 8;
+#else
            s16 dest_sample = current_sample +
               fp16_16_to_u32((next_sample - current_sample) * (fifo_fractional >> 8));
-
+#endif
            sound_buffer[buffer_index + 1]     += dest_sample;
 
            fifo_fractional += frequency_step;
@@ -109,9 +113,13 @@ unsigned sound_timer(fixed8_24 frequency_step, u32 channel)
         /* render samples LEFT */
         while(fifo_fractional <= 0xFFFFFF)
         {
+#ifdef SF2000
+           s16 dest_sample = current_sample + 
+              ((next_sample - current_sample) * (fifo_fractional >> 16)) >> 8;
+#else
            s16 dest_sample = current_sample +
               fp16_16_to_u32((next_sample - current_sample) * (fifo_fractional >> 8));
-
+#endif
            sound_buffer[buffer_index]     += dest_sample;
 
            fifo_fractional += frequency_step;
@@ -123,9 +131,13 @@ unsigned sound_timer(fixed8_24 frequency_step, u32 channel)
         /* render samples LEFT and RIGHT. */
         while(fifo_fractional <= 0xFFFFFF)
         {
+#ifdef SF2000
+           s16 dest_sample = current_sample + 
+              ((next_sample - current_sample) * (fifo_fractional >> 16)) >> 8;
+#else
            s16 dest_sample = current_sample +
               fp16_16_to_u32((next_sample - current_sample) * (fifo_fractional >> 8));
-
+#endif
            sound_buffer[buffer_index]     += dest_sample;
            sound_buffer[buffer_index + 1] += dest_sample;
            fifo_fractional += frequency_step;
@@ -416,6 +428,15 @@ void render_gbc_sound()
   if (!tick_delta)
     return;
 
+#ifdef SF2000
+  u32 master_volume = read_ioreg(REG_SOUNDCNT_L);
+  if ((master_volume & 0x88) == 0) {
+    gbc_sound_last_cpu_ticks = cpu_ticks;
+    write_ioreg(REG_SOUNDCNT_X, sound_status);
+    return;
+  }
+#endif
+
   gbc_update_count++;
   gbc_sound_partial_ticks += fp16_16_fractional_part(buffer_ticks);
   buffer_ticks = fp16_16_to_u32(buffer_ticks);
@@ -432,19 +453,31 @@ void render_gbc_sound()
     gs = gbc_sound_channel + 0;
     if(gs->active_flag)
     {
-      sound_status |= 0x01;
-      sample_data = &square_pattern_duty[gs->sample_table_idx][0];
-      envelope_volume = gs->envelope_volume;
-      gbc_sound_render_channel(samples, 8, envelope, sweep);
+#ifdef SF2000
+      if (gs->envelope_volume > 0 && (master_volume & 0x11) != 0) {
+#endif
+        sound_status |= 0x01;
+        sample_data = &square_pattern_duty[gs->sample_table_idx][0];
+        envelope_volume = gs->envelope_volume;
+        gbc_sound_render_channel(samples, 8, envelope, sweep);
+#ifdef SF2000
+      }
+#endif
     }
 
     gs = gbc_sound_channel + 1;
     if(gs->active_flag)
     {
-      sound_status |= 0x02;
-      sample_data = &square_pattern_duty[gs->sample_table_idx][0];
-      envelope_volume = gs->envelope_volume;
-      gbc_sound_render_channel(samples, 8, envelope, nosweep);
+#ifdef SF2000
+      if (gs->envelope_volume > 0 && (master_volume & 0x22) != 0) {
+#endif
+        sound_status |= 0x02;
+        sample_data = &square_pattern_duty[gs->sample_table_idx][0];
+        envelope_volume = gs->envelope_volume;
+        gbc_sound_render_channel(samples, 8, envelope, nosweep);
+#ifdef SF2000
+      }
+#endif
     }
 
     gs = gbc_sound_channel + 2;
@@ -466,35 +499,47 @@ void render_gbc_sound()
 
     if((gs->active_flag) && (gs->master_enable))
     {
-      sound_status |= 0x04;
-      sample_data = wave_samples;
-      if(gs->wave_type == 0)
-      {
-        if(gs->wave_bank == 1)
-          sample_data += 32;
+#ifdef SF2000
+      if ((master_volume & 0x44) != 0 && gs->envelope_volume > 0) {
+#endif
+        sound_status |= 0x04;
+        sample_data = wave_samples;
+        if(gs->wave_type == 0)
+        {
+          if(gs->wave_bank == 1)
+            sample_data += 32;
 
-        gbc_sound_render_channel(samples, 32, noenvelope, nosweep);
+          gbc_sound_render_channel(samples, 32, noenvelope, nosweep);
+        }
+        else
+        {
+          gbc_sound_render_channel(samples, 64, noenvelope, nosweep);
+        }
+#ifdef SF2000
       }
-      else
-      {
-        gbc_sound_render_channel(samples, 64, noenvelope, nosweep);
-      }
+#endif
     }
 
     gs = gbc_sound_channel + 3;
     if(gs->active_flag)
     {
-      sound_status |= 0x08;
-      envelope_volume = gs->envelope_volume;
+#ifdef SF2000
+      if (gs->envelope_volume > 0 && (master_volume & 0x88) != 0) {
+#endif
+        sound_status |= 0x08;
+        envelope_volume = gs->envelope_volume;
 
-      if(gs->noise_type == 1)
-      {
-        gbc_sound_render_channel(noise, half, envelope, nosweep);
+        if(gs->noise_type == 1)
+        {
+          gbc_sound_render_channel(noise, half, envelope, nosweep);
+        }
+        else
+        {
+          gbc_sound_render_channel(noise, full, envelope, nosweep);
+        }
+#ifdef SF2000
       }
-      else
-      {
-        gbc_sound_render_channel(noise, full, envelope, nosweep);
-      }
+#endif
     }
   }
 
