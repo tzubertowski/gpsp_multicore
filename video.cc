@@ -310,7 +310,11 @@ static void render_scanline_text_fast(u32 layer,
   // Background map data is in vram, at an offset specified in 2K blocks.
   // (each map data block is 32x32 tiles, at 16bpp, so 2KB)
   u32 base_block = (bg_control >> 8) & 0x1F;
+#ifdef SF2000
+  u16 *map_base = (u16 *)&vram[base_block << 11];  // *2048 becomes <<11
+#else
   u16 *map_base = (u16 *)&vram[base_block * 2048];
+#endif
   u16 *map_ptr, *second_ptr;
 
   end -= start;
@@ -337,17 +341,29 @@ static void render_scanline_text_fast(u32 layer,
     if(hoffset >= 256) {
       // If we are rendering the right block, skip a whole charblock
       hoffset -= 256;
+#ifdef SF2000
+      map_ptr += 1024;  // 32*32 = 1024 (constant)
+#else
       map_ptr += (32 * 32);
+#endif
     } else {
       // If we are rendering the left block, we might overrun into the right
+#ifdef SF2000
+      second_ptr += 1024;  // 32*32 = 1024 (constant)
+#else
       second_ptr += (32 * 32);
+#endif
     }
   } else {
     hoffset %= 256;     // Background is 256 pixels wide
   }
 
   // Skip the left blocks within the block
+#ifdef SF2000
+  map_ptr += hoffset >> 3;  // /8 becomes >>3
+#else
   map_ptr += hoffset / 8;
+#endif
 
   // Render a single scanline of text tiles
   u32 tilewidth = is8bpp ? tile_width_8bpp : tile_width_4bpp;
@@ -365,11 +381,19 @@ static void render_scanline_text_fast(u32 layer,
   // The tilemap base is selected via bgcnt (16KiB chunks)
   u32 tilecntrl = (bg_control >> 2) & 0x03;
   // Account for the base offset plus the tile vertical offset
+#ifdef SF2000
+  u8 *tile_base = &vram[(tilecntrl << 14) + vert_pix_offset];  // *16*1024 becomes <<14
+#else
   u8 *tile_base = &vram[tilecntrl * 16*1024 + vert_pix_offset];
+#endif
   // Number of pixels available until the end of the tile block
   u32 pixel_run = 256 - hoffset;
 
+#ifdef SF2000
+  u32 tile_hoff = hoffset & 7;  // %8 becomes &7
+#else
   u32 tile_hoff = hoffset % 8;
+#endif
   u32 partial_hcnt = 8 - tile_hoff;
 
   if (tile_hoff) {
@@ -394,7 +418,11 @@ static void render_scanline_text_fast(u32 layer,
     return;
 
   // Now render full tiles
+#ifdef SF2000
+  u32 todraw = MIN(end, pixel_run) >> 3;  // /8 becomes >>3
+#else
   u32 todraw = MIN(end, pixel_run) / 8;
+#endif
 
   for (u32 i = 0; i < todraw; i++, dest_ptr += 8) {
     u16 tile = eswap16(*map_ptr++);
@@ -416,7 +444,11 @@ static void render_scanline_text_fast(u32 layer,
   if (!pixel_run)
     map_ptr = second_ptr;
 
+#ifdef SF2000
+  todraw = end >> 3;  // /8 becomes >>3
+#else
   todraw = end / 8;
+#endif
   for (u32 i = 0; i < todraw; i++, dest_ptr += 8) {
     u16 tile = eswap16(*map_ptr++);
     if (tile & 0x400)   // Tile horizontal flip
@@ -460,7 +492,11 @@ static void render_scanline_text_mosaic(u32 layer,
   u32 bg_comb = color_flags(5), px_comb = color_flags(layer);
 
   u32 base_block = (bg_control >> 8) & 0x1F;
+#ifdef SF2000
+  u16 *map_base = (u16 *)&vram[base_block << 11];  // *2048 becomes <<11
+#else
   u16 *map_base = (u16 *)&vram[base_block * 2048];
+#endif
   u16 *map_ptr, *second_ptr;
 
   if ((map_size & 0x02) && (voffset >= 256))
@@ -474,17 +510,29 @@ static void render_scanline_text_mosaic(u32 layer,
     if(hoffset >= 256) {
       // If we are rendering the right block, skip a whole charblock
       hoffset -= 256;
+#ifdef SF2000
+      map_ptr += 1024;  // 32*32 = 1024 (constant)
+#else
       map_ptr += (32 * 32);
+#endif
     } else {
       // If we are rendering the left block, we might overrun into the right
+#ifdef SF2000
+      second_ptr += 1024;  // 32*32 = 1024 (constant)
+#else
       second_ptr += (32 * 32);
+#endif
     }
   } else {
     hoffset %= 256;     // Background is 256 pixels wide
   }
 
   // Skip the left blocks within the block
+#ifdef SF2000
+  map_ptr += hoffset >> 3;  // /8 becomes >>3
+#else
   map_ptr += hoffset / 8;
+#endif
 
   // Render a single scanline of text tiles
   u32 tilewidth = is8bpp ? tile_width_8bpp : tile_width_4bpp;
@@ -502,7 +550,11 @@ static void render_scanline_text_mosaic(u32 layer,
   // The tilemap base is selected via bgcnt (16KiB chunks)
   u32 tilecntrl = (bg_control >> 2) & 0x03;
   // Account for the base offset plus the tile vertical offset
+#ifdef SF2000
+  u8 *tile_base = &vram[(tilecntrl << 14) + vert_pix_offset];  // *16*1024 becomes <<14
+#else
   u8 *tile_base = &vram[tilecntrl * 16*1024 + vert_pix_offset];
+#endif
 
   u16 bgcolor = paltbl[0];
 
