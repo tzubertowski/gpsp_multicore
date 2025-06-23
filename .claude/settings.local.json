@@ -16,7 +16,8 @@
       "Bash(size:*)",
       "Bash(rg:*)",
       "Bash(awk:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git revert:*)"
     ],
     "deny": []
   }
