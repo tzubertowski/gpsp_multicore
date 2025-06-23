@@ -19,6 +19,7 @@
 
 #include "common.h"
 #include <ctype.h>
+#include <time.h>
 
 timer_type timer[4];
 
@@ -217,11 +218,75 @@ static void show_custom_splash() {
     gba_screen_pixels[i * GBA_SCREEN_WIDTH + (GBA_SCREEN_WIDTH - 1)] = 0x0000; // Right border
   }
   
+  // Generate dynamic version string - use build date in DDMMYYYY format
+  char version_str[32];
+  char version_reversed[32];
+  
+  time_t now = time(NULL);
+  if (now > 0 && now != (time_t)-1) {
+    // System time is available
+    struct tm *local_time = localtime(&now);
+    if (local_time && local_time->tm_year > 70) {
+      // Valid time (after 1970) - format as DDMMYYYY
+      snprintf(version_str, sizeof(version_str), "Ver %02d%02d%04d",
+               local_time->tm_mday,        // Day (01-31)
+               local_time->tm_mon + 1,     // Month (01-12)
+               local_time->tm_year + 1900); // Full year
+    } else {
+      // Use build date as fallback
+      const char* build_date = __DATE__;  // "Jun 23 2025"
+      
+      int month = 0, day = 0, year = 0;
+      char month_str[4];
+      sscanf(build_date, "%3s %d %d", month_str, &day, &year);
+      
+      // Convert month string to number
+      const char* months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+      for (int i = 0; i < 12; i++) {
+        if (strncmp(month_str, months[i], 3) == 0) {
+          month = i + 1;
+          break;
+        }
+      }
+      
+      snprintf(version_str, sizeof(version_str), "Ver %02d%02d%04d",
+               day, month, year);
+    }
+  } else {
+    // System time not available, use build date
+    const char* build_date = __DATE__;  // "Jun 23 2025"
+    
+    int month = 0, day = 0, year = 0;
+    char month_str[4];
+    sscanf(build_date, "%3s %d %d", month_str, &day, &year);
+    
+    // Convert month string to number
+    const char* months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    for (int i = 0; i < 12; i++) {
+      if (strncmp(month_str, months[i], 3) == 0) {
+        month = i + 1;
+        break;
+      }
+    }
+    
+    snprintf(version_str, sizeof(version_str), "Ver %02d%02d%04d",
+             day, month, year);
+  }
+  
+  // Reverse the string for mirrored display
+  int len = strlen(version_str);
+  for (i = 0; i < len; i++) {
+    version_reversed[i] = version_str[len - 1 - i];
+  }
+  version_reversed[len] = '\0';
+  
   // Draw splash text - using reversed strings for mirrored display
   draw_splash_text(gba_screen_pixels, "DLIUB ELBATSNU", 70, 40, red_color);
   draw_splash_text(gba_screen_pixels, "NOITIDE ETIRWER OEDIV", 40, 80, text_color);
   draw_splash_text(gba_screen_pixels, "YTSORP YB DEDDOM", 70, 120, accent_color);
-  draw_splash_text(gba_screen_pixels, "5202601r2 reV", 80, 140, text_color);
+  draw_splash_text(gba_screen_pixels, version_reversed, 80, 140, text_color);
   
   // Clean design without diagonal lines
 }
