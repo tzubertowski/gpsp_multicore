@@ -1017,21 +1017,40 @@ bool retro_load_game(const struct retro_game_info* info)
    if (fake_rtc_enabled && fake_rtc_state.enabled) {
       fake_rtc_load();
       
-      // Apply time bump after loading existing data
+      // Apply time bumps after loading existing data
       struct retro_variable var = {0};
-      var.key = "gpsp_fake_rtc_bump_minutes";
+      
+      // Handle persistent bump (applies every boot)
+      var.key = "gpsp_fake_rtc_persistent_bump_minutes";
       var.value = NULL;
       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
       {
          int current_bump = atoi(var.value);
-         printf("FAKE_RTC: Bump option='%s', current=%d, prev=%d\n", var.value, current_bump, fake_rtc_prev_time_bump);
+         printf("FAKE_RTC: Persistent bump option='%s', current=%d, prev=%d\n", var.value, current_bump, fake_rtc_prev_time_bump);
          if (current_bump != fake_rtc_prev_time_bump) {
             int bump_diff = current_bump - fake_rtc_prev_time_bump;
-            printf("FAKE_RTC: Applying bump diff=%d\n", bump_diff);
+            printf("FAKE_RTC: Applying persistent bump diff=%d\n", bump_diff);
             if (bump_diff != 0) {
                fake_rtc_bump_time(bump_diff);
             }
             fake_rtc_prev_time_bump = current_bump;
+         }
+      }
+      
+      // Handle one-off bump (applies once, then resets to 0)
+      var.key = "gpsp_fake_rtc_one_off_bump_minutes";
+      var.value = NULL;
+      if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+      {
+         int one_off_bump = atoi(var.value);
+         printf("FAKE_RTC: One-off bump option='%s', value=%d\n", var.value, one_off_bump);
+         if (one_off_bump != 0) {
+            printf("FAKE_RTC: Applying one-off bump=%d\n", one_off_bump);
+            fake_rtc_bump_time(one_off_bump);
+            
+            // Reset the option to 0 in the .opt file
+            printf("FAKE_RTC: Resetting one-off bump to 0\\n");
+            fake_rtc_reset_one_off_bump();
          }
       }
    }

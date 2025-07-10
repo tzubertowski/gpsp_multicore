@@ -124,9 +124,28 @@ struct retro_core_option_definition option_defs_us[] = {
       "enabled"
    },
    {
-      "gpsp_fake_rtc_bump_minutes",
-      "Manual Time Bump (Minutes)",
-      "Manually adjust the fake RTC time in minutes. Enter number of minutes to add/subtract. Use negative values to subtract time. Set back to 0 after applying.",
+      "gpsp_fake_rtc_persistent_bump_minutes",
+      "Persistent Time Bump (Minutes)",
+      "Time bump applied every boot. Enter number of minutes to add/subtract each time the core starts. Use negative values to subtract time.",
+      {
+         { "0", NULL },
+         { "30", "30 minutes" },
+         { "60", "1 hour" },
+         { "120", "2 hours" },
+         { "360", "6 hours" },
+         { "720", "12 hours" },
+         { "1440", "24 hours" },
+         { "-30", "-30 minutes" },
+         { "-60", "-1 hour" },
+         { "-120", "-2 hours" },
+         { NULL, NULL },
+      },
+      "0"
+   },
+   {
+      "gpsp_fake_rtc_one_off_bump_minutes",
+      "One-Off Time Bump (Minutes)",
+      "Time bump applied once only. After applying, this option automatically resets to 0. Use for one-time time adjustments.",
       {
          { "0", NULL },
          { "30", "30 minutes" },

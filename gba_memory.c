@@ -1372,6 +1372,100 @@ void fake_rtc_get_time(struct tm* time_out)
          fake_rtc_state.total_minutes, time_out->tm_hour, time_out->tm_min, time_out->tm_sec);
 }
 
+void fake_rtc_reset_one_off_bump(void)
+{
+  // Find and modify the .opt file to reset gpsp_fake_rtc_one_off_bump_minutes to 0
+  char opt_path[512];
+  
+  // Try multiple possible .opt file locations
+  char* possible_paths[] = {
+    "%s/gpSP.opt",
+    "%s/../configs/gpSP/gpSP.opt",
+    "/mnt/sda1/configs/gpSP/gpSP.opt",
+    "%s/configs/gpSP/gpSP.opt"
+  };
+  
+  FILE* file = NULL;
+  for (int i = 0; i < 4; i++) {
+    if (i == 2) {
+      // Direct path, no save_path substitution
+      strcpy(opt_path, possible_paths[i]);
+    } else {
+      snprintf(opt_path, sizeof(opt_path), possible_paths[i], save_path);
+    }
+    
+    printf("FAKE_RTC: Trying .opt file path: %s\n", opt_path);
+    file = fopen(opt_path, "r");
+    if (file) {
+      printf("FAKE_RTC: Found .opt file at: %s\n", opt_path);
+      break;
+    }
+  }
+  
+  if (!file) {
+    printf("FAKE_RTC: Could not find .opt file in any expected location\n");
+    return;
+  }
+  
+  // Read entire file content
+  fseek(file, 0, SEEK_END);
+  long file_size = ftell(file);
+  fseek(file, 0, SEEK_SET);
+  
+  char* content = malloc(file_size + 1);
+  if (!content) {
+    fclose(file);
+    return;
+  }
+  
+  fread(content, 1, file_size, file);
+  content[file_size] = '\0';
+  fclose(file);
+  
+  // Find and replace the one-off bump line
+  char* line_start = strstr(content, "gpsp_fake_rtc_one_off_bump_minutes");
+  if (line_start) {
+    // Find the start of the line
+    while (line_start > content && line_start[-1] != '\n') {
+      line_start--;
+    }
+    
+    // Find the end of the line
+    char* line_end = strchr(line_start, '\n');
+    if (!line_end) {
+      line_end = content + file_size;
+    }
+    
+    // Create new content with the line replaced
+    char* new_content = malloc(file_size + 100);
+    if (new_content) {
+      size_t prefix_len = line_start - content;
+      size_t suffix_len = file_size - (line_end - content);
+      
+      memcpy(new_content, content, prefix_len);
+      strcpy(new_content + prefix_len, "gpsp_fake_rtc_one_off_bump_minutes = \"0\"");
+      memcpy(new_content + prefix_len + strlen("gpsp_fake_rtc_one_off_bump_minutes = \"0\""), 
+             line_end, suffix_len);
+      
+      // Write back to file
+      file = fopen(opt_path, "w");
+      if (file) {
+        fwrite(new_content, 1, prefix_len + strlen("gpsp_fake_rtc_one_off_bump_minutes = \"0\"") + suffix_len, file);
+        fclose(file);
+        printf("FAKE_RTC: Successfully reset one-off bump to 0 in .opt file\n");
+      } else {
+        printf("FAKE_RTC: Could not write back to .opt file\n");
+      }
+      
+      free(new_content);
+    }
+  } else {
+    printf("FAKE_RTC: Could not find one-off bump line in .opt file\n");
+  }
+  
+  free(content);
+}
+
 // RTC writes need to reflect in the bytes [0xC4..0xC9] of the gamepak
 #define write_rtc_register(index, _value)                                     \
   update_address = 0x80000C4 + (index * 2);                                   \
