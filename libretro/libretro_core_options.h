@@ -113,6 +113,36 @@ struct retro_core_option_definition option_defs_us[] = {
       "auto"
    },
    {
+      "gpsp_fake_rtc",
+      "Fake RTC for SF2000",
+      "Enable fake RTC system for devices without hardware clock. Uses minute-based counter with persistence and manual time control.",
+      {
+         { "enabled",  NULL },
+         { "disabled", NULL },
+         { NULL, NULL },
+      },
+      "enabled"
+   },
+   {
+      "gpsp_fake_rtc_bump_minutes",
+      "Manual Time Bump (Minutes)",
+      "Manually adjust the fake RTC time in minutes. Enter number of minutes to add/subtract. Use negative values to subtract time. Set back to 0 after applying.",
+      {
+         { "0", NULL },
+         { "30", "30 minutes" },
+         { "60", "1 hour" },
+         { "120", "2 hours" },
+         { "360", "6 hours" },
+         { "720", "12 hours" },
+         { "1440", "24 hours" },
+         { "-30", "-30 minutes" },
+         { "-60", "-1 hour" },
+         { "-120", "-2 hours" },
+         { NULL, NULL },
+      },
+      "0"
+   },
+   {
       "gpsp_serial",
       "Link Cable Connectivity",
       "Configures the serial (Link Cable) connection. Automatic will pick up a reasonable support for most known games.",

@@ -1208,6 +1208,11 @@ u32 rtc_status = 0x40;
 u32 rtc_data_bytes;
 s32 rtc_bit_count;
 
+// Fake RTC system for SF2000 and devices without hardware clock
+fake_rtc_state_type fake_rtc_state = {0};
+bool fake_rtc_enabled = false;
+int fake_rtc_prev_time_bump = 0;
+
 static u32 encode_bcd(u8 value)
 {
   int l = 0;
@@ -1218,6 +1223,153 @@ static u32 encode_bcd(u8 value)
   h = value / 10;
 
   return h * 16 + l;
+}
+
+// Fake RTC implementation for SF2000
+#define FAKE_RTC_EPOCH_YEAR 2000
+#define FAKE_RTC_SAVE_FILE "gpsp_rtc.dat"
+
+void fake_rtc_init(void)
+{
+  // Preserve existing total_minutes if already set (don't reset to 0)
+  u32 existing_minutes = fake_rtc_state.total_minutes;
+  
+  fake_rtc_state.last_real_time = 0;
+  fake_rtc_state.enabled = false;
+  fake_rtc_state.needs_save = false;
+  fake_rtc_prev_time_bump = 0;
+  
+  // Restore the preserved minutes
+  fake_rtc_state.total_minutes = existing_minutes;
+  
+  if (fake_rtc_enabled) {
+    fake_rtc_state.enabled = true;
+    // Don't load here - will be loaded after save_path is set
+  }
+}
+
+void fake_rtc_update(void)
+{
+  if (!fake_rtc_state.enabled) return;
+  
+  time_t current_real_time;
+  time(&current_real_time);
+  u32 current_real_time_u32 = (u32)current_real_time;
+  
+  if (fake_rtc_state.last_real_time == 0) {
+    fake_rtc_state.last_real_time = current_real_time_u32;
+    return;
+  }
+  
+  // Calculate elapsed minutes since last update
+  u32 elapsed_seconds = current_real_time_u32 - fake_rtc_state.last_real_time;
+  u32 elapsed_minutes = elapsed_seconds / 60;
+  
+  if (elapsed_minutes > 0) {
+    fake_rtc_state.total_minutes += elapsed_minutes;
+    fake_rtc_state.last_real_time = current_real_time_u32;
+    fake_rtc_state.needs_save = true;
+  }
+  
+  // Save periodically (every 5 minutes of real time)
+  static u32 last_save_time = 0;
+  if (fake_rtc_state.needs_save && (current_real_time_u32 - last_save_time) >= 300) {
+    fake_rtc_save();
+    last_save_time = current_real_time_u32;
+    fake_rtc_state.needs_save = false;
+  }
+}
+
+void fake_rtc_save(void)
+{
+  if (!fake_rtc_state.enabled) return;
+  
+  char save_path_full[512];
+  snprintf(save_path_full, sizeof(save_path_full), "%s/%s", save_path, FAKE_RTC_SAVE_FILE);
+  
+  printf("FAKE_RTC: Saving %u minutes to '%s'\n", fake_rtc_state.total_minutes, save_path_full);
+  
+  FILE* file = fopen(save_path_full, "wb");
+  if (file) {
+    fwrite(&fake_rtc_state.total_minutes, sizeof(u32), 1, file);
+    fclose(file);
+    printf("FAKE_RTC: Save successful\n");
+  } else {
+    printf("FAKE_RTC: Save failed - could not open file\n");
+  }
+}
+
+void fake_rtc_load(void)
+{
+  if (!fake_rtc_state.enabled) return;
+  
+  char save_path_full[512];
+  snprintf(save_path_full, sizeof(save_path_full), "%s/%s", save_path, FAKE_RTC_SAVE_FILE);
+  
+  printf("FAKE_RTC: Loading from '%s'\n", save_path_full);
+  
+  FILE* file = fopen(save_path_full, "rb");
+  if (file) {
+    if (fread(&fake_rtc_state.total_minutes, sizeof(u32), 1, file) == 1) {
+      printf("FAKE_RTC: Loaded %u minutes from file\n", fake_rtc_state.total_minutes);
+    } else {
+      fake_rtc_state.total_minutes = 0; // Default if file corrupt
+      printf("FAKE_RTC: File corrupt, defaulting to 0\n");
+    }
+    fclose(file);
+  } else {
+    fake_rtc_state.total_minutes = 0; // Default if no file
+    printf("FAKE_RTC: File not found, defaulting to 0\n");
+  }
+  
+  time_t temp_time;
+  time(&temp_time);
+  fake_rtc_state.last_real_time = (u32)temp_time;
+}
+
+void fake_rtc_bump_time(int bump_minutes)
+{
+  printf("FAKE_RTC: bump_time called with %d minutes, enabled=%d\n", bump_minutes, fake_rtc_state.enabled);
+  if (!fake_rtc_state.enabled) return;
+  
+  u32 old_total = fake_rtc_state.total_minutes;
+  
+  if (bump_minutes > 0) {
+    fake_rtc_state.total_minutes += bump_minutes;
+  } else if (bump_minutes < 0) {
+    // Subtract time, but don't go below 0
+    u32 subtract_minutes = (u32)(-bump_minutes);
+    if (fake_rtc_state.total_minutes >= subtract_minutes) {
+      fake_rtc_state.total_minutes -= subtract_minutes;
+    } else {
+      fake_rtc_state.total_minutes = 0;
+    }
+  }
+  
+  printf("FAKE_RTC: total_minutes changed from %u to %u\n", old_total, fake_rtc_state.total_minutes);
+  
+  fake_rtc_state.needs_save = true;
+  fake_rtc_save(); // Save immediately after manual bump
+}
+
+void fake_rtc_get_time(struct tm* time_out)
+{
+  if (!fake_rtc_state.enabled) {
+    // Fallback to system time if fake RTC disabled
+    time_t current_time_flat;
+    time(&current_time_flat);
+    *time_out = *localtime(&current_time_flat);
+    printf("FAKE_RTC: get_time called, but fake RTC disabled - using system time\n");
+    return;
+  }
+  
+  // Calculate time from epoch: January 1, 2000, 00:00
+  time_t epoch_time = 946684800; // Unix timestamp for Jan 1, 2000 00:00 UTC
+  time_t fake_time = epoch_time + (fake_rtc_state.total_minutes * 60);
+  
+  *time_out = *localtime(&fake_time);
+  printf("FAKE_RTC: get_time called, total_minutes=%u, returning %02d:%02d:%02d\n", 
+         fake_rtc_state.total_minutes, time_out->tm_hour, time_out->tm_min, time_out->tm_sec);
 }
 
 // RTC writes need to reflect in the bytes [0xC4..0xC9] of the gamepak
@@ -1306,21 +1458,20 @@ void function_cc write_rtc(u32 address, u32 value)
                   // Actually outputs the time, all of it
                   case RTC_COMMAND_OUTPUT_TIME_FULL:
                   {
-                    struct tm *current_time;
-                    time_t current_time_flat;
-
-                    time(&current_time_flat);
-                    current_time = localtime(&current_time_flat);
+                    struct tm current_time;
+                    
+                    // Use fake RTC if enabled, otherwise use system time
+                    fake_rtc_get_time(&current_time);
 
                     rtc_state = RTC_OUTPUT_DATA;
                     rtc_data_bytes = 7;
-                    rtc_data[0] = encode_bcd(current_time->tm_year);
-                    rtc_data[1] = encode_bcd(current_time->tm_mon + 1);
-                    rtc_data[2] = encode_bcd(current_time->tm_mday);
-                    rtc_data[3] = encode_bcd(current_time->tm_wday);
-                    rtc_data[4] = encode_bcd(current_time->tm_hour);
-                    rtc_data[5] = encode_bcd(current_time->tm_min);
-                    rtc_data[6] = encode_bcd(current_time->tm_sec);
+                    rtc_data[0] = encode_bcd(current_time.tm_year);
+                    rtc_data[1] = encode_bcd(current_time.tm_mon + 1);
+                    rtc_data[2] = encode_bcd(current_time.tm_mday);
+                    rtc_data[3] = encode_bcd(current_time.tm_wday);
+                    rtc_data[4] = encode_bcd(current_time.tm_hour);
+                    rtc_data[5] = encode_bcd(current_time.tm_min);
+                    rtc_data[6] = encode_bcd(current_time.tm_sec);
 
                     break;
                   }
@@ -1328,17 +1479,16 @@ void function_cc write_rtc(u32 address, u32 value)
                   // Only outputs the current time of day.
                   case RTC_COMMAND_OUTPUT_TIME:
                   {
-                    struct tm *current_time;
-                    time_t current_time_flat;
-
-                    time(&current_time_flat);
-                    current_time = localtime(&current_time_flat);
+                    struct tm current_time;
+                    
+                    // Use fake RTC if enabled, otherwise use system time
+                    fake_rtc_get_time(&current_time);
 
                     rtc_state = RTC_OUTPUT_DATA;
                     rtc_data_bytes = 3;
-                    rtc_data[0] = encode_bcd(current_time->tm_hour);
-                    rtc_data[1] = encode_bcd(current_time->tm_min);
-                    rtc_data[2] = encode_bcd(current_time->tm_sec);
+                    rtc_data[0] = encode_bcd(current_time.tm_hour);
+                    rtc_data[1] = encode_bcd(current_time.tm_min);
+                    rtc_data[2] = encode_bcd(current_time.tm_sec);
                     break;
                   }
                 }
@@ -2415,10 +2565,16 @@ void init_memory(void)
   rtc_state = RTC_DISABLED;
   memset(rtc_registers, 0, sizeof(rtc_registers));
   reg[REG_BUS_VALUE] = 0xe129f000;
+  
+  // Initialize fake RTC system
+  fake_rtc_init();
 }
 
 void memory_term(void)
 {
+  // Save fake RTC state before termination
+  fake_rtc_save();
+  
   if (gamepak_file_large)
   {
     filestream_close(gamepak_file_large);
