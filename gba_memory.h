@@ -321,6 +321,7 @@ void fake_rtc_save(void);
 void fake_rtc_load(void);
 void fake_rtc_bump_time(int bump_minutes);
 void fake_rtc_get_time(struct tm* time_out);
+void fake_rtc_reset_one_off_bump(void);
 
 // Page sticky bit routines
 extern u32 gamepak_sticky_bit[1024/32];
