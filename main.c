@@ -284,7 +284,7 @@ static void show_custom_splash() {
   
   // Draw splash text - using reversed strings for mirrored display
   draw_splash_text(gba_screen_pixels, "DLIUB ELBATSNU", 70, 40, red_color);
-  draw_splash_text(gba_screen_pixels, "NOITIDE ETIRWER OEDIV", 40, 80, text_color);
+  draw_splash_text(gba_screen_pixels, "NOITIDE CTR EKAF", 40, 80, text_color);
   draw_splash_text(gba_screen_pixels, "YTSORP YB DEDDOM", 70, 120, accent_color);
   draw_splash_text(gba_screen_pixels, version_reversed, 80, 140, text_color);
   
