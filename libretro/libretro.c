@@ -916,6 +916,23 @@ static void check_variables(int started_from_load)
       turbo_a_counter = 0;
       turbo_b_counter = 0;
    }
+
+   // Fake RTC options
+   var.key = "gpsp_fake_rtc";
+   var.value = NULL;
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+   {
+      bool new_fake_rtc_enabled = (strcmp(var.value, "enabled") == 0);
+      printf("FAKE_RTC: Option value='%s', enabled=%d\n", var.value, new_fake_rtc_enabled);
+      if (new_fake_rtc_enabled != fake_rtc_enabled) {
+         fake_rtc_enabled = new_fake_rtc_enabled;
+         fake_rtc_state.enabled = fake_rtc_enabled;
+         printf("FAKE_RTC: State changed, now enabled=%d\n", fake_rtc_enabled);
+         // Don't load here - wait until save_path is set
+      }
+   }
+
+   // Time bump will be handled after save directory is set
 }
 
 static void set_input_descriptors()
@@ -995,6 +1012,29 @@ bool retro_load_game(const struct retro_game_info* info)
       strcpy(save_path, dir);
    else
       strcpy(save_path, main_path);
+   
+   // Load fake RTC data now that save_path is set
+   if (fake_rtc_enabled && fake_rtc_state.enabled) {
+      fake_rtc_load();
+      
+      // Apply time bump after loading existing data
+      struct retro_variable var = {0};
+      var.key = "gpsp_fake_rtc_bump_minutes";
+      var.value = NULL;
+      if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+      {
+         int current_bump = atoi(var.value);
+         printf("FAKE_RTC: Bump option='%s', current=%d, prev=%d\n", var.value, current_bump, fake_rtc_prev_time_bump);
+         if (current_bump != fake_rtc_prev_time_bump) {
+            int bump_diff = current_bump - fake_rtc_prev_time_bump;
+            printf("FAKE_RTC: Applying bump diff=%d\n", bump_diff);
+            if (bump_diff != 0) {
+               fake_rtc_bump_time(bump_diff);
+            }
+            fake_rtc_prev_time_bump = current_bump;
+         }
+      }
+   }
 
    if (environ_cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &dir) && dir)
       strcpy(filename_bios, dir);
@@ -1126,6 +1166,9 @@ void retro_run(void)
 
    input_poll_cb();
    update_input();
+   
+   // Update fake RTC system
+   fake_rtc_update();
 
    /* Check whether current frame should
     * be skipped */

@@ -303,6 +303,25 @@ extern u32 eeprom_size;
 
 extern u8 gamepak_backup[1024 * 128];
 
+// Fake RTC system for SF2000 and devices without hardware clock
+typedef struct {
+  u32 total_minutes;           // Total minutes since epoch (Jan 1, 2000 00:00)
+  u32 last_real_time;          // Last real time check for auto-increment (seconds)
+  bool enabled;                // Whether fake RTC is enabled
+  bool needs_save;             // Flag to save data periodically
+} fake_rtc_state_type;
+
+extern fake_rtc_state_type fake_rtc_state;
+extern bool fake_rtc_enabled;
+extern int fake_rtc_prev_time_bump;
+
+void fake_rtc_init(void);
+void fake_rtc_update(void);
+void fake_rtc_save(void);
+void fake_rtc_load(void);
+void fake_rtc_bump_time(int bump_minutes);
+void fake_rtc_get_time(struct tm* time_out);
+
 // Page sticky bit routines
 extern u32 gamepak_sticky_bit[1024/32];
 static inline void touch_gamepak_page(u32 physical_index)
