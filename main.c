@@ -283,10 +283,10 @@ static void show_custom_splash() {
   version_reversed[len] = '\0';
   
   // Draw splash text - using reversed strings for mirrored display
-  draw_splash_text(gba_screen_pixels, "DLIUB ELBATSNU", 70, 40, red_color);
-  draw_splash_text(gba_screen_pixels, "NOITIDE CTR EKAF", 40, 80, text_color);
-  draw_splash_text(gba_screen_pixels, "YTSORP YB DEDDOM", 70, 120, accent_color);
-  draw_splash_text(gba_screen_pixels, version_reversed, 80, 140, text_color);
+  draw_splash_text(gba_screen_pixels, "V HSAD PSPG", 90, 40, text_color);
+  draw_splash_text(gba_screen_pixels, "YTSORP YB DOM", 80, 60, accent_color);
+  draw_splash_text(gba_screen_pixels, "Ksx5vHkKfvb/gg.drocsid", 20, 100, text_color);
+  draw_splash_text(gba_screen_pixels, version_reversed, 80, 120, text_color);
   
   // Clean design without diagonal lines
 }
