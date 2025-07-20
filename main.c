@@ -408,14 +408,6 @@ u32 function_cc update_gba(int remaining_cycles)
     unsigned completed_cycles = execute_cycles - remaining_cycles;
     cpu_ticks += completed_cycles;
 
-#if defined(MIPS_ARCH) && !defined(HAVE_DYNAREC)
-    /* PERFORMANCE: Aggressive cycle batching for soft FPU MIPS interpreter */
-    if (completed_cycles < 256) {
-      // Skip timing updates for small cycle counts to reduce overhead
-      remaining_cycles = 0;
-      continue;
-    }
-#endif
 
     remaining_cycles = 0;
 

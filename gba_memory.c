@@ -2660,14 +2660,14 @@ void init_memory(void)
   memset(rtc_registers, 0, sizeof(rtc_registers));
   reg[REG_BUS_VALUE] = 0xe129f000;
   
-  // Initialize fake RTC system
-  fake_rtc_init();
+  // Initialize fake RTC system - DISABLED
+  // fake_rtc_init();
 }
 
 void memory_term(void)
 {
-  // Save fake RTC state before termination
-  fake_rtc_save();
+  // Save fake RTC state before termination - DISABLED
+  // fake_rtc_save();
   
   if (gamepak_file_large)
   {
