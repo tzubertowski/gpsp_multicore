@@ -303,7 +303,7 @@ extern u32 eeprom_size;
 
 extern u8 gamepak_backup[1024 * 128];
 
-// Fake RTC system for SF2000 and devices without hardware clock
+// Fake RTC system disabled - using stubs
 typedef struct {
   u32 total_minutes;           // Total minutes since epoch (Jan 1, 2000 00:00)
   u32 last_real_time;          // Last real time check for auto-increment (seconds)

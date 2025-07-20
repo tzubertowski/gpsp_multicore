@@ -212,14 +212,20 @@ static void video_post_process_cc(void)
 {
    uint16_t *src = gba_screen_pixels;
    uint16_t *dst = gba_processed_pixels;
-   
-   /* Optimized: Single loop, better cache locality, reduced pointer arithmetic */
-   const size_t total_pixels = GBA_SCREEN_HEIGHT * GBA_SCREEN_PITCH;
-   for (size_t i = 0; i < total_pixels; i++)
+   size_t x, y;
+
+   for (y = 0; y < GBA_SCREEN_HEIGHT; y++)
    {
-      u16 src_color = src[i];
-      /* Convert colour to RGB555 and perform lookup */
-      dst[i] = gba_cc_lut[(src_color & 0xFFC0) >> 1 | (src_color & 0x1F)];
+      for (x = 0; x < GBA_SCREEN_PITCH; x++)
+      {
+         u16 src_color = *(src + x);
+
+         /* Convert colour to RGB555 and perform lookup */
+         *(dst + x) = *(gba_cc_lut + (((src_color & 0xFFC0) >> 1) | (src_color & 0x1F)));
+      }
+
+      src += GBA_SCREEN_PITCH;
+      dst += GBA_SCREEN_PITCH;
    }
 }
 
@@ -228,22 +234,28 @@ static void video_post_process_mix(void)
    uint16_t *src_curr = gba_screen_pixels;
    uint16_t *src_prev = gba_screen_pixels_prev;
    uint16_t *dst      = gba_processed_pixels;
+   size_t x, y;
 
-   /* Optimized: Single loop, better cache usage, reduced memory ops */
-   const size_t total_pixels = GBA_SCREEN_HEIGHT * GBA_SCREEN_PITCH;
-   for (size_t i = 0; i < total_pixels; i++)
+   for (y = 0; y < GBA_SCREEN_HEIGHT; y++)
    {
-      /* Get colours from current + previous frames (RGB565) */
-      uint16_t rgb_curr = src_curr[i];
-      uint16_t rgb_prev = src_prev[i];
+      for (x = 0; x < GBA_SCREEN_PITCH; x++)
+      {
+         /* Get colours from current + previous frames (RGB565) */
+         uint16_t rgb_curr = *(src_curr + x);
+         uint16_t rgb_prev = *(src_prev + x);
 
-      /* Store colours for next frame */
-      src_prev[i] = rgb_curr;
+         /* Store colours for next frame */
+         *(src_prev + x)   = rgb_curr;
 
-      /* Mix colours
-       * > "Mixing Packed RGB Pixels Efficiently"
-       *   http://blargg.8bitalley.com/info/rgb_mixing.html */
-      dst[i] = (rgb_curr + rgb_prev + ((rgb_curr ^ rgb_prev) & 0x821)) >> 1;
+         /* Mix colours
+          * > "Mixing Packed RGB Pixels Efficiently"
+          *   http://blargg.8bitalley.com/info/rgb_mixing.html */
+         *(dst + x)        = (rgb_curr + rgb_prev + ((rgb_curr ^ rgb_prev) & 0x821)) >> 1;
+      }
+
+      src_curr += GBA_SCREEN_PITCH;
+      src_prev += GBA_SCREEN_PITCH;
+      dst      += GBA_SCREEN_PITCH;
    }
 }
 
@@ -252,25 +264,31 @@ static void video_post_process_cc_mix(void)
    uint16_t *src_curr = gba_screen_pixels;
    uint16_t *src_prev = gba_screen_pixels_prev;
    uint16_t *dst      = gba_processed_pixels;
+   size_t x, y;
 
-   /* Optimized: Single loop, minimal memory operations */
-   const size_t total_pixels = GBA_SCREEN_HEIGHT * GBA_SCREEN_PITCH;
-   for (size_t i = 0; i < total_pixels; i++)
+   for (y = 0; y < GBA_SCREEN_HEIGHT; y++)
    {
-      /* Get colours from current + previous frames (RGB565) */
-      uint16_t rgb_curr = src_curr[i];
-      uint16_t rgb_prev = src_prev[i];
+      for (x = 0; x < GBA_SCREEN_PITCH; x++)
+      {
+         /* Get colours from current + previous frames (RGB565) */
+         uint16_t rgb_curr = *(src_curr + x);
+         uint16_t rgb_prev = *(src_prev + x);
 
-      /* Store colours for next frame */
-      src_prev[i] = rgb_curr;
+         /* Store colours for next frame */
+         *(src_prev + x)   = rgb_curr;
 
-      /* Mix colours
-       * > "Mixing Packed RGB Pixels Efficiently"
-       *   http://blargg.8bitalley.com/info/rgb_mixing.html */
-      uint16_t rgb_mix = (rgb_curr + rgb_prev + ((rgb_curr ^ rgb_prev) & 0x821)) >> 1;
+         /* Mix colours
+          * > "Mixing Packed RGB Pixels Efficiently"
+          *   http://blargg.8bitalley.com/info/rgb_mixing.html */
+         uint16_t rgb_mix  = (rgb_curr + rgb_prev + ((rgb_curr ^ rgb_prev) & 0x821)) >> 1;
 
-      /* Convert colour to RGB555 and perform lookup */
-      dst[i] = gba_cc_lut[(rgb_mix & 0xFFC0) >> 1 | (rgb_mix & 0x1F)];
+         /* Convert colour to RGB555 and perform lookup */
+         *(dst + x) = *(gba_cc_lut + (((rgb_mix & 0xFFC0) >> 1) | (rgb_mix & 0x1F)));
+      }
+
+      src_curr += GBA_SCREEN_PITCH;
+      src_prev += GBA_SCREEN_PITCH;
+      dst      += GBA_SCREEN_PITCH;
    }
 }
 
@@ -399,8 +417,13 @@ static void video_run(void)
 
    if (video_post_process)
    {
+#ifdef SF2000
+      /* AGGRESSIVE SF2000: Skip expensive post-processing for max performance */
+      gba_screen_pixels_buf = gba_screen_pixels;
+#else
       video_post_process();
       gba_screen_pixels_buf = gba_processed_pixels;
+#endif
    }
 
    video_cb(gba_screen_pixels_buf, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT,
@@ -917,22 +940,6 @@ static void check_variables(int started_from_load)
       turbo_b_counter = 0;
    }
 
-   // Fake RTC options
-   var.key = "gpsp_fake_rtc";
-   var.value = NULL;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      bool new_fake_rtc_enabled = (strcmp(var.value, "enabled") == 0);
-      printf("FAKE_RTC: Option value='%s', enabled=%d\n", var.value, new_fake_rtc_enabled);
-      if (new_fake_rtc_enabled != fake_rtc_enabled) {
-         fake_rtc_enabled = new_fake_rtc_enabled;
-         fake_rtc_state.enabled = fake_rtc_enabled;
-         printf("FAKE_RTC: State changed, now enabled=%d\n", fake_rtc_enabled);
-         // Don't load here - wait until save_path is set
-      }
-   }
-
-   // Time bump will be handled after save directory is set
 }
 
 static void set_input_descriptors()
@@ -1013,47 +1020,6 @@ bool retro_load_game(const struct retro_game_info* info)
    else
       strcpy(save_path, main_path);
    
-   // Load fake RTC data now that save_path is set
-   if (fake_rtc_enabled && fake_rtc_state.enabled) {
-      fake_rtc_load();
-      
-      // Apply time bumps after loading existing data
-      struct retro_variable var = {0};
-      
-      // Handle persistent bump (applies every boot)
-      var.key = "gpsp_fake_rtc_persistent_bump_minutes";
-      var.value = NULL;
-      if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-      {
-         int current_bump = atoi(var.value);
-         printf("FAKE_RTC: Persistent bump option='%s', current=%d, prev=%d\n", var.value, current_bump, fake_rtc_prev_time_bump);
-         if (current_bump != fake_rtc_prev_time_bump) {
-            int bump_diff = current_bump - fake_rtc_prev_time_bump;
-            printf("FAKE_RTC: Applying persistent bump diff=%d\n", bump_diff);
-            if (bump_diff != 0) {
-               fake_rtc_bump_time(bump_diff);
-            }
-            fake_rtc_prev_time_bump = current_bump;
-         }
-      }
-      
-      // Handle one-off bump (applies once, then resets to 0)
-      var.key = "gpsp_fake_rtc_one_off_bump_minutes";
-      var.value = NULL;
-      if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-      {
-         int one_off_bump = atoi(var.value);
-         printf("FAKE_RTC: One-off bump option='%s', value=%d\n", var.value, one_off_bump);
-         if (one_off_bump != 0) {
-            printf("FAKE_RTC: Applying one-off bump=%d\n", one_off_bump);
-            fake_rtc_bump_time(one_off_bump);
-            
-            // Reset the option to 0 in the .opt file
-            printf("FAKE_RTC: Resetting one-off bump to 0\\n");
-            fake_rtc_reset_one_off_bump();
-         }
-      }
-   }
 
    if (environ_cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &dir) && dir)
       strcpy(filename_bios, dir);
@@ -1185,9 +1151,6 @@ void retro_run(void)
 
    input_poll_cb();
    update_input();
-   
-   // Update fake RTC system
-   fake_rtc_update();
 
    /* Check whether current frame should
     * be skipped */
