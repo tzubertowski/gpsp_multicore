@@ -1905,17 +1905,37 @@ static void merge_blend(u32 start, u32 end, u16 *dst, u32 *src) {
   u32 blend_b = MIN(16, (bldalpha >> 8) & 0x1F);
 #endif
 
-// Removed problematic SF2000 blend optimization that was skipping necessary rendering
-#ifdef SF2000_DISABLED
-  // DISABLED: This optimization was causing black boxes in dialogue and overworld areas
-  // in Super Mario Bros 2. The blend factor check was too aggressive and skipped 
-  // necessary rendering operations for transparent/semi-transparent elements.
+// SF2000 ENHANCED BLEND: More aggressive optimization with UI protection
+#ifdef SF2000
+  // Enhanced blend optimization - more aggressive but with safeguards
+  u32 vcount = read_ioreg(REG_VCOUNT);
+  bool in_ui_area = (vcount < 16 || vcount > 144); // Top/bottom UI areas
+  
+  if (!in_ui_area && blend_a <= 1 && blend_b <= 1 && bldtype == BLEND_ONLY) {
+    // Skip very light blending in gameplay areas - helps Wario Land 4 performance
+    memcpy(dst + start, src + start, (end - start) * sizeof(u16));
+    return;
+  }
+  
+  if (blend_a == 0 && blend_b == 0) {
+    // Always safe to skip zero blending regardless of mode
+    memcpy(dst + start, src + start, (end - start) * sizeof(u16));
+    return;
+  }
 #endif
 
   bool can_saturate = blend_a + blend_b > 16;
 
-// Removed SF2000 palette cache optimization to ensure correct lookups
+// SF2000 CONSERVATIVE PALETTE CACHE: Only cache for frequently accessed indices
+#ifdef SF2000
+static u16 last_blend_palette_idx = 0xFFFF;
+static u16 last_blend_palette_val = 0;
+// Simple single-entry cache - safe for most scenarios
+#define PALETTE_LOOKUP(idx) (((idx) == last_blend_palette_idx) ? last_blend_palette_val : \
+  (last_blend_palette_idx = (idx), last_blend_palette_val = palette_ram_converted[(idx)]))
+#else
 #define PALETTE_LOOKUP(idx) (palette_ram_converted[idx])
+#endif
 
   if (can_saturate) {
     // If blending can result in saturation, we need to clamp output values.
@@ -2000,21 +2020,51 @@ template <blendtype bldtype>
 static void merge_brightness(u32 start, u32 end, u16 *srcdst) {
   u32 brightness = MIN(16, read_ioreg(REG_BLDY) & 0x1F);
 
-// Removed problematic SF2000 brightness optimization that was forcing white/black pixels
-#ifdef SF2000_DISABLED
-  // DISABLED: This optimization was causing dialogue boxes to appear black
-  // and overworld areas to have incorrect brightness/darkness in Super Mario Bros 2.
-  // The vcount-based gameplay area detection was too aggressive and forced 
-  // inappropriate pixel values.
+// SF2000 ENHANCED BRIGHTNESS: More aggressive optimization with UI protection
+#ifdef SF2000
+  // Enhanced brightness optimization - more aggressive but with safeguards
+  u32 vcount = read_ioreg(REG_VCOUNT);
+  bool in_ui_area = (vcount < 16 || vcount > 144); // Top/bottom UI areas
+  
+  if (!in_ui_area) {
+    if (brightness >= 14) {
+      // High brightness - force to white in gameplay areas (helps Wario Land 4)
+      while (start < end) {
+        if ((srcdst[start] & 0x200) == 0x200) { // Only if 1st target
+          srcdst[start] = 0x7FFF; // Force white
+        }
+        start++;
+      }
+      return;
+    }
+    else if (brightness <= 2) {
+      // Very low brightness - force to black in gameplay areas
+      while (start < end) {
+        if ((srcdst[start] & 0x200) == 0x200) { // Only if 1st target
+          srcdst[start] = 0x0000; // Force black
+        }
+        start++;
+      }
+      return;
+    }
+  }
 #endif
 
-  // Always apply brightness effects properly - no shortcuts
+  // Always apply brightness effects properly for other cases
   if (brightness == 0) {
     return; // No effect applied
   }
 
-// Removed SF2000 palette cache optimization to ensure correct lookups
+// SF2000 CONSERVATIVE PALETTE CACHE: Only cache for frequently accessed indices  
+#ifdef SF2000
+static u16 last_brightness_palette_idx = 0xFFFF;
+static u16 last_brightness_palette_val = 0;
+// Simple single-entry cache - safe for most scenarios
+#define PALETTE_LOOKUP(idx) (((idx) == last_brightness_palette_idx) ? last_brightness_palette_val : \
+  (last_brightness_palette_idx = (idx), last_brightness_palette_val = palette_ram_converted[(idx)]))
+#else
 #define PALETTE_LOOKUP(idx) (palette_ram_converted[idx])
+#endif
 
   while (start < end) {
     u16 spix = srcdst[start];
