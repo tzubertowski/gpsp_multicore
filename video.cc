@@ -246,53 +246,65 @@ static inline void render_tile_Nbpp(
     tile_ptr += vertical_pixel_flip;
 
   if (is8bpp) {
-    for (u32 j = 0; j < 2; j++) {
-      u32 tilepix = eswap32(((u32*)tile_ptr)[hflip ? 1-j : j]);
-      if (tilepix) {
-        for (u32 i = 0; i < 4; i++, dest_ptr++) {
-          u8 pval = hflip ? (tilepix >> (24 - i*8)) : (tilepix >> (i*8));
-          if (pval) {
-            if (rdtype == FULLCOLOR)
-              *dest_ptr = paltbl[pval];
-            else if (rdtype == INDXCOLOR)
-              *dest_ptr = pval | px_comb;  // Add combine flags
-            else if (rdtype == STCKCOLOR)
-              *dest_ptr = pval | px_comb | ((isbase ? bg_comb : *dest_ptr) << 16);
-          }
-          else if (isbase) {
-            *dest_ptr = (rdtype == FULLCOLOR) ? bgcolor : 0 | bg_comb;
-          }
-        }
-      } else {
-        for (u32 i = 0; i < 4; i++, dest_ptr++)
-          if (isbase)
-            *dest_ptr = (rdtype == FULLCOLOR) ? bgcolor : 0 | bg_comb;
+    // Process 8bpp pixels byte by byte
+    for (u32 i = 0; i < 8; i++, dest_ptr++) {
+      u8 pval = tile_ptr[hflip ? (7 - i) : i];
+      if (pval) {
+        if (rdtype == FULLCOLOR)
+          *dest_ptr = paltbl[pval];
+        else if (rdtype == INDXCOLOR)
+          *dest_ptr = pval | px_comb;  // Add combine flags
+        else if (rdtype == STCKCOLOR)
+          *dest_ptr = pval | px_comb | ((isbase ? bg_comb : *dest_ptr) << 16);
+      }
+      else if (isbase) {
+        *dest_ptr = (rdtype == FULLCOLOR) ? bgcolor : 0 | bg_comb;
       }
     }
   } else {
+    // SF2000 PERFORMANCE: Optimize 4bpp tile rendering
     u32 tilepix = eswap32(*(u32*)tile_ptr);
     if (tilepix) {  // We can skip it all if the row is transparent
       u16 tilepal = (tile >> 12) << 4;
       u16 pxflg = px_comb | tilepal;
       const u16 *subpal = &paltbl[tilepal];
-      for (u32 i = 0; i < 8; i++, dest_ptr++) {
-        u8 pval = (hflip ? (tilepix >> ((7-i)*4)) : (tilepix >> (i*4))) & 0xF;
-        if (pval) {
-          if (rdtype == FULLCOLOR)
+      
+      // Optimized pixel processing with reduced function call overhead
+      if (rdtype == FULLCOLOR && !hflip) {
+        // Fast path for most common case: full color, no horizontal flip
+        for (u32 i = 0; i < 8; i++, dest_ptr++) {
+          u8 pval = (tilepix >> (i*4)) & 0xF;
+          if (pval) {
             *dest_ptr = subpal[pval];
-          else if (rdtype == INDXCOLOR)
-            *dest_ptr = pxflg | pval;
-          else if (rdtype == STCKCOLOR)
-            *dest_ptr = pxflg | pval | ((isbase ? bg_comb : *dest_ptr) << 16);
+          }
+          else if (isbase) {
+            *dest_ptr = bgcolor;
+          }
         }
-        else if (isbase) {
-          *dest_ptr = (rdtype == FULLCOLOR) ? bgcolor : 0 | bg_comb;
+      } else {
+        // Standard path for other cases
+        for (u32 i = 0; i < 8; i++, dest_ptr++) {
+          u8 pval = (hflip ? (tilepix >> ((7-i)*4)) : (tilepix >> (i*4))) & 0xF;
+          if (pval) {
+            if (rdtype == FULLCOLOR)
+              *dest_ptr = subpal[pval];
+            else if (rdtype == INDXCOLOR)
+              *dest_ptr = pxflg | pval;
+            else if (rdtype == STCKCOLOR)
+              *dest_ptr = pxflg | pval | ((isbase ? bg_comb : *dest_ptr) << 16);
+          }
+          else if (isbase) {
+            *dest_ptr = (rdtype == FULLCOLOR) ? bgcolor : 0 | bg_comb;
+          }
         }
       }
-    } else if (isbase) {
-      // In this case we simply fill the pixels with background pixels
-      for (u32 i = 0; i < 8; i++, dest_ptr++)
-        *dest_ptr = (rdtype == FULLCOLOR) ? bgcolor : 0 | bg_comb;
+    } else {
+      // Row is transparent, fast fill with background for base layer only
+      for (u32 i = 0; i < 8; i++, dest_ptr++) {
+        if (isbase) {
+          *dest_ptr = (rdtype == FULLCOLOR) ? bgcolor : (0 | bg_comb);
+        }
+      }
     }
   }
 }
@@ -1893,84 +1905,17 @@ static void merge_blend(u32 start, u32 end, u16 *dst, u32 *src) {
   u32 blend_b = MIN(16, (bldalpha >> 8) & 0x1F);
 #endif
 
-#ifdef SF2000
-  // SF2000 BLEND OPTIMIZATION: Skip expensive blending when unnecessary
-  if (bldtype == BLEND_ONLY && (blend_a == 0 || blend_b == 0)) {
-    // One layer is fully transparent - just copy the opaque layer
-    while (start < end) {
-      u32 pixpair = src[start];
-      bool force_blend = (pixpair & 0x04000800) == 0x04000800;
-      bool do_blend    = (pixpair & 0x04000200) == 0x04000200;
-      if ((st_objs && force_blend) || do_blend) {
-        // Choose the non-transparent layer
-        u16 pixel_idx = blend_a == 0 ? ((pixpair >> 16) & 0x1FF) : (pixpair & 0x1FF);
-        dst[start++] = palette_ram_converted[pixel_idx];
-      } else {
-        dst[start++] = palette_ram_converted[pixpair & 0x1FF];
-      }
-    }
-    return;
-  }
-  
-  // Enhanced optimization: both factors zero means no blending at all
-  if (bldtype == BLEND_ONLY && blend_a == 0 && blend_b == 0) {
-    // No blending factors - simplified copy with layer priority
-    while (start < end) {
-      u32 pixpair = src[start];
-      if ((pixpair & 0x04000200) == 0x04000200) {
-        // Both layers present, use top layer (preserves text/UI)
-        dst[start++] = palette_ram_converted[pixpair & 0x1FF];
-      } else if ((pixpair & 0x04000000) == 0x04000000) {
-        // Only top layer
-        dst[start++] = palette_ram_converted[pixpair & 0x1FF];
-      } else if ((pixpair & 0x00000200) == 0x00000200) {
-        // Only bottom layer
-        dst[start++] = palette_ram_converted[(pixpair >> 16) & 0x1FF];
-      } else {
-        // Fallback
-        dst[start++] = palette_ram_converted[pixpair & 0x1FF];
-      }
-    }
-    return;
-  }
-  
-  // Skip brightness effects when factor is 0
-  if ((bldtype == BLEND_BRIGHT || bldtype == BLEND_DARK) && brightf == 0) {
-    // No brightness change - just copy pixels
-    while (start < end) {
-      dst[start] = palette_ram_converted[src[start] & 0x1FF];
-      start++;
-    }
-    return;
-  }
+// Removed problematic SF2000 blend optimization that was skipping necessary rendering
+#ifdef SF2000_DISABLED
+  // DISABLED: This optimization was causing black boxes in dialogue and overworld areas
+  // in Super Mario Bros 2. The blend factor check was too aggressive and skipped 
+  // necessary rendering operations for transparent/semi-transparent elements.
 #endif
 
   bool can_saturate = blend_a + blend_b > 16;
 
-#ifdef SF2000
-  // SF2000 PALETTE OPTIMIZATION: Simple local cache for blend function
-  u16 palette_cache[4] = {0};
-  u16 cache_indices[4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
-  u32 cache_pos = 0;
-  
-  auto cached_palette_lookup = [&](u16 idx) -> u16 {
-    // Check if already in cache
-    for (int i = 0; i < 4; i++) {
-      if (cache_indices[i] == idx) {
-        return palette_cache[i];
-      }
-    }
-    // Not in cache, add it
-    u16 value = palette_ram_converted[idx];
-    palette_cache[cache_pos] = value;
-    cache_indices[cache_pos] = idx;
-    cache_pos = (cache_pos + 1) & 3; // Round-robin replacement
-    return value;
-  };
-#define PALETTE_LOOKUP(idx) (cached_palette_lookup(idx))
-#else
+// Removed SF2000 palette cache optimization to ensure correct lookups
 #define PALETTE_LOOKUP(idx) (palette_ram_converted[idx])
-#endif
 
   if (can_saturate) {
     // If blending can result in saturation, we need to clamp output values.
@@ -2055,59 +2000,21 @@ template <blendtype bldtype>
 static void merge_brightness(u32 start, u32 end, u16 *srcdst) {
   u32 brightness = MIN(16, read_ioreg(REG_BLDY) & 0x1F);
 
-#ifdef SF2000
-  // SF2000 FAST BRIGHTNESS: Skip when no effect or extreme values in gameplay areas
+// Removed problematic SF2000 brightness optimization that was forcing white/black pixels
+#ifdef SF2000_DISABLED
+  // DISABLED: This optimization was causing dialogue boxes to appear black
+  // and overworld areas to have incorrect brightness/darkness in Super Mario Bros 2.
+  // The vcount-based gameplay area detection was too aggressive and forced 
+  // inappropriate pixel values.
+#endif
+
+  // Always apply brightness effects properly - no shortcuts
   if (brightness == 0) {
     return; // No effect applied
   }
-  
-  if (bldtype == BLEND_BRIGHT && brightness >= 15) {
-    // Nearly full white - check for safe optimization in gameplay area
-    u32 vcount = read_ioreg(REG_VCOUNT);
-    if (vcount > 32 && vcount < 128) {
-      // Likely gameplay area, safe to use white fill
-      for (u32 i = start; i < end; i++) {
-        srcdst[i] = 0x7FFF; // White pixel (15-bit RGB)
-      }
-      return;
-    }
-  }
-  
-  if (bldtype == BLEND_DARK && brightness >= 15) {
-    // Nearly full black - check for safe optimization in gameplay area  
-    u32 vcount = read_ioreg(REG_VCOUNT);
-    if (vcount > 32 && vcount < 128) {
-      // Likely gameplay area, safe to use black fill
-      for (u32 i = start; i < end; i++) {
-        srcdst[i] = 0; // Black pixel
-      }
-      return;
-    }
-  }
 
-  // SF2000 PALETTE OPTIMIZATION: Simple local cache for brightness function  
-  u16 palette_cache[4] = {0};
-  u16 cache_indices[4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
-  u32 cache_pos = 0;
-  
-  auto cached_palette_lookup = [&](u16 idx) -> u16 {
-    // Check if already in cache
-    for (int i = 0; i < 4; i++) {
-      if (cache_indices[i] == idx) {
-        return palette_cache[i];
-      }
-    }
-    // Not in cache, add it
-    u16 value = palette_ram_converted[idx];
-    palette_cache[cache_pos] = value;
-    cache_indices[cache_pos] = idx;
-    cache_pos = (cache_pos + 1) & 3; // Round-robin replacement
-    return value;
-  };
-#define PALETTE_LOOKUP(idx) (cached_palette_lookup(idx))
-#else
+// Removed SF2000 palette cache optimization to ensure correct lookups
 #define PALETTE_LOOKUP(idx) (palette_ram_converted[idx])
-#endif
 
   while (start < end) {
     u16 spix = srcdst[start];
