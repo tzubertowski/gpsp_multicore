@@ -24,6 +24,21 @@ extern "C" {
 
 u16* gba_screen_pixels = NULL;
 
+#ifdef SF2000
+// SF2000: Global vcount cache to avoid excessive REG_VCOUNT reads during optimizations
+static u32 g_cached_vcount = 0;
+static u32 g_vcount_frame_id = 0xFFFFFFFF;
+
+static inline u32 get_cached_vcount() {
+  return g_cached_vcount;
+}
+
+static inline void update_vcount_cache(u32 vcount) {
+  g_cached_vcount = vcount;
+  g_vcount_frame_id = vcount; // Use vcount as simple frame identifier
+}
+#endif
+
 #define get_screen_pixels()   gba_screen_pixels
 #define get_screen_pitch()    GBA_SCREEN_PITCH
 
@@ -1623,7 +1638,11 @@ void render_scanline_objs(
   u32 priority, u32 start, u32 end, void *raw_ptr, const u16* palptr
 ) {
   stype *scanline = (stype*)raw_ptr;
+#ifdef SF2000
+  s32 vcount = get_cached_vcount();
+#else
   s32 vcount = read_ioreg(REG_VCOUNT);
+#endif
   s32 objn;
   u32 objcnt = obj_priority_count[priority][vcount];
   u8 *objlist = obj_priority_list[priority][vcount];
@@ -1908,8 +1927,9 @@ static void merge_blend(u32 start, u32 end, u16 *dst, u32 *src) {
 // SF2000 ENHANCED BLEND: More aggressive optimization with UI protection
 #ifdef SF2000
   // Enhanced blend optimization - more aggressive but with safeguards
-  u32 vcount = read_ioreg(REG_VCOUNT);
-  bool in_ui_area = (vcount < 16 || vcount > 144); // Top/bottom UI areas
+  // Use global cached vcount to avoid excessive REG_VCOUNT reads
+  u32 current_vcount = get_cached_vcount();
+  bool in_ui_area = (current_vcount < 16 || current_vcount > 144); // Top/bottom UI areas
   
   if (!in_ui_area && blend_a <= 1 && blend_b <= 1 && bldtype == BLEND_ONLY) {
     // Skip very light blending in gameplay areas - helps Wario Land 4 performance
@@ -2023,7 +2043,8 @@ static void merge_brightness(u32 start, u32 end, u16 *srcdst) {
 // SF2000 ENHANCED BRIGHTNESS: More aggressive optimization with UI protection
 #ifdef SF2000
   // Enhanced brightness optimization - more aggressive but with safeguards
-  u32 vcount = read_ioreg(REG_VCOUNT);
+  // Use global cached vcount to avoid excessive REG_VCOUNT reads
+  u32 vcount = get_cached_vcount();
   bool in_ui_area = (vcount < 16 || vcount > 144); // Top/bottom UI areas
   
   if (!in_ui_area) {
@@ -2151,7 +2172,11 @@ void tile_render_layers(u32 start, u32 end, dsttype *dst_ptr, u32 enabled_layers
   bool obj_enabled = (enabled_layers & 0x10);   // Objects are visible
 
   bool objlayer_is_1st_tgt = ((read_ioreg(REG_BLDCNT) >> 4) & 1) != 0;
+#ifdef SF2000
+  bool has_trans_obj = obj_alpha_count[get_cached_vcount()];
+#else
   bool has_trans_obj = obj_alpha_count[read_ioreg(REG_VCOUNT)];
+#endif
 
   for (lnum = 0; lnum < layer_count; lnum++) {
     u32 layer = layer_order[lnum];
@@ -2226,7 +2251,11 @@ static void render_w_effects(
   const layer_render_struct *renderers
 ) {
   bool effects_enabled = enable_flags & 0x20;   // Window bit for effects.
+#ifdef SF2000
+  bool obj_blend = obj_alpha_count[get_cached_vcount()] > 0;
+#else
   bool obj_blend = obj_alpha_count[read_ioreg(REG_VCOUNT)] > 0;
+#endif
   u16 bldcnt = read_ioreg(REG_BLDCNT);
 
   // If the window bits disable effects, default to NONE
@@ -2336,7 +2365,11 @@ static void bitmap_render_layers(
   u32 start, u32 end, dsttype *scanline, u32 enable_flags)
 {
   u16 dispcnt = read_ioreg(REG_DISPCNT);
+#ifdef SF2000
+  bool has_trans_obj = obj_alpha_count[get_cached_vcount()];
+#else
   bool has_trans_obj = obj_alpha_count[read_ioreg(REG_VCOUNT)];
+#endif
   bool objlayer_is_1st_tgt = (read_ioreg(REG_BLDCNT) & 0x10) != 0;
   bool bg2_is_1st_tgt = (read_ioreg(REG_BLDCNT) & 0x4) != 0;
 
@@ -2490,7 +2523,11 @@ inline bool in_window_y(u32 vcount, u32 top, u32 bottom) {
 template<window_render_function outfn, unsigned winnum>
 static void render_window_n_pass(u16 *scanline, u32 start, u32 end)
 {
+#ifdef SF2000
+  u32 vcount = get_cached_vcount();
+#else
   u32 vcount = read_ioreg(REG_VCOUNT);
+#endif
   // Check the Y coordinates to check if they fall in the right row
   u32 win_top = read_ioreg(REG_WINxV(winnum)) >> 8;
   u32 win_bot = read_ioreg(REG_WINxV(winnum)) & 0xFF;
@@ -2594,6 +2631,8 @@ void update_scanline(void)
   u16 dispcnt = read_ioreg(REG_DISPCNT);
   u32 vcount = read_ioreg(REG_VCOUNT);
 #ifdef SF2000
+  // SF2000: Update global vcount cache to prevent excessive REG_VCOUNT reads
+  update_vcount_cache(vcount);
   // SF2000: Optimize multiplication - pitch is always 240 for GBA
   u16 *screen_offset = get_screen_pixels() + (vcount * 240);
 #else
