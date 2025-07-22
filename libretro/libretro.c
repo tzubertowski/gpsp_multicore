@@ -314,7 +314,9 @@ static void init_post_processing(void)
       if (!gba_processed_pixels)
          return;
 
-      memset(gba_processed_pixels, 0xFFFF, GBA_SCREEN_BUFFER_SIZE);
+      /* Initialize with black pixels (RGB565) */
+      for(int i = 0; i < GBA_SCREEN_WIDTH * GBA_SCREEN_HEIGHT; i++)
+         gba_processed_pixels[i] = 0x0000;
    }
 
    /* Initialise 'history' buffer, if required */
@@ -326,7 +328,9 @@ static void init_post_processing(void)
       if (!gba_screen_pixels_prev)
          return;
 
-      memset(gba_screen_pixels_prev, 0xFFFF, GBA_SCREEN_BUFFER_SIZE);
+      /* Initialize with black pixels (RGB565) */
+      for(int i = 0; i < GBA_SCREEN_WIDTH * GBA_SCREEN_HEIGHT; i++)
+         gba_screen_pixels_prev[i] = 0x0000;
    }
 
    /* Assign post processing function */
@@ -1174,6 +1178,12 @@ void retro_run(void)
             }
             else
                frameskip_counter++;
+
+            // SF2000: Prevent frameskip from getting stuck by making it more conservative
+            // Reset underrun flag if we've been skipping for too long
+            if (frameskip_counter > 5) { // More conservative than FRAMESKIP_MAX (30)
+               audio_buff_underrun = false; // Give the system a chance to recover
+            }
 
             break;
          case auto_threshold_frameskip:
