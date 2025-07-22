@@ -2427,8 +2427,23 @@ static const layer_render_struct bitmap_mode_renderers = {
 static void render_scanline_conditional(
   u32 start, u32 end, u16 *scanline, u32 enable_flags)
 {
+#ifdef SF2000
+  // Performance: Cache DISPCNT read per scanline
+  static u16 cached_dispcnt = 0xFFFF;
+  static u32 cached_scanline = 0xFFFFFFFF;
+  u32 current_vcount = get_cached_vcount();
+  
+  if (cached_scanline != current_vcount) {
+    cached_dispcnt = read_ioreg(REG_DISPCNT);
+    cached_scanline = current_vcount;
+  }
+  
+  u16 dispcnt = cached_dispcnt;
+  u32 video_mode = dispcnt & 0x07;
+#else
   u16 dispcnt = read_ioreg(REG_DISPCNT);
   u32 video_mode = dispcnt & 0x07;
+#endif
 
   // Check if any layer is actually active.
   if (layer_count && (enable_flags & 0x1F)) {
@@ -2502,6 +2517,26 @@ static void render_window_n_pass(u16 *scanline, u32 start, u32 end)
 #else
   u32 vcount = read_ioreg(REG_VCOUNT);
 #endif
+#ifdef SF2000
+  // Performance optimization: Cache window register reads - expensive on MIPS
+  static u32 cached_winxv[2] = {0xFFFFFFFF, 0xFFFFFFFF};
+  static u32 cached_winxh[2] = {0xFFFFFFFF, 0xFFFFFFFF};
+  static u32 cache_vcount = 0xFFFFFFFF;
+  
+  // Cache window registers per scanline instead of per function call
+  if (cache_vcount != vcount) {
+    cached_winxv[0] = read_ioreg(REG_WINxV(0));
+    cached_winxv[1] = read_ioreg(REG_WINxV(1));
+    cached_winxh[0] = read_ioreg(REG_WINxH(0));
+    cached_winxh[1] = read_ioreg(REG_WINxH(1));
+    cache_vcount = vcount;
+  }
+  
+  u32 win_top = cached_winxv[winnum] >> 8;
+  u32 win_bot = cached_winxv[winnum] & 0xFF;
+  u32 win_lraw = cached_winxh[winnum] >> 8;
+  u32 win_rraw = cached_winxh[winnum] & 0xFF;
+#else
   // Check the Y coordinates to check if they fall in the right row
   u32 win_top = read_ioreg(REG_WINxV(winnum)) >> 8;
   u32 win_bot = read_ioreg(REG_WINxV(winnum)) & 0xFF;
@@ -2509,9 +2544,17 @@ static void render_window_n_pass(u16 *scanline, u32 start, u32 end)
   // Clip the coordinates to the [start, end) range.
   u32 win_lraw = read_ioreg(REG_WINxH(winnum)) >> 8;
   u32 win_rraw = read_ioreg(REG_WINxH(winnum)) & 0xFF;
+#endif
+  // SF2000: Optimize MIN/MAX operations - use branchless logic
+#ifdef SF2000
+  u32 win_l = (win_lraw > start) ? ((win_lraw < end) ? win_lraw : end) : start;
+  u32 win_r = (win_rraw > start) ? ((win_rraw < end) ? win_rraw : end) : start;
+  bool goodwin = win_lraw < win_rraw;
+#else
   u32 win_l = MAX(start, MIN(end, win_lraw));
   u32 win_r = MAX(start, MIN(end, win_rraw));
   bool goodwin = win_lraw < win_rraw;
+#endif
 
   if (!in_window_y(vcount, win_top, win_bot) || (win_lraw == win_rraw))
     // WindowN is completely out, just render all out.
