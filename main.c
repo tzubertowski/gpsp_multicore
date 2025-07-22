@@ -509,6 +509,7 @@ u32 function_cc update_gba(int remaining_cycles)
           // We completed a frame, tell the dynarec to exit to the main thread
           frame_complete = 0x80000000;
           frame_counter++;
+          
         }
 
         // Vcount trigger (flag) and IRQ if enabled

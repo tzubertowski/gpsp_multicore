@@ -3420,9 +3420,15 @@ void partial_flush_ram_full(u32 address)
 #if defined(MIPS_ARCH)
   /* PERFORMANCE: Most 2D games don't use SMC - reduce flush frequency for soft FPU MIPS */
   static u32 flush_counter = 0;
+  #ifdef SF2000
+  if ((++flush_counter & 0x7) != 0) {
+    return; // Skip 87.5% of flushes for SF2000 performance
+  }
+  #else
   if ((++flush_counter & 0x3) != 0) {
     return; // Skip 75% of flushes for performance
   }
+  #endif
 #endif
 
   u8 *smc_data;

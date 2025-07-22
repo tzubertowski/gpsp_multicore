@@ -2040,35 +2040,9 @@ template <blendtype bldtype>
 static void merge_brightness(u32 start, u32 end, u16 *srcdst) {
   u32 brightness = MIN(16, read_ioreg(REG_BLDY) & 0x1F);
 
-// SF2000 ENHANCED BRIGHTNESS: More aggressive optimization with UI protection
-#ifdef SF2000
-  // Enhanced brightness optimization - more aggressive but with safeguards
-  // Use global cached vcount to avoid excessive REG_VCOUNT reads
-  u32 vcount = get_cached_vcount();
-  bool in_ui_area = (vcount < 16 || vcount > 144); // Top/bottom UI areas
-  
-  if (!in_ui_area) {
-    if (brightness >= 14) {
-      // High brightness - force to white in gameplay areas (helps Wario Land 4)
-      while (start < end) {
-        if ((srcdst[start] & 0x200) == 0x200) { // Only if 1st target
-          srcdst[start] = 0x7FFF; // Force white
-        }
-        start++;
-      }
-      return;
-    }
-    else if (brightness <= 2) {
-      // Very low brightness - force to black in gameplay areas
-      while (start < end) {
-        if ((srcdst[start] & 0x200) == 0x200) { // Only if 1st target
-          srcdst[start] = 0x0000; // Force black
-        }
-        start++;
-      }
-      return;
-    }
-  }
+// SF2000: Disable aggressive brightness optimization that was causing blue colors
+#ifdef SF2000_DISABLED
+  // DISABLED: This optimization was forcing black pixels incorrectly
 #endif
 
   // Always apply brightness effects properly for other cases
@@ -2655,11 +2629,11 @@ void update_scanline(void)
 
   // If the screen is in in forced blank draw pure white.
   if(dispcnt & 0x80)
-#ifdef SF2000
-    memset(screen_offset, 0xff, 480);  // 240 * 2 bytes
-#else
-    memset(screen_offset, 0xff, 240*sizeof(u16));
-#endif
+  {
+    u16 *dest = (u16 *)screen_offset;
+    for(u32 i = 0; i < 240; i++)
+      dest[i] = 0xFFFF;  // Pure white in RGB565
+  }
   else
     render_scanline_window(screen_offset);
 
