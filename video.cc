@@ -1924,8 +1924,9 @@ static void merge_blend(u32 start, u32 end, u16 *dst, u32 *src) {
   u32 blend_b = MIN(16, (bldalpha >> 8) & 0x1F);
 #endif
 
-// SF2000 ENHANCED BLEND: More aggressive optimization with UI protection
-#ifdef SF2000
+// SF2000: Disable aggressive blend optimization that was causing blue glitches
+#ifdef SF2000_DISABLED_BLEND_OPTIMIZATION
+  // DISABLED: This UI area detection was causing blue glitches in Advance Wars
   // Enhanced blend optimization - more aggressive but with safeguards
   // Use global cached vcount to avoid excessive REG_VCOUNT reads
   u32 current_vcount = get_cached_vcount();
@@ -1936,7 +1937,9 @@ static void merge_blend(u32 start, u32 end, u16 *dst, u32 *src) {
     memcpy(dst + start, src + start, (end - start) * sizeof(u16));
     return;
   }
+#endif
   
+#ifdef SF2000
   if (blend_a == 0 && blend_b == 0) {
     // Always safe to skip zero blending regardless of mode
     memcpy(dst + start, src + start, (end - start) * sizeof(u16));
@@ -2054,9 +2057,12 @@ static void merge_brightness(u32 start, u32 end, u16 *srcdst) {
 #ifdef SF2000
 static u16 last_brightness_palette_idx = 0xFFFF;
 static u16 last_brightness_palette_val = 0;
-// Simple single-entry cache - safe for most scenarios
-#define PALETTE_LOOKUP(idx) (((idx) == last_brightness_palette_idx) ? last_brightness_palette_val : \
-  (last_brightness_palette_idx = (idx), last_brightness_palette_val = palette_ram_converted[(idx)]))
+static u32 palette_frame_counter = 0;
+// Invalidate cache periodically to prevent animation glitches
+#define PALETTE_LOOKUP(idx) ((palette_frame_counter++ & 0x3FF) == 0 ? \
+  (last_brightness_palette_idx = 0xFFFF, palette_ram_converted[idx]) : \
+  (((idx) == last_brightness_palette_idx) ? last_brightness_palette_val : \
+  (last_brightness_palette_idx = (idx), last_brightness_palette_val = palette_ram_converted[(idx)])))
 #else
 #define PALETTE_LOOKUP(idx) (palette_ram_converted[idx])
 #endif
