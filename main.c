@@ -539,11 +539,12 @@ u32 function_cc update_gba(int remaining_cycles)
     // a video event or a timer event, whatever happens first.
     execute_cycles = MAX(video_count, 0);
     
-#ifdef SF2000
-    // SF2000 optimization: batch more cycles together to reduce dynarec overhead
+#if defined(SF2000) || defined(MIPS_SOFT_FPU) || defined(__mips__)
+    // SF2000/MIPS optimization: batch more cycles together to reduce dynarec overhead
+    // Extended to all soft FPU MIPS devices for better performance
     // Only do this when we have a reasonable chunk and no critical events pending
-    if (execute_cycles > 500 && execute_cycles < 2000) {
-      execute_cycles = MIN(execute_cycles * 2, 4000);  // Double the execution chunk
+    if (execute_cycles > 300 && execute_cycles < 3000) {
+      execute_cycles = MIN(execute_cycles * 2, 6000);  // Double the execution chunk, increased range
     }
 #endif
     {
