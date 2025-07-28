@@ -2442,8 +2442,8 @@ static const layer_render_struct bitmap_mode_renderers = {
 static void render_scanline_conditional(
   u32 start, u32 end, u16 *scanline, u32 enable_flags)
 {
-#ifdef SF2000
-  // Performance: Cache DISPCNT read per scanline
+#ifdef SF2000_DISABLED_DISPCNT_CACHE
+  // DISABLED: DISPCNT cache overhead on soft FPU MIPS
   static u16 cached_dispcnt = 0xFFFF;
   static u32 cached_scanline = 0xFFFFFFFF;
   u32 current_vcount = get_cached_vcount();
