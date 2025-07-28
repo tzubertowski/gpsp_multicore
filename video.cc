@@ -24,8 +24,8 @@ extern "C" {
 
 u16* gba_screen_pixels = NULL;
 
-#ifdef SF2000
-// SF2000: Global vcount cache to avoid excessive REG_VCOUNT reads during optimizations
+#ifdef SF2000_DISABLED_VCOUNT_CACHE
+// DISABLED: VCOUNT cache causes visual glitches
 static u32 g_cached_vcount = 0;
 static u32 g_vcount_frame_id = 0xFFFFFFFF;
 
@@ -36,6 +36,15 @@ static inline u32 get_cached_vcount() {
 static inline void update_vcount_cache(u32 vcount) {
   g_cached_vcount = vcount;
   g_vcount_frame_id = vcount; // Use vcount as simple frame identifier
+}
+#else
+// Always read directly from register when cache is disabled
+static inline u32 get_cached_vcount() {
+  return read_ioreg(REG_VCOUNT);
+}
+
+static inline void update_vcount_cache(u32 vcount) {
+  // No-op when cache disabled
 }
 #endif
 
@@ -1939,9 +1948,9 @@ static void merge_blend(u32 start, u32 end, u16 *dst, u32 *src) {
   }
 #endif
   
-#ifdef SF2000
+#ifdef SF2000_DISABLED_ZERO_BLEND_SKIP
   if (blend_a == 0 && blend_b == 0) {
-    // Always safe to skip zero blending regardless of mode
+    // DISABLED: Zero blend skipping causes animation glitches
     memcpy(dst + start, src + start, (end - start) * sizeof(u16));
     return;
   }
@@ -1949,11 +1958,11 @@ static void merge_blend(u32 start, u32 end, u16 *dst, u32 *src) {
 
   bool can_saturate = blend_a + blend_b > 16;
 
-// SF2000 CONSERVATIVE PALETTE CACHE: Only cache for frequently accessed indices
-#ifdef SF2000
+// SF2000: Disable blend palette cache - hurts performance
+#ifdef SF2000_DISABLED_BLEND_PALETTE_CACHE
 static u16 last_blend_palette_idx = 0xFFFF;
 static u16 last_blend_palette_val = 0;
-// Simple single-entry cache - safe for most scenarios
+// DISABLED: Blend palette cache hurts performance
 #define PALETTE_LOOKUP(idx) (((idx) == last_blend_palette_idx) ? last_blend_palette_val : \
   (last_blend_palette_idx = (idx), last_blend_palette_val = palette_ram_converted[(idx)]))
 #else
@@ -2053,12 +2062,12 @@ static void merge_brightness(u32 start, u32 end, u16 *srcdst) {
     return; // No effect applied
   }
 
-// SF2000 CONSERVATIVE PALETTE CACHE: Only cache for frequently accessed indices  
-#ifdef SF2000
+// SF2000: Disable brightness palette cache - hurts performance
+#ifdef SF2000_DISABLED_BRIGHTNESS_PALETTE_CACHE
 static u16 last_brightness_palette_idx = 0xFFFF;
 static u16 last_brightness_palette_val = 0;
 static u32 palette_frame_counter = 0;
-// Invalidate cache periodically to prevent animation glitches
+// DISABLED: Brightness palette cache hurts performance
 #define PALETTE_LOOKUP(idx) ((palette_frame_counter++ & 0x3FF) == 0 ? \
   (last_brightness_palette_idx = 0xFFFF, palette_ram_converted[idx]) : \
   (((idx) == last_brightness_palette_idx) ? last_brightness_palette_val : \
