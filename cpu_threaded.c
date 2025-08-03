@@ -29,10 +29,6 @@
 #include <kernel.h>
 #endif
 
-#ifdef SF2000
-void xlog(const char *fmt, ...);
-#endif
-
 u8 *last_rom_translation_ptr = NULL;
 u8 *last_ram_translation_ptr = NULL;
 
@@ -94,6 +90,8 @@ typedef struct
   u32 branch_target;
   u8 *branch_source;
 } block_exit_type;
+
+extern u8 bit_count[256];
 
 // Div (6) and DivArm (7)
 #define is_div_swi(swinum) (((swinum) & 0xFE) == 0x06)
@@ -290,21 +288,16 @@ void translate_icache_sync() {
   check_pc_region(pc);                                                        \
   opcode = address32(pc_address_block, (pc & 0x7FFF));                        \
   condition = block_data[block_data_position].condition;                      \
+  u32 has_condition_header = 0;                                               \
                                                                               \
   if((condition != last_condition) || (condition >= 0x20))                    \
   {                                                                           \
-    if((last_condition & 0x0F) != 0x0E)                                       \
-    {                                                                         \
-      generate_branch_patch_conditional(backpatch_address, translation_ptr);  \
-    }                                                                         \
-                                                                              \
-    last_condition = condition;                                               \
-                                                                              \
     condition &= 0x0F;                                                        \
                                                                               \
     if(condition != 0x0E)                                                     \
     {                                                                         \
       arm_conditional_block_header();                                         \
+      has_condition_header = 1;                                               \
     }                                                                         \
   }                                                                           \
   emit_trace_arm_instruction(pc);                                             \
@@ -1743,6 +1736,10 @@ void translate_icache_sync() {
     }                                                                         \
   }                                                                           \
                                                                               \
+  if(has_condition_header)                                                    \
+  {                                                                           \
+    generate_branch_patch_conditional(backpatch_address, translation_ptr);    \
+  }                                                                           \
   pc += 4                                                                     \
 
 #define arm_flag_status()                                                     \
@@ -2498,12 +2495,16 @@ void translate_icache_sync() {
 // of the RAM CACHE (grows like a stack). For simplicity we start tags at 0xFFFF
 // and grow like a stack.
 
+// INITIAL_TOP_TAG is 0xFFFD.  0xFFFF signifies an Unconditional Branch (end of normal block)
+//
 #define LAST_TAG_NUM       0x0101
-#define INITIAL_TOP_TAG    0xFFFF
+#define INITIAL_TOP_TAG    0xFFFD
 #define CODE_TAG_BLOCK16   0x0101
 #define CODE_TAG_BLOCK32   0x01010101
+#define UB_16		   0xFFFF
+#define UB_32		   0xFFFFFFFF
 
-#define VALID_TAG(tagn) (tagn > LAST_TAG_NUM)
+#define VALID_TAG(tagn) (tagn > LAST_TAG_NUM && tagn <= INITIAL_TOP_TAG)
 
 #define allocate_tag_arm(location) {   \
   location[0] = ram_block_tag;         \
@@ -2566,16 +2567,17 @@ u8 function_cc *block_lookup_translate_##type(u32 pc)                         \
                                   : (u16 *)(iwram + (pc & 0x7FFF));           \
       ramtag_type* trentry;                                                   \
       /* Allocate a tag if not a valid one, and initialize header */          \
+      /* Set offsets to 1 initially, as setting to/checking zero will result in first block of each flush iteration being recompiled */          \
       if (!VALID_TAG(*tagp)) {                                                \
         allocate_tag_##type(tagp);                                            \
         trentry = get_ram_tag(*tagp);                                         \
-        trentry->offset_arm = 0;                                              \
-        trentry->offset_thumb = 0;                                            \
+        trentry->offset_arm = 1;                                              \
+        trentry->offset_thumb = 1;                                            \
       } else {                                                                \
         trentry = get_ram_tag(*tagp);                                         \
       }                                                                       \
                                                                               \
-      if (!trentry->offset_##type) {                                          \
+      if (trentry->offset_##type ==1) {                                          \
         bool result;                                                          \
         u8 *blkptr = ram_translation_ptr + block_prologue_size;               \
         trentry->offset_##type = blkptr - ram_translation_cache;              \
@@ -2655,7 +2657,7 @@ u8 function_cc *block_lookup_address_dual(u32 pc)
 u8 function_cc *block_lookup_address_arm(u32 pc)
 {
   unsigned i;
-  for (i = 0; i < 2; i++) {
+  for (i = 0; i < 4; i++) {
     u8 *ret = block_lookup_translate_arm(pc);
     if (ret) {
       translate_icache_sync();
@@ -2663,21 +2665,23 @@ u8 function_cc *block_lookup_address_arm(u32 pc)
     }
   }
 
-  // PERFORMANCE: Disable logging in hot path
+  printf("bad jump %x (%x)\n", pc, reg[REG_PC]);
+  fflush(stdout);
   return NULL;
 }
 
 u8 function_cc *block_lookup_address_thumb(u32 pc)
 {
   unsigned i;
-  for (i = 0; i < 2; i++) {
+  for (i = 0; i < 4; i++) {
     u8 *ret = block_lookup_translate_thumb(pc);
     if (ret) {
       translate_icache_sync();
       return ret;
     }
   }
-  // PERFORMANCE: Disable logging in hot path
+  printf("bad jump %x (%x)\n", pc, reg[REG_PC]);
+  fflush(stdout);
   return NULL;
 }
 
@@ -2886,11 +2890,15 @@ u8 function_cc *block_lookup_address_thumb(u32 pc)
   }                                                                           \
 }                                                                             \
 
-#define MAX_BLOCK_SIZE   2048   // 4/8KiB blocks max for SF2000
-#define MAX_EXITS          64   // Increased for SF2000 performance
+#define MAX_BLOCK_SIZE 8192
+#define arm_MAX_BLOCK_SIZE 8192
+#define thumb_MAX_BLOCK_SIZE 8192
+
+#define MAX_EXITS      256
+#define arm_MAX_EXITS      256
+#define thumb_MAX_EXITS      256
 
 block_data_type block_data[MAX_BLOCK_SIZE];
-block_exit_type block_exits[MAX_EXITS];
 
 #define smc_write_arm_yes() {                                                 \
   intptr_t offset = (pc < 0x03000000) ? 0x40000 : -0x8000;                    \
@@ -2909,20 +2917,98 @@ block_exit_type block_exits[MAX_EXITS];
       CODE_TAG_BLOCK16;                                                       \
   }                                                                           \
 }
-
 #define smc_write_arm_no()                                                    \
 
 #define smc_write_thumb_no()                                                  \
 
+#define arm_ub() {                                          \
+  intptr_t offset = (pc < 0x03000000) ? 0x40000 : -0x8000;                    \
+  intptr_t mask = 0x7FFF;                 \
+  if(address32(pc_address_block, ((block_end_pc - 4) & mask) + offset) <= CODE_TAG_BLOCK32)        \
+    address32(pc_address_block, ((block_end_pc - 4) & mask) + offset) =           \
+      UB_32;                                                       \
+}
+
+#define thumb_ub() {                                        \
+  intptr_t offset = (pc < 0x03000000) ? 0x40000 : -0x8000;                    \
+  intptr_t mask = 0x7FFF;                       \
+  if(address16(pc_address_block, ((block_end_pc - 2) & mask) + offset)  <= CODE_TAG_BLOCK16)        \
+    address16(pc_address_block, ((block_end_pc - 2)  & mask) + offset) =           \
+      UB_16;                                                       \
+}
+
+/*
+ * Inserts Value into a sorted Array of unique values (or doesn't), of
+ * size Size.
+ * If Value was already present, then the old size is returned, and no
+ * insertions are made. Otherwise, Value is inserted into Array at the
+ * proper position to maintain its total order, and Size + 1 is returned.
+ */
+static u32 InsertUniqueSorted(u32* Array, u32 Value, u32 Size)
+{
+	// Gather the insertion index with a binary search.
+	s32 Min = 0, Max = Size - 1;
+	while (Min < Max) {
+		s32 Mid = Min + (Max - Min) / 2;
+		if (Array[Mid] < Value)
+			Min = Mid + 1;
+		else
+			Max = Mid;
+	}
+
+	// Insert at Min.
+	// Min == Size means we just insert at the end...
+	if (Min == Size) {
+		Array[Size] = Value;
+		return Size + 1;
+	}
+	// ... otherwise it's either already in the array...
+	else if (Array[Min] == Value) {
+		return Size;
+	}
+	// ... or we need to move things.
+	else {
+		memmove(&Array[Min + 1], &Array[Min], Size - Min);
+		Array[Min] = Value;
+		return Size + 1;
+	}
+}
+
+/*
+ * Searches for the given Value in the given sorted Array of size Size.
+ * If found, the index in the Array of the first element having the given
+ * Value is returned.
+ * Otherwise, -1 is returned.
+ */
+static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
+{
+	s32 Min = 0, Max = Size - 1;
+	while (Min < Max) {
+		s32 Mid = Min + (Max - Min) / 2;
+		if (Array[Mid] < Value)
+			Min = Mid + 1;
+		else
+			Max = Mid;
+	}
+
+	if (Min == Max && Array[Min] == Value)
+		return Min;
+	else
+		return -1;
+}
+
 #define scan_block(type, smc_write_op)                                        \
 {                                                                             \
   __label__ block_end;                                                        \
+  u8 continue_block = 1;                                                      \
+  u32 branch_targets_sorted[MAX_EXITS];                                       \
+  u32 sorted_branch_count = 0;                                                \
   /* Find the end of the block */                                             \
   do                                                                          \
   {                                                                           \
     check_pc_region(block_end_pc);                                            \
-    smc_write_##type##_##smc_write_op();                                      \
     type##_load_opcode();                                                     \
+    smc_write_##type##_##smc_write_op();                                      \
     type##_flag_status();                                                     \
                                                                               \
     if(type##_exit_point)                                                     \
@@ -2933,6 +3019,9 @@ block_exit_type block_exits[MAX_EXITS];
         __label__ no_direct_branch;                                           \
         type##_branch_target();                                               \
         block_exits[block_exit_position].branch_target = branch_target;       \
+	if(!ram_region)							      \
+          sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,     \
+          branch_target, sorted_branch_count);                                \
         block_exit_position++;                                                \
                                                                               \
         /* Give the branch target macro somewhere to bail if it turns out to  \
@@ -2945,6 +3034,9 @@ block_exit_type block_exits[MAX_EXITS];
       if(type##_opcode_swi)                                                   \
       {                                                                       \
         block_exits[block_exit_position].branch_target = 0x00000008;          \
+	if(!ram_region)							      \
+        sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,       \
+          0x00000008, sorted_branch_count);                                \
         block_exit_position++;                                                \
       }                                                                       \
                                                                               \
@@ -2954,42 +3046,41 @@ block_exit_type block_exits[MAX_EXITS];
       if(type##_opcode_unconditional_branch)                                  \
       {                                                                       \
         /* Check to see if any prior block exits branch after here,           \
-           if so don't end the block. Starts from the top and works           \
-           down because the most recent branch is most likely to              \
-           join after the end (if/then form) */                               \
-        for(i = block_exit_position - 2; i >= 0; i--)                         \
-        {                                                                     \
-          if(block_exits[i].branch_target == block_end_pc)                    \
-            break;                                                            \
-        }                                                                     \
-                                                                              \
-        if(i < 0)                                                             \
-          break;                                                              \
+           if so don't end the block. For efficiency, but to also keep the    \
+           correct order of the scanned branches for code emission, this is   \
+           using a separate sorted array with unique branch_targets. */       \
+        if (ram_region || BinarySearch(branch_targets_sorted, block_end_pc,   \
+          sorted_branch_count) == -1)                                         \
+          continue_block = 0;                                                 \
+       if (ram_region)								\
+          type##_ub();								\
       }                                                                       \
-      if(block_exit_position == MAX_EXITS)                                    \
-        break;                                                                \
+      if(block_exit_position == type##_MAX_EXITS)                             \
+        continue_block = 0;                                                   \
     }                                                                         \
     else                                                                      \
     {                                                                         \
       type##_set_condition(condition);                                        \
     }                                                                         \
+    block_data[block_data_position].update_cycles = 0;                        \
+    block_data_position++;                                                    \
                                                                               \
     for(i = 0; i < translation_gate_targets; i++)                             \
     {                                                                         \
       if(block_end_pc == translation_gate_target_pc[i])                       \
-        goto block_end;                                                       \
+      {                                                                       \
+        translation_gate_required = 1;                                        \
+        continue_block = 0;                                                   \
+      }                                                                       \
     }                                                                         \
                                                                               \
-    block_data[block_data_position].update_cycles = 0;                        \
-    block_data_position++;                                                    \
-    if((block_data_position == MAX_BLOCK_SIZE) ||                             \
+    if((block_data_position == type##_MAX_BLOCK_SIZE) ||                      \
      (block_end_pc == 0x3007FF0) || (block_end_pc == 0x203FFFF0))             \
     {                                                                         \
-      break;                                                                  \
+      continue_block = 0;                                                     \
     }                                                                         \
-  } while(1);                                                                 \
+  } while(continue_block);                                                    \
                                                                               \
-  block_end:;                                                                 \
 }                                                                             \
 
 #define arm_fix_pc()                                                          \
@@ -3031,7 +3122,7 @@ bool translate_block_arm(u32 pc, bool ram_region)
   u8 *translation_cache_limit = NULL;
   s32 i;
   u32 flag_status;
-  block_exit_type external_block_exits[MAX_EXITS];
+  block_exit_type block_exits[MAX_EXITS];
   generate_block_extra_vars_arm();
   arm_fix_pc();
 
@@ -3051,6 +3142,8 @@ bool translate_block_arm(u32 pc, bool ram_region)
   }
 
   generate_block_prologue();
+
+  u8 translation_gate_required = 0; /* gets updated by scan_block */          \
 
   /* This is a function because it's used a lot more than it might seem (all
      of the data processing functions can access it), and its expansion was
@@ -3077,6 +3170,12 @@ bool translate_block_arm(u32 pc, bool ram_region)
     }
   }
 
+ // if (!ram_region) {                         
+    /* If we're translating in RAM, expect to be called VERY often. Thus,     
+     * don't spend time eliminating flags for code that will just go to       
+     * waste in a millisecond. */             
+  //arm_dead_flag_eliminate();
+  //}
   arm_dead_flag_eliminate();
 
   block_exit_position = 0;
@@ -3127,7 +3226,8 @@ bool translate_block_arm(u32 pc, bool ram_region)
 
   /* Unconditionally generate translation targets. In case we hit one or
      in the unlikely case that block was too big (and not finalized) */
-  generate_translation_gate(arm);
+  //if (translation_gate_required)
+    generate_translation_gate(arm);
 
   for(i = 0; i < block_exit_position; i++)
   {
@@ -3145,12 +3245,23 @@ bool translate_block_arm(u32 pc, bool ram_region)
     }
     else
     {
-      /* External branch, save for later */
-      external_block_exits[external_block_exit_position].branch_target =
-       branch_target;
-      external_block_exits[external_block_exit_position].branch_source =
-       block_exits[i].branch_source;
+      /* This branch exits the basic block. If the branch target is in a      
+       * read-only code area (the BIOS or the Game Pak ROM), we can link the  
+       * block statically below. THIS BEHAVIOUR NEEDS TO BE DUPLICATED IN THE 
+       * EMITTER. Please see your emitter's generate_branch_no_cycle_update   
+       * macro for more information. */                                       
+      if (branch_target < 0x00004000 /* BIOS */                               
+      || (branch_target >= 0x08000000 && branch_target < 0x0E000000))         
+     {                                                                       
+       /* External branch, save for later. Simply compact the external         
+       * exits to the beginning of the same array. */                         
+      if (i != external_block_exit_position)                                  
+      {                                                                       
+        memcpy(&block_exits[external_block_exit_position], &block_exits[i],   
+          sizeof(block_exit_type));                                           
+      }                                                                       
       external_block_exit_position++;
+     }
     }
   }
 
@@ -3161,7 +3272,7 @@ bool translate_block_arm(u32 pc, bool ram_region)
 
   for(i = 0; i < external_block_exit_position; i++)
   {
-    branch_target = external_block_exits[i].branch_target;
+    branch_target = block_exits[i].branch_target;
     if(branch_target == 0x00000008)
       translation_target = bios_swi_entrypoint;
     else
@@ -3169,7 +3280,7 @@ bool translate_block_arm(u32 pc, bool ram_region)
     if (!translation_target)
       return false;
     generate_branch_patch_unconditional(
-      external_block_exits[i].branch_source, translation_target);
+      block_exits[i].branch_source, translation_target);
   }
   return true;
 }
@@ -3195,7 +3306,7 @@ bool translate_block_thumb(u32 pc, bool ram_region)
   u8 *translation_cache_limit = NULL;
   s32 i;
   u32 flag_status;
-  block_exit_type external_block_exits[MAX_EXITS];
+  block_exit_type block_exits[MAX_EXITS];
   generate_block_extra_vars_thumb();
   thumb_fix_pc();
 
@@ -3219,6 +3330,8 @@ bool translate_block_thumb(u32 pc, bool ram_region)
      of the data processing functions can access it), and its expansion was
      massacreing the compiler. */
 
+  u8 translation_gate_required = 0; /* gets updated by scan_block */          
+
   if(ram_region)
   {
     scan_block(thumb, yes);
@@ -3240,6 +3353,12 @@ bool translate_block_thumb(u32 pc, bool ram_region)
     }
   }
 
+ // if (!ram_region) {                         
+    /* If we're translating in RAM, expect to be called VERY often. Thus,     
+     * don't spend time eliminating flags for code that will just go to       
+     * waste in a millisecond. */             
+  //thumb_dead_flag_eliminate();
+  //}
   thumb_dead_flag_eliminate();
 
   block_exit_position = 0;
@@ -3284,7 +3403,8 @@ bool translate_block_thumb(u32 pc, bool ram_region)
 
   /* Unconditionally generate translation targets. In case we hit one or
      in the unlikely case that block was too big (and not finalized) */
-  generate_translation_gate(thumb);
+  //if (translation_gate_required)                                              
+    generate_translation_gate(thumb);
 
   for(i = 0; i < block_exit_position; i++)
   {
@@ -3302,12 +3422,23 @@ bool translate_block_thumb(u32 pc, bool ram_region)
     }
     else
     {
-      /* External branch, save for later */
-      external_block_exits[external_block_exit_position].branch_target =
-       branch_target;
-      external_block_exits[external_block_exit_position].branch_source =
-       block_exits[i].branch_source;
+      /* This branch exits the basic block. If the branch target is in a      
+       * read-only code area (the BIOS or the Game Pak ROM), we can link the  
+       * block statically below. THIS BEHAVIOUR NEEDS TO BE DUPLICATED IN THE 
+       * EMITTER. Please see your emitter's generate_branch_no_cycle_update   
+       * macro for more information. */                                       
+      if (branch_target < 0x00004000 /* BIOS */                               
+      || (branch_target >= 0x08000000 && branch_target < 0x0E000000))         
+     {                                                                       
+       /* External branch, save for later. Simply compact the external         
+       * exits to the beginning of the same array. */                         
+      if (i != external_block_exit_position)                                  
+      {                                                                       
+        memcpy(&block_exits[external_block_exit_position], &block_exits[i],   
+          sizeof(block_exit_type));                                           
+      }                                                                       
       external_block_exit_position++;
+     }
     }
   }
 
@@ -3318,7 +3449,7 @@ bool translate_block_thumb(u32 pc, bool ram_region)
 
   for(i = 0; i < external_block_exit_position; i++)
   {
-    branch_target = external_block_exits[i].branch_target;
+    branch_target = block_exits[i].branch_target;
     if(branch_target == 0x00000008)
       translation_target = bios_swi_entrypoint;
     else
@@ -3326,7 +3457,7 @@ bool translate_block_thumb(u32 pc, bool ram_region)
     if (!translation_target)
       return false;
     generate_branch_patch_unconditional(
-      external_block_exits[i].branch_source, translation_target);
+      block_exits[i].branch_source, translation_target);
   }
   return true;
 }
@@ -3415,25 +3546,13 @@ void flush_dynarec_caches(void)
   flush_translation_cache_ram();
 }
 
-void partial_flush_ram_full(u32 address)
+void partial_flush_ram_full_dma(u32 address)
 {
-#if defined(MIPS_ARCH)
-  /* PERFORMANCE: Most 2D games don't use SMC - reduce flush frequency for soft FPU MIPS */
-  static u32 flush_counter = 0;
-  #ifdef SF2000
-  if ((++flush_counter & 0x7) != 0) {
-    return; // Skip 87.5% of flushes for SF2000 performance
-  }
-  #else
-  if ((++flush_counter & 0x3) != 0) {
-    return; // Skip 75% of flushes for performance
-  }
-  #endif
-#endif
-
   u8 *smc_data;
   u8 *ewram_smc_data = &ewram[0x40000];
   u8 *iwram_smc_data = iwram;
+
+  // printf("SMC Data Address: %x \n", address);
 
   switch (address >> 24)
   {
@@ -3442,6 +3561,7 @@ void partial_flush_ram_full(u32 address)
       break;
     case 0x03: /* IWRAM */
       smc_data = iwram_smc_data + (address & 0x7FFE);
+//      printf("SMC Data Address: %x \n", smc_data);
       break;
     default:   /* no smc_data */
       return;
@@ -3469,11 +3589,9 @@ void partial_flush_ram_full(u32 address)
     smc_data = smc_data - 2;
     if (smc_data < smc_data_area)
       smc_data = smc_data_area_end - 2; // Wrap to the end
-    if (*((u16*) smc_data) != 0)
-      *((u16*) smc_data) = 0;
-    else 
-      {
-      break; }
+    if (*((u16*) smc_data) == 0 || *((u16*) smc_data) == UB_16)
+       break; 
+     *((u16*) smc_data) = 0;
   }
 
   smc_data = smc_data_right;
@@ -3483,9 +3601,108 @@ void partial_flush_ram_full(u32 address)
     smc_data = smc_data + 2;
     if (smc_data == smc_data_area_end)
       smc_data = smc_data_area; // Wrap to the beginning
-    if (*((u16*) smc_data) != 0)
-      *((u16*) smc_data) = 0;
-    else
+    if (*((u16*) smc_data) == 0)
       break;
+      *((u16*) smc_data) = 0;
+  }
+
+}
+
+void partial_flush_ram_full(u32 address)
+{
+  u8 *smc_data;
+  u8 *ewram_smc_data = &ewram[0x40000];
+  u8 *iwram_smc_data = iwram;
+
+  switch (address >> 24)
+  {
+    case 0x02: /* EWRAM */
+      smc_data = ewram_smc_data + (address & 0x3FFFE);
+      break;
+    case 0x03: /* IWRAM */
+      smc_data = iwram_smc_data + (address & 0x7FFE);
+//      printf("SMC Data Address: %x \n", smc_data);
+      break;
+    default:   /* no smc_data */
+      return;
+  }
+
+  u8 *smc_data_area, *smc_data_area_end, *smc_data_right ;
+  smc_data_right = smc_data; // Save this pointer to go to the right later
+
+  switch (address >> 24)
+  {
+    case 0x02: /* EWRAM */
+      smc_data_area = ewram_smc_data;
+      smc_data_area_end = ewram_smc_data + 0x40000;
+      break;
+    case 0x03: /* IWRAM */
+      smc_data_area = iwram_smc_data;
+      smc_data_area_end = iwram_smc_data + 0x8000;
+      break;
+  }
+  
+  *((u16*) smc_data) = 0;
+
+  // ******* TRANSLATION GATES ********
+
+  u8 y = 0;
+ 
+  // Align the address to ARM instruction interval and set to previous instruction
+  u32 translation_gate_dyn = ((address & ~0x03) - 4);
+ 
+  // Check if the SMC address already appears in our Translation Gate list
+  for(y= 0; y < translation_gate_targets; y++) {
+ 
+    //printf("translation gate proposed entry : %x \n", translation_gate_dyn);
+    if(translation_gate_target_pc[y] == translation_gate_dyn)
+     break;
+ 
+  }
+
+  // If it doesn't exist, y = translation_gate_targets
+  if(y == translation_gate_targets) {
+    //printf("translation gate proposed entry : %x  y: %x \n", translation_gate_targets, translation_gate_dyn);
+    //fflush(stdout);
+    translation_gate_target_pc[translation_gate_targets] = translation_gate_dyn;
+    
+    if(translation_gate_targets == MAX_TRANSLATION_GATES) {
+      // This is a circular array, so let's set it back to 3 so that we overwrite the oldest entries
+      // except for the ones specified in gba_over (ToDo: need to actually determine how many are specified)
+      translation_gate_targets = 0;
+    } 
+    else {
+    translation_gate_targets++;
+    }
+  }
+
+  //if(*((u16*) smc_data) > ram_block_tag){
+   // ramtag_type* trentry_flush;                                                   
+   // trentry_flush = get_ram_tag(*((u16*) smc_data) | 0x1);
+  //  trentry_flush->offset_arm = 1;
+  //  trentry_flush->offset_thumb = 1;
+    //printf("Flush Block Start: %x , SMC Data value %x \n", trentry_flush->block_start, *((u16*) smc_data));
+  //}
+
+  while (1)
+  {
+    smc_data = smc_data - 2;
+    if (smc_data < smc_data_area)
+      smc_data = smc_data_area_end - 2; // Wrap to the end
+    if (*((u16*) smc_data) == 0 || *((u16*) smc_data) == UB_16)
+       break; 
+     *((u16*) smc_data) = 0;
+  }
+
+  smc_data = smc_data_right;
+
+  while (1)
+  {
+    smc_data = smc_data + 2;
+    if (smc_data == smc_data_area_end)
+      smc_data = smc_data_area; // Wrap to the beginning
+    if (*((u16*) smc_data) == 0)
+      break;
+      *((u16*) smc_data) = 0;
   }
 }
