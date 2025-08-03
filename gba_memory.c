@@ -2118,12 +2118,6 @@ const dma_region_type dma_region_map[17] =
 #define dma_read_ext(type, tfsize)                                            \
   read_value = read_memory##tfsize(type##_ptr)                                \
 
-#define dma_write_iwram(type, tfsize)                                         \
-  address##tfsize(iwram + 0x8000, type##_ptr & 0x7FFF) =                      \
-                                          eswap##tfsize(read_value);          \
-  if (address##tfsize(iwram, type##_ptr & 0x7FFF))                            \
-    alerts |= CPU_ALERT_SMC;                                                  \
-
 #define dma_write_vram(type, tfsize) {                                        \
   u32 wraddr = type##_ptr & 0x1FFFF;                                          \
   if (wraddr >= 0x18000) wraddr -= 0x8000;                                    \
@@ -2142,10 +2136,23 @@ const dma_region_type dma_region_map[17] =
 #define dma_write_ext(type, tfsize)                                           \
   write_memory##tfsize(type##_ptr, read_value)                                \
 
+#define dma_write_iwram(type, tfsize)                                         \
+  if(address##tfsize(iwram + 0x8000, type##_ptr & 0x7FFF) != eswap##tfsize(read_value)) {          \
+    address##tfsize(iwram + 0x8000, type##_ptr & 0x7FFF) = eswap##tfsize(read_value);               \
+    if(address##tfsize(iwram, type##_ptr & 0x7FFF) != 0)   {                         \
+        partial_flush_ram_full_dma(type##_ptr);                                            \
+        alerts |= CPU_ALERT_SMC;                                                \
+    }															\
+  }															\
+
 #define dma_write_ewram(type, tfsize)                                         \
-  address##tfsize(ewram, type##_ptr & 0x3FFFF) = eswap##tfsize(read_value);   \
-  if (address##tfsize(ewram, (type##_ptr & 0x3FFFF) + 0x40000))               \
-    alerts |= CPU_ALERT_SMC;                                                  \
+  if(address##tfsize(ewram, type##_ptr & 0x3FFFF) != eswap##tfsize(read_value)) {       \
+    address##tfsize(ewram, type##_ptr & 0x3FFFF) = eswap##tfsize(read_value);   \
+    if(address##tfsize(ewram, (type##_ptr & 0x3FFFF) + 0x40000) != 0)	{	        \
+         partial_flush_ram_full_dma(type##_ptr);                                            \
+         alerts |= CPU_ALERT_SMC;                                                \
+    }															\
+  }	
 
 #define print_line()                                                          \
   dma_print(src_op, dest_op, tfsize);                                         \
