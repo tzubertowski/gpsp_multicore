@@ -2359,12 +2359,12 @@ static void emit_pmemst_stub(
       mips_emit_addu(reg_temp, reg_rv, reg_temp); // SMC lives after the ewram
       // Prepare reg_a0 so that we can pass address to partial_flush_ram_full
       mips_emit_lui(reg_rv, 0x200);
-      mips_emit_addu(reg_rv, reg_rv, reg_a0);    // a0 should now be original address
+      mips_emit_addu(reg_a0, reg_rv, reg_a0);    // a0 should now be original address
     } else {
       mips_emit_addiu(reg_temp, reg_rv, 0x8000); // -32KB is the addr of the SMC buffer
       // Prepare reg_a0 so that we can pass address to partial_flush_ram_full
       mips_emit_lui(reg_rv, 0x300);
-      mips_emit_addu(reg_rv, reg_rv, reg_a0);    // a0 should now be original address
+      mips_emit_addu(reg_a0, reg_rv, reg_a0);    // a0 should now be original address
     }
     if (realsize == 2) {
       mips_emit_lw(reg_temp, reg_temp, base_addr);
