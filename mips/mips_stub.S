@@ -367,11 +367,11 @@ lookup_pc_noflags:
   jr $2                                # jump to result
   nop
 
-
+# $4 (reg_a0) should already contain the SMC address
 defsymbl(smc_write)
   sw $6, REG_PC($16)              # save PC
   save_registers
-  cfncall flush_translation_cache_ram, 4
+  cfncall partial_flush_ram_full, 10
   b lookup_pc_noflags
   lw $1, REG_CPSR($16)            # (delay)
 
@@ -610,6 +610,7 @@ fnptrs:
   .long execute_store_cpsr_body        # 7
   .long process_cheats                 # 8
   .long check_and_raise_interrupts     # 9
+  .long partial_flush_ram_full	       # 10
 
 #if !defined(MMAP_JIT_CACHE)
 
@@ -629,4 +630,3 @@ defsymbl(ram_translation_cache)
   .space RAM_TRANSLATION_CACHE_SIZE
 
 #endif
-
