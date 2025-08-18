@@ -3483,6 +3483,38 @@ void partial_flush_ram_full(u32 address)
 #endif // 0 - OLD IMPLEMENTATION - DISABLED
 
 // Safe partial flush implementation - selective cache invalidation
+// Selective invalidation: only invalidate specific tags in the affected range
+static void selective_invalidate_ram_range(u8 *smc_start, u32 size, u32 region)
+{
+  // Invalidate tags for addresses that have compiled code in the affected range
+  for (u32 i = 0; i < size; i += 2) {  // Process 16-bit entries
+    u16 *tag_ptr = (u16*)(smc_start + i);
+    u16 tag_value = *tag_ptr;
+    
+    // If this address has compiled code (valid tag), invalidate it
+    if (VALID_TAG(tag_value)) {
+      *tag_ptr = 0;  // Mark as invalid
+    }
+  }
+  
+  // Update the memory bounds for future reference
+  if (region == 0x03) { // IWRAM
+    u32 addr_start = (smc_start - iwram) / 2;  // Convert back to address offset
+    u32 addr_end = addr_start + (size / 2);
+    if (iwram_code_min == 0 || addr_start < iwram_code_min)
+      iwram_code_min = addr_start;
+    if (addr_end > iwram_code_max)
+      iwram_code_max = addr_end;
+  } else { // EWRAM  
+    u32 addr_start = (smc_start - &ewram[0x40000]) / 2;
+    u32 addr_end = addr_start + (size / 2);  
+    if (ewram_code_min == 0 || addr_start < ewram_code_min)
+      ewram_code_min = addr_start;
+    if (addr_end > ewram_code_max)
+      ewram_code_max = addr_end;
+  }
+}
+
 void partial_flush_ram_safe(u32 address)
 {
   u32 region = address >> 24;
@@ -3579,9 +3611,10 @@ void partial_flush_ram_safe(u32 address)
   }
 #endif
 
-  // Do the full flush for the remaining cases
-  flush_translation_cache_ram();
+  // Implement true selective invalidation: only invalidate tags in the affected range
+  selective_invalidate_ram_range(smc_data + flush_start, flush_end - flush_start, region);
 }
+
 
 // DMA-specific partial flush - similar logic but may have different performance characteristics
 void partial_flush_ram_safe_dma(u32 address)
