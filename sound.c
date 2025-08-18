@@ -435,10 +435,10 @@ void render_gbc_sound()
     return;
 
 #ifdef SF2000
-  // SF2000: Only skip if master volume AND enable bits are completely off
-  u32 master_volume = read_ioreg(REG_SOUNDCNT_L);
+  // SF2000: More conservative audio skip - only skip if sound is explicitly disabled
+  // AND no channels are active to prevent games like "The Millionaires" losing audio
   u32 sound_enable = read_ioreg(REG_SOUNDCNT_X);
-  if ((master_volume & 0x77) == 0 && (sound_enable & 0x80) == 0) {
+  if ((sound_enable & 0x80) == 0 && (sound_enable & 0x0F) == 0) {
     gbc_sound_last_cpu_ticks = cpu_ticks;
     write_ioreg(REG_SOUNDCNT_X, sound_status);
     return;
@@ -461,12 +461,13 @@ void render_gbc_sound()
     gs = gbc_sound_channel + 0;
     if(gs->active_flag)
     {
-#ifdef SF2000
-      if (gs->envelope_volume > 0) {
-#endif
         sound_status |= 0x01;
         sample_data = &square_pattern_duty[gs->sample_table_idx][0];
         envelope_volume = gs->envelope_volume;
+#ifdef SF2000
+      // SF2000: Only skip rendering if envelope volume is actually 0 
+      if (gs->envelope_volume > 0) {
+#endif
         gbc_sound_render_channel(samples, 8, envelope, sweep);
 #ifdef SF2000
       }
@@ -476,12 +477,13 @@ void render_gbc_sound()
     gs = gbc_sound_channel + 1;
     if(gs->active_flag)
     {
-#ifdef SF2000
-      if (gs->envelope_volume > 0) {
-#endif
         sound_status |= 0x02;
         sample_data = &square_pattern_duty[gs->sample_table_idx][0];
         envelope_volume = gs->envelope_volume;
+#ifdef SF2000
+      // SF2000: Only skip rendering if envelope volume is actually 0
+      if (gs->envelope_volume > 0) {
+#endif
         gbc_sound_render_channel(samples, 8, envelope, nosweep);
 #ifdef SF2000
       }
@@ -525,12 +527,12 @@ void render_gbc_sound()
     gs = gbc_sound_channel + 3;
     if(gs->active_flag)
     {
-#ifdef SF2000
-      if (gs->envelope_volume > 0) {
-#endif
         sound_status |= 0x08;
         envelope_volume = gs->envelope_volume;
-
+#ifdef SF2000
+      // SF2000: Only skip rendering if envelope volume is actually 0
+      if (gs->envelope_volume > 0) {
+#endif
         if(gs->noise_type == 1)
         {
           gbc_sound_render_channel(noise, half, envelope, nosweep);
