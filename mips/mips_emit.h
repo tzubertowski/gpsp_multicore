@@ -231,32 +231,14 @@ u32 arm_to_mips_reg[] =
   *((u32 *)(dest)) = (mips_opcode_j << 26) |                                  \
    ((mips_absolute_offset(offset)) & 0x3FFFFFF)                               \
 
-#define generate_branch_no_cycle_update(type,writeback_location, new_pc)      \
+#define generate_branch_no_cycle_update(writeback_location, new_pc)           \
   if(pc == idle_loop_target_pc)                                               \
   {                                                                           \
     generate_load_pc(reg_a0, new_pc);                                         \
     mips_emit_lui(reg_cycles, 0);                                             \
     generate_function_call_swap_delay(mips_update_gba);                       \
-      /* This uses variables from cpu_asm.c's translate_block_builder /       \
-       * translate_block_arm / translate_block_thumb functions. Basically,    \
-       * if we're emitting a jump towards inside the same basic block, or if  \
-       * the branch target is in a read-only area (BIOS or ROM), we can link  \
-       * statically and backpatch all we like, but if we're emitting a branch \
-       * towards a basic block that's in writable (GBA) memory, that block is \
-       * OFF LIMITS and that branch must be issued indirectly and resolved at \
-       * branch time. This allows us to efficiently clear SOME of the RAM     \
-       * code cache after SOME of it has been modified. Ideally, that's one   \
-       * basic block. */                                                      \
-      if ((new_pc >= block_start_pc && new_pc < block_end_pc)                 \
-       || (new_pc <  0x00004000) /* BIOS */                                   \
-       || (new_pc >= 0x08000000 && new_pc < 0x0A000000) /* Game Pak ROM */) { \
-        mips_emit_j_filler(writeback_location);                               \
-        mips_emit_nop();                                                      \
-      }                                                                       \
-      else {                                                                  \
-        generate_load_imm(reg_a0, new_pc);                                    \
-        generate_indirect_branch_no_cycle_update(type);                       \
-      }                                                                       \
+    mips_emit_j_filler(writeback_location);                                   \
+    mips_emit_nop();                                                          \
   }                                                                           \
   else                                                                        \
   {                                                                           \
@@ -264,22 +246,13 @@ u32 arm_to_mips_reg[] =
     mips_emit_bltzal(reg_cycles,                                              \
      mips_relative_offset(translation_ptr, update_trampoline));               \
     generate_swap_delay();                                                    \
-      /* Same as above. */                                                    \
-      if ((new_pc >= block_start_pc && new_pc < block_end_pc)                 \
-       || (new_pc <  0x00004000) /* BIOS */                                   \
-       || (new_pc >= 0x08000000 && new_pc < 0x0A000000) /* Game Pak ROM */) { \
-        mips_emit_j_filler(writeback_location);                               \
-        mips_emit_nop();                                                      \
-      }                                                                       \
-      else {                                                                  \
-        generate_load_imm(reg_a0, new_pc);                                    \
-        generate_indirect_branch_no_cycle_update(type);                       \
-      }                                                                       \
+    mips_emit_j_filler(writeback_location);                                   \
+    mips_emit_nop();                                                          \
   }                                                                           \
 
-#define generate_branch_cycle_update(type,writeback_location, new_pc)         \
+#define generate_branch_cycle_update(writeback_location, new_pc)              \
   generate_cycle_update();                                                    \
-  generate_branch_no_cycle_update(type,writeback_location, new_pc)            \
+  generate_branch_no_cycle_update(writeback_location, new_pc)                 \
 
 // a0 holds the destination
 
@@ -529,8 +502,7 @@ u32 arm_to_mips_reg[] =
 // Returns a new rm if it redirects it (which will happen on most of these
 // cases)
 
-#define generate_load_rm_sh_builder(flags_op)                                 \
-u32 generate_load_rm_sh_##flags_op(u32 rm)                                    \
+#define generate_load_rm_sh(rm, flags_op)                                     \
 {                                                                             \
   switch((opcode >> 4) & 0x07)                                                \
   {                                                                           \
@@ -575,8 +547,6 @@ u32 generate_load_rm_sh_##flags_op(u32 rm)                                    \
       break;                                                                  \
     }                                                                         \
   }                                                                           \
-                                                                              \
-  return rm;                                                                  \
 }                                                                             \
 
 #define generate_block_extra_vars()                                           \
@@ -586,10 +556,8 @@ u32 generate_load_rm_sh_##flags_op(u32 rm)                                    \
 
 #define generate_block_extra_vars_arm()                                       \
   generate_block_extra_vars();                                                \
-  generate_load_rm_sh_builder(flags);                                         \
-  generate_load_rm_sh_builder(no_flags);                                      \
-                                                                              \
-  u32 generate_load_offset_sh(u32 rm)                                         \
+
+#define generate_load_offset_sh(rm)                                           \
   {                                                                           \
     switch((opcode >> 5) & 0x03)                                              \
     {                                                                         \
@@ -614,7 +582,6 @@ u32 generate_load_rm_sh_##flags_op(u32 rm)                                    \
         break;                                                                \
       }                                                                       \
     }                                                                         \
-    return rm;                                                                \
   }                                                                           \
 
 #define generate_indirect_branch_arm()                                        \
@@ -757,19 +724,17 @@ u32 execute_spsr_restore_body(u32 address)
       break;                                                                  \
   }                                                                           \
 
-/* This is used in the code emission phase, when the branch target is
-  * known. The branch source is written into block_exits here. */
- #define generate_branch(type)                                                \
+#define generate_branch()                                                     \
 {                                                                             \
   if(condition == 0x0E)                                                       \
   {                                                                           \
-    generate_branch_cycle_update(type,                                        \
+    generate_branch_cycle_update(                                             \
      block_exits[block_exit_position].branch_source,                          \
      block_exits[block_exit_position].branch_target);                         \
   }                                                                           \
   else                                                                        \
   {                                                                           \
-    generate_branch_no_cycle_update(type,                                     \
+    generate_branch_no_cycle_update(                                          \
      block_exits[block_exit_position].branch_source,                          \
      block_exits[block_exit_position].branch_target);                         \
   }                                                                           \
@@ -1094,11 +1059,11 @@ u32 execute_spsr_restore_body(u32 address)
   arm_decode_data_proc_reg(opcode);                                           \
   if(check_generate_c_flag)                                                   \
   {                                                                           \
-    rm = generate_load_rm_sh_flags(rm);                                       \
+    generate_load_rm_sh(rm, flags);                                           \
   }                                                                           \
   else                                                                        \
   {                                                                           \
-    rm = generate_load_rm_sh_no_flags(rm);                                    \
+    generate_load_rm_sh(rm, no_flags);                                        \
   }                                                                           \
                                                                               \
   arm_op_check_##load_op();                                                   \
@@ -1107,7 +1072,7 @@ u32 execute_spsr_restore_body(u32 address)
 
 #define arm_generate_op_reg(name, load_op)                                    \
   arm_decode_data_proc_reg(opcode);                                           \
-  rm = generate_load_rm_sh_no_flags(rm);                                      \
+  generate_load_rm_sh(rm, no_flags);                                          \
   arm_op_check_##load_op();                                                   \
   generate_op_##name##_reg(arm_to_mips_reg[rd], arm_to_mips_reg[rn],          \
    arm_to_mips_reg[rm])                                                       \
@@ -1305,7 +1270,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 address)
 
 #define arm_data_trans_reg(adjust_op, adjust_dir)                             \
   arm_decode_data_trans_reg();                                                \
-  rm = generate_load_offset_sh(rm);                                           \
+  generate_load_offset_sh(rm);                                                \
   arm_access_memory_reg_##adjust_op(adjust_dir)                               \
 
 #define arm_data_trans_imm(adjust_op, adjust_dir)                             \
@@ -1338,13 +1303,14 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 address)
   generate_load_reg_pc(reg_a1, i, 8);                                         \
   generate_function_call_swap_delay(execute_aligned_store32)                  \
 
-#define arm_block_memory_final_load()                                         \
+#define arm_block_memory_final_load(writeback_type)                           \
   arm_block_memory_load()                                                     \
 
-#define arm_block_memory_final_store()                                        \
+#define arm_block_memory_final_store(writeback_type)                          \
   generate_load_pc(reg_a2, (pc + 4));                                         \
-  mips_emit_jal(mips_absolute_offset(execute_store_u32));                     \
-  generate_load_reg(reg_a1, i)                                                \
+  generate_load_reg(reg_a1, i);                                               \
+  arm_block_memory_writeback_post_store(writeback_type);                      \
+  generate_function_call_swap_delay(execute_store_u32);                       \
 
 #define arm_block_memory_adjust_pc_store()                                    \
 
@@ -1395,13 +1361,15 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 address)
 
 // Only emit writeback if the register is not in the list
 
-#define arm_block_memory_writeback_load(writeback_type)                       \
+#define arm_block_memory_writeback_post_load(writeback_type)
+#define arm_block_memory_writeback_pre_load(writeback_type)                   \
   if(!((reg_list >> rn) & 0x01))                                              \
   {                                                                           \
     arm_block_memory_writeback_##writeback_type();                            \
   }                                                                           \
 
-#define arm_block_memory_writeback_store(writeback_type)                      \
+#define arm_block_memory_writeback_pre_store(writeback_type)
+#define arm_block_memory_writeback_post_store(writeback_type)                 \
   arm_block_memory_writeback_##writeback_type()                               \
 
 #define arm_block_memory(access_type, offset_type, writeback_type, s_bit)     \
@@ -1412,7 +1380,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 address)
   u32 base_reg = arm_to_mips_reg[rn];                                         \
                                                                               \
   arm_block_memory_offset_##offset_type();                                    \
-  arm_block_memory_writeback_##access_type(writeback_type);                   \
+  arm_block_memory_writeback_pre_##access_type(writeback_type);               \
                                                                               \
   if(rn == REG_SP)                                                            \
   {                                                                           \
@@ -1438,6 +1406,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 address)
       }                                                                       \
     }                                                                         \
                                                                               \
+    arm_block_memory_writeback_post_##access_type(writeback_type);            \
     arm_block_memory_sp_adjust_pc_##access_type();                            \
   }                                                                           \
   else                                                                        \
@@ -1457,7 +1426,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 address)
         }                                                                     \
         else                                                                  \
         {                                                                     \
-          arm_block_memory_final_##access_type();                             \
+          arm_block_memory_final_##access_type(writeback_type);               \
           break;                                                              \
         }                                                                     \
       }                                                                       \
@@ -1806,7 +1775,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 address)
 #define thumb_conditional_branch(condition)                                   \
 {                                                                             \
   generate_condition_##condition();                                           \
-  generate_branch_no_cycle_update(thumb,                                      \
+  generate_branch_no_cycle_update(                                            \
    block_exits[block_exit_position].branch_source,                            \
    block_exits[block_exit_position].branch_target);                           \
   generate_branch_patch_conditional(backpatch_address, translation_ptr);      \
@@ -1817,11 +1786,11 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 address)
   generate_condition();                                                       \
 
 #define arm_b()                                                               \
-  generate_branch(arm)                                                        \
+  generate_branch()                                                           \
 
 #define arm_bl()                                                              \
   generate_load_pc(reg_r14, (pc + 4));                                        \
-  generate_branch(arm)                                                        \
+  generate_branch()                                                           \
 
 #define arm_bx()                                                              \
   arm_decode_branchx(opcode);                                                 \
@@ -1832,19 +1801,17 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 address)
 #define arm_swi()                                                             \
   generate_load_pc(reg_a0, (pc + 4));                                         \
   generate_function_call_swap_delay(execute_swi);                             \
-  generate_branch(arm)                                                        \
+  generate_branch()                                                           \
 
-/* This is used in the code emission phase, when the branch target is
-  * known. The branch source is written into block_exits here. */
 #define thumb_b()                                                             \
-  generate_branch_cycle_update(thumb,                                         \
+  generate_branch_cycle_update(                                               \
    block_exits[block_exit_position].branch_source,                            \
    block_exits[block_exit_position].branch_target);                           \
   block_exit_position++                                                       \
 
 #define thumb_bl()                                                            \
   generate_load_pc(reg_r14, ((pc + 2) | 0x01));                               \
-  generate_branch_cycle_update(thumb,                                         \
+  generate_branch_cycle_update(                                               \
    block_exits[block_exit_position].branch_source,                            \
    block_exits[block_exit_position].branch_target);                           \
   block_exit_position++                                                       \
@@ -1897,12 +1864,10 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 address)
   #define emit_trace_arm_instruction(pc)
 #endif
 
-/* This is used in the code emission phase, when the branch target is
-  * known. The branch source is written into block_exits here. */
 #define thumb_swi()                                                           \
   generate_load_pc(reg_a0, (pc + 2));                                         \
   generate_function_call_swap_delay(execute_swi);                             \
-  generate_branch_cycle_update(arm, /* SWI target == ARM */                   \
+  generate_branch_cycle_update(                                               \
    block_exits[block_exit_position].branch_source,                            \
    block_exits[block_exit_position].branch_target);                           \
   block_exit_position++                                                       \
@@ -2342,29 +2307,14 @@ static void emit_pmemst_stub(
     mips_emit_addu(reg_rv, reg_rv, reg_a0);    // Adds to base addr
   }
 
-  // Store the data (do write first so we can use reg_rv in SMC check to do lui)
-  if (realsize == 2) {
-    mips_emit_sw(reg_a1, reg_rv, base_addr);
-  } else if (realsize == 1) {
-    mips_emit_sh(reg_a1, reg_rv, base_addr);
-  } else {
-    mips_emit_sb(reg_a1, reg_rv, base_addr);
-  }
-
   // Generate SMC write and tracking
   // TODO: Should we have SMC checks here also for aligned?
   if (meminfo->check_smc && !aligned) {
     if (region == 2) {
       mips_emit_lui(reg_temp, 0x40000 >> 16);
       mips_emit_addu(reg_temp, reg_rv, reg_temp); // SMC lives after the ewram
-      // Prepare reg_a0 so that we can pass address to partial_flush_ram_full
-      mips_emit_lui(reg_rv, 0x200);
-      mips_emit_addu(reg_a0, reg_rv, reg_a0);    // a0 should now be original address
     } else {
       mips_emit_addiu(reg_temp, reg_rv, 0x8000); // -32KB is the addr of the SMC buffer
-      // Prepare reg_a0 so that we can pass address to partial_flush_ram_full
-      mips_emit_lui(reg_rv, 0x300);
-      mips_emit_addu(reg_a0, reg_rv, reg_a0);    // a0 should now be original address
     }
     if (realsize == 2) {
       mips_emit_lw(reg_temp, reg_temp, base_addr);
@@ -2377,9 +2327,15 @@ static void emit_pmemst_stub(
     // Local-jump to the smc_write (which lives at offset:0)
     mips_emit_b(bne, reg_zero, reg_temp, branch_offset(&rom_translation_cache[SMC_WRITE_OFF]));
   }
-  // nop in delay slot (could do store here instead of above if we can work out register usage)
-  mips_emit_nop();
 
+  // Store the data (delay slot from the SMC branch)
+  if (realsize == 2) {
+    mips_emit_sw(reg_a1, reg_rv, base_addr);
+  } else if (realsize == 1) {
+    mips_emit_sh(reg_a1, reg_rv, base_addr);
+  } else {
+    mips_emit_sb(reg_a1, reg_rv, base_addr);
+  }
 
   // Post processing store:
   // Signal that OAM was updated
@@ -2853,4 +2809,5 @@ u32 execute_arm_translate(u32 cycles) {
 }
 
 #endif
+
 

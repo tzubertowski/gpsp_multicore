@@ -156,7 +156,7 @@ extern u8 ram_translation_cache[RAM_TRANSLATION_CACHE_SIZE];
 extern u8 *rom_translation_ptr;
 extern u8 *ram_translation_ptr;
 
-#define MAX_TRANSLATION_GATES 16
+#define MAX_TRANSLATION_GATES 8
 
 extern u32 idle_loop_target_pc;
 extern u32 translation_gate_targets;
@@ -165,7 +165,6 @@ extern u32 translation_gate_target_pc[MAX_TRANSLATION_GATES];
 extern u32 rom_branch_hash[ROM_BRANCH_HASH_SIZE];
 
 void partial_flush_ram_full(u32 address);
-void partial_flush_ram_full_dma(u32 address);
 void flush_translation_cache_rom(void);
 void flush_translation_cache_ram(void);
 void dump_translation_cache(void);
