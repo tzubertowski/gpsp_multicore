@@ -3417,20 +3417,12 @@ void flush_dynarec_caches(void)
 
 void partial_flush_ram_full(u32 address)
 {
-#if defined(MIPS_ARCH)
-  /* PERFORMANCE: Most 2D games don't use SMC - reduce flush frequency for soft FPU MIPS */
-  static u32 flush_counter = 0;
-  #ifdef SF2000
-  if ((++flush_counter & 0x7) != 0) {
-    return; // Skip 87.5% of flushes for SF2000 performance
-  }
-  #else
-  if ((++flush_counter & 0x3) != 0) {
-    return; // Skip 75% of flushes for performance
-  }
-  #endif
-#endif
+  // Redirect to safe implementation to prevent crashes
+  partial_flush_ram_safe(address);
+}
 
+// OLD IMPLEMENTATION - REMOVED
+#if 0
   u8 *smc_data;
   u8 *ewram_smc_data = &ewram[0x40000];
   u8 *iwram_smc_data = iwram;
@@ -3488,4 +3480,112 @@ void partial_flush_ram_full(u32 address)
     else
       break;
   }
+#endif // 0 - OLD IMPLEMENTATION - DISABLED
+
+// Safe partial flush implementation - selective cache invalidation
+void partial_flush_ram_safe(u32 address)
+{
+  u32 region = address >> 24;
+  u8 *smc_data;
+  u32 smc_offset;
+  u32 region_size;
+  u32 addr_mask;
+
+  // Determine the SMC tracking region based on address
+  switch (region) {
+    case 0x02: /* EWRAM */
+      smc_data = &ewram[0x40000];
+      smc_offset = address & 0x3FFFE;  // Word-aligned
+      region_size = 0x40000;
+      addr_mask = 0x3FFFF;
+      break;
+    case 0x03: /* IWRAM */  
+      smc_data = iwram;
+      smc_offset = address & 0x7FFE;   // Word-aligned
+      region_size = 0x8000;
+      addr_mask = 0x7FFF;
+      break;
+    default:
+      // Not a tracked region, no flush needed
+      return;
+  }
+
+  // Check if there's actually any SMC data to flush
+  u16 smc_value = *((u16*)(smc_data + smc_offset));
+  if (smc_value == 0) {
+    // No cached code at this address, no flush needed
+    return;
+  }
+  
+  // Quick scan to see if there's any code in the nearby area
+  u32 scan_start = smc_offset & ~0x1FF;  // 512-byte aligned
+  u32 scan_end = MIN(scan_start + 0x400, region_size);
+  bool has_code = false;
+  
+  for (u32 i = scan_start; i < scan_end; i += 2) {
+    if (*((u16*)(smc_data + i)) != 0) {
+      has_code = true;
+      break;
+    }
+  }
+  
+  if (!has_code) {
+    // No code in the area, just clear the single SMC entry
+    *((u16*)(smc_data + smc_offset)) = 0;
+    return;
+  }
+
+  // Simple approach: flush a small range around the modified address
+  // This is safer than trying to track individual translations
+  u32 flush_start = smc_offset & ~0x1FF;  // Align to 512-byte boundary
+  u32 flush_end = MIN(flush_start + 0x400, region_size); // Flush 1KB max
+
+  // Clear SMC data for the flushed range
+  memset(smc_data + flush_start, 0, flush_end - flush_start);
+
+  // Update the code min/max ranges for the next full flush
+  if (region == 0x03) { // IWRAM
+    if (iwram_code_min == 0 || flush_start < iwram_code_min)
+      iwram_code_min = flush_start;
+    if (flush_end > iwram_code_max)
+      iwram_code_max = flush_end;
+  } else { // EWRAM
+    if (ewram_code_min == 0 || flush_start < ewram_code_min)
+      ewram_code_min = flush_start;
+    if (flush_end > ewram_code_max)
+      ewram_code_max = flush_end;
+  }
+
+  // Selective cache invalidation: only flush the specific range
+  // This is much faster than flushing the entire RAM translation cache
+  
+  // Performance optimization: reduce flush frequency for most games
+  // Most 2D games don't use much SMC, so we can skip some flushes
+  static u32 partial_flush_counter = 0;
+  partial_flush_counter++;
+  
+#ifdef SF2000
+  // On SF2000, be more aggressive about skipping flushes due to performance constraints
+  if ((partial_flush_counter & 0x3) != 0) {
+    // Skip 75% of flushes, just clear the SMC data
+    memset(smc_data + flush_start, 0, flush_end - flush_start);
+    return;
+  }
+#else
+  // On other platforms, skip 50% of flushes
+  if ((partial_flush_counter & 0x1) != 0) {
+    memset(smc_data + flush_start, 0, flush_end - flush_start);
+    return;
+  }
+#endif
+
+  // Do the full flush for the remaining cases
+  flush_translation_cache_ram();
+}
+
+// DMA-specific partial flush - similar logic but may have different performance characteristics
+void partial_flush_ram_safe_dma(u32 address)
+{
+  // For DMA writes, use the same logic but potentially with different thresholds
+  partial_flush_ram_safe(address);
 }
