@@ -1,5 +1,5 @@
 
-gpSP for SF2000 - Highly Optimized Fork
+gpSP for SF2000 - Performance Optimized Fork
 ========================================
 
 This is a specialized fork of libretro-gpsp, specifically optimized for the SF2000 handheld console and similar MIPS32 devices with software floating-point units (soft FPU).
@@ -12,6 +12,13 @@ This is a specialized fork of libretro-gpsp, specifically optimized for the SF20
 **Original Project:**
 This fork is based on notaz's gpSP (https://github.com/notaz/gpsp) for libretro
 frontends, with contributions from davidgfnet (https://github.com/davidgfnet/gpsp).
+
+TODO: Feature Ideas/Requests
+============================
+
+ - Auto save on exit
+ - Auto load on run (configurable)
+ - Periodic auto-save (every minute or so?)
 
 Major SF2000 Optimizations & Features
 ======================================
@@ -71,25 +78,5 @@ Many new features (compared to the original release) are:
  - Slightly better performance (for some games at least!)
  - Better audio (fixed many audio related bugs).
  - Ships an opensource BIOS replacement,we recommend using the original though.
-
-TODO: Feature Ideas/Requests
-============================
-
- - Auto save on exit
- - Auto load on run (configurable)
- - Periodic auto-save (every minute or so?)
-
-Planned features (aka the TODO list)
-====================================
-
-Some features I'd like to see (in loose priority order):
-
- - GBA link emulation (for some games, perhaps with patches).
- - Improve RFU (Wireless Adapter) emulation through research.
- - Bringing back the native UI for PC, PSP and perhaps PS2/3DS/Wii.
- - A native UI with Multiplayer support for portable devices with wifi support.
- - A better BIOS emulation and perhaps a newer better open BIOS.
- - Dynarec rewrite: make it easier to add new drcs and share more code.
- - Adding some funny DRCs like PowerPC or SH4.
 
 
