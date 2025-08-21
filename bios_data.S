@@ -7,3 +7,6 @@ _open_gba_bios_rom:
 open_gba_bios_rom:
   .incbin "bios/open_gba_bios.bin"
 
+#if defined(__linux__) && defined(__ELF__)
+  .section .note.GNU-stack,"",%progbits
+#endif
