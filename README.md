@@ -72,6 +72,13 @@ Many new features (compared to the original release) are:
  - Better audio (fixed many audio related bugs).
  - Ships an opensource BIOS replacement,we recommend using the original though.
 
+TODO: Feature Ideas/Requests
+============================
+
+ - Auto save on exit
+ - Auto load on run (configurable)
+ - Periodic auto-save (every minute or so?)
+
 Planned features (aka the TODO list)
 ====================================
 
