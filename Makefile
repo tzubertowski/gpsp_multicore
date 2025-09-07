@@ -1,4 +1,5 @@
 DEBUG=0
+OVERCLOCK_60FPS ?= 0
 FRONTEND_SUPPORTS_RGB565=1
 FORCE_32BIT_ARCH=0
 MMAP_JIT_CACHE=0
@@ -243,7 +244,7 @@ else ifeq ($(platform), vita)
 	CC = arm-vita-eabi-gcc$(EXE_EXT)
 	CXX = arm-vita-eabi-g++$(EXE_EXT)
 	AR = arm-vita-eabi-ar$(EXE_EXT)
-	CFLAGS += -DVITA -DOVERCLOCK_60FPS
+	CFLAGS += -DVITA
 	CFLAGS += -marm -mcpu=cortex-a9 -mfloat-abi=hard
 	CFLAGS += -Wall -mword-relocations
 	CFLAGS += -fomit-frame-pointer -ffast-math
@@ -252,6 +253,7 @@ else ifeq ($(platform), vita)
 	ASFLAGS += -mcpu=cortex-a9
 	STATIC_LINKING = 1
 	HAVE_DYNAREC = 1
+	OVERCLOCK_60FPS = 1
 	CPU_ARCH := arm
 
 # CTR(3DS)
@@ -580,6 +582,11 @@ CFLAGS += $(DEFINES) $(COMMON_DEFINES)
 
 ifeq ($(FRONTEND_SUPPORTS_RGB565), 1)
 	CFLAGS += -DFRONTEND_SUPPORTS_RGB565
+endif
+
+# check if user compiles a 60 FPS overclock version
+ifeq ($(OVERCLOCK_60FPS),1)
+	CFLAGS += -DOVERCLOCK_60FPS
 endif
 
 
