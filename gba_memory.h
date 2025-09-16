@@ -238,9 +238,7 @@ extern u8 ws_cyc_seq[16][2];
 extern u8 ws_cyc_nseq[16][2];
 
 extern u32 gamepak_size;
-extern char gamepak_title[13];
 extern char gamepak_code[5];
-extern char gamepak_maker[3];
 extern char gamepak_filename[512];
 
 cpu_alert_type dma_transfer(unsigned dma_chan, int *cycles);

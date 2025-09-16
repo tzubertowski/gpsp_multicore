@@ -1541,22 +1541,13 @@ cpu_alert_type function_cc write_memory32(u32 address, u32 value)
 
 typedef struct
 {
-   char gamepak_title[13];
    char gamepak_code[5];
-   char gamepak_maker[3];
    u16 flags;
    u32 idle_loop_target_pc;
    u32 translation_gate_target_1;
    u32 translation_gate_target_2;
    u32 translation_gate_target_3;
 } ini_t;
-
-typedef struct
-{
-   char gamepak_title[13];
-   char gamepak_code[5];
-   char gamepak_maker[3];
-} gamepak_info_t;
 
 #define FLAGS_FLASH_128KB    0x0001   // Forces 128KB flash.
 #define FLAGS_RUMBLE         0x0002   // Enables GPIO3 rumble support.
@@ -1567,25 +1558,16 @@ typedef struct
 
 #include "gba_over.h"
 
-static void load_game_config_over(gamepak_info_t *gpinfo)
+static void load_game_config_over(const char *gamecode)
 {
   unsigned i = 0;
 
   for (i = 0; i < sizeof(gbaover)/sizeof(gbaover[0]); i++)
   {
-     if (strcmp(gbaover[i].gamepak_code, gpinfo->gamepak_code))
+     if (strcmp(gbaover[i].gamepak_code, gamecode))
         continue;
 
-     if (strcmp(gbaover[i].gamepak_title, gpinfo->gamepak_title))
-        continue;
-     
-     printf("gamepak title: %s\n", gbaover[i].gamepak_title);
-     printf("gamepak code : %s\n", gbaover[i].gamepak_code);
-     printf("gamepak maker: %s\n", gbaover[i].gamepak_maker);
-
-     printf("INPUT gamepak title: %s\n", gpinfo->gamepak_title);
-     printf("INPUT gamepak code : %s\n", gpinfo->gamepak_code);
-     printf("INPUT gamepak maker: %s\n", gpinfo->gamepak_maker);
+     printf("gamepak code match for : %s\n", gbaover[i].gamepak_code);
 
      if (gbaover[i].idle_loop_target_pc != 0)
         idle_loop_target_pc = gbaover[i].idle_loop_target_pc;
@@ -2543,16 +2525,13 @@ static s32 load_gamepak_raw(const char *name)
 u32 load_gamepak(const struct retro_game_info* info, const char *name,
                  int force_rtc, int force_rumble, int force_serial)
 {
-   gamepak_info_t gpinfo;
+   char game_code[5] = {0,0,0,0,0};
 
    if (load_gamepak_raw(name))
       return -1;
 
    // Buffer 0 always has the first 1MB chunk of the ROM
-   memset(&gpinfo, 0, sizeof(gpinfo));
-   memcpy(gpinfo.gamepak_title, &gamepak_buffers[0][0xA0], 12);
-   memcpy(gpinfo.gamepak_code,  &gamepak_buffers[0][0xAC],  4);
-   memcpy(gpinfo.gamepak_maker, &gamepak_buffers[0][0xB0],  2);
+   memcpy(game_code,  &gamepak_buffers[0][0xAC],  4);
 
    idle_loop_target_pc = 0xFFFFFFFF;
    translation_gate_targets = 0;
@@ -2563,7 +2542,7 @@ u32 load_gamepak(const struct retro_game_info* info, const char *name,
    backup_type_reset = BACKUP_UNKN;
    serial_mode = force_serial;
 
-   load_game_config_over(&gpinfo);
+   load_game_config_over(game_code);
 
    // Forced RTC / Rumble modes, override the autodetect logic.
    if (force_rtc != FEAT_AUTODETECT)
