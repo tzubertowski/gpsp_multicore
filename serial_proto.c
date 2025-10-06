@@ -51,7 +51,7 @@ static void unpack16(u16 *buf, const u32 *data, size_t wcnt) {
 }
 
 int ismemzero(const void *ptr, size_t bytes) {
-  const uint8_t *p = (uint8_t*)ptr;
+  const u8 *p = (u8*)ptr;
   while (bytes--) {
     if (*p++)
       return 0;
@@ -62,30 +62,30 @@ int ismemzero(const void *ptr, size_t bytes) {
 static union {
   struct {
     struct {
-      uint16_t data[MAX_QPACK][8];
-      uint16_t state;
-      uint8_t count;             // Number of queued packets
-      uint8_t recvd;             // Whether we are sending any data
-      uint8_t timeout;           // Number of frames since last heard from.
+      u16 data[MAX_QPACK][8];
+      u16 state;
+      u8 count;                  // Number of queued packets
+      u8 recvd;                  // Whether we are sending any data
+      u8 timeout;                // Number of frames since last heard from.
     } peer[4];                   // One of them not used really
 
-    uint16_t checksum;
-    uint8_t offset;              // Current frame offset
-    uint8_t hscnt;               // Number of handshake tokens sent
+    u16 checksum;
+    u8 offset;                   // Current frame offset
+    u8 hscnt;                    // Number of handshake tokens sent
     unsigned frcnt;              // Frame counter for events.
   } poke;
 
   struct {
     struct {
-      uint8_t state;             // Device status (packet vs sync)
-      uint8_t pstate;            // Parsing state (packet parsing FSM)
-      uint16_t data[MAX_FPACK];
-      uint16_t count;            // Number of queued bytes (full packets
-      uint8_t recvd;             // Whether we are sending any data
-      uint8_t timeout;           // Number of frames since last heard from.
+      u8 state;                  // Device status (packet vs sync)
+      u8 pstate;                 // Parsing state (packet parsing FSM)
+      u16 data[MAX_FPACK];
+      u16 count;                 // Number of queued bytes (full packets
+      u8 recvd;                  // Whether we are sending any data
+      u8 timeout;                // Number of frames since last heard from.
     } peer[4];                   // One of them not used really
 
-    uint16_t lastcmd;
+    u16 lastcmd;
     unsigned frcnt;              // Frame counter for events.
   } aw;
 } serstate;
@@ -122,8 +122,8 @@ void serialproto_reset(void) {
   memset(&serstate, 0, sizeof(serstate));
 }
 
-static void serialpoke_senddata(uint16_t state, const uint16_t *packet) {
-  uint32_t flags = state | (packet ? 0x80000000 : 0);
+static void serialpoke_senddata(u16 state, const u16 *packet) {
+  u32 flags = state | (packet ? 0x80000000 : 0);
   u32 pkt[6] = {
     netorder32(NET_SERPOKE_HEADER),  // Header magic
     netorder32(flags),               // Current device state
@@ -225,7 +225,7 @@ void serialpoke_master_send(void) {
             if (--serstate.poke.peer[i].count) {
               memmove(serstate.poke.peer[i].data[0],
                       serstate.poke.peer[i].data[1],
-                      serstate.poke.peer[i].count * 8 * sizeof(uint16_t));
+                      serstate.poke.peer[i].count * 8 * sizeof(u16));
             }
           }
         }
@@ -357,7 +357,7 @@ bool serialpoke_update(unsigned cycles) {
                 if (--serstate.poke.peer[i].count)
                   memmove(serstate.poke.peer[i].data[0],
                           serstate.poke.peer[i].data[1],
-                          serstate.poke.peer[i].count * 8 * sizeof(uint16_t));
+                          serstate.poke.peer[i].count * 8 * sizeof(u16));
               }
             }
           }
@@ -371,7 +371,7 @@ bool serialpoke_update(unsigned cycles) {
 
 void serialpoke_net_receive(const void* buf, size_t len, uint16_t client_id) {
   // MPK1 header, sanity checking.
-  const uint32_t *pkt = (uint32_t*)buf;
+  const u32 *pkt = (u32*)buf;
   if (len == 24 && netorder32(pkt[0]) == NET_SERPOKE_HEADER) {
     const unsigned count = serstate.poke.peer[client_id].count;
     const u32 flags = netorder32(pkt[1]);
@@ -415,8 +415,8 @@ void serialpoke_net_receive(const void* buf, size_t len, uint16_t client_id) {
 #define CMD_SYNC       (serial_mode == SERIAL_MODE_SERIAL_AW1 ? 0x5678 : 0x9ABC)
 #define PACK_TAIL_SZ   (serial_mode == SERIAL_MODE_SERIAL_AW1 ? 1 : 2)
 
-static void serialaw_senddata(uint16_t cmd, uint8_t state, const uint16_t *packet, size_t wcnt) {
-  uint32_t flags = (cmd << 16) | (state << 8) | wcnt;
+static void serialaw_senddata(u16 cmd, u8 state, const u16 *packet, size_t wcnt) {
+  u32 flags = (cmd << 16) | (state << 8) | wcnt;
   u32 pkt[2 + 128] = {
     netorder32(NET_SERADWR_HEADER),  // Header magic
     netorder32(flags),               // Current device state
@@ -443,13 +443,13 @@ static u16 process_awpeer_val(u32 i) {
   if (serstate.aw.peer[i].recvd) {
     // Buffer contains: Packet-Size + payload (cmd, internal-size, word0, word1... wordN-1, wordN)
 
-    const uint16_t numw = serstate.aw.peer[i].data[0];
+    const u16 numw = serstate.aw.peer[i].data[0];
     if (serstate.aw.peer[i].recvd >= numw) {
       u16 ret = serstate.aw.peer[i].data[serstate.aw.peer[i].recvd];
       serstate.aw.peer[i].recvd = 0;
       serstate.aw.peer[i].count -= (numw+1);
       memmove(&serstate.aw.peer[i].data[0], &serstate.aw.peer[i].data[numw+1],
-              serstate.aw.peer[i].count * sizeof(uint16_t));
+              serstate.aw.peer[i].count * sizeof(u16));
       return ret;
     }
     else
@@ -467,12 +467,12 @@ static u16 process_awpeer(u32 i) {
   if (serstate.aw.peer[i].recvd) {
     // Buffer contains: Packet-Size + payload (cmd, internal-size, word0, word1... wordN-1, wordN)
 
-    const uint16_t numw = serstate.aw.peer[i].data[0];
+    const u16 numw = serstate.aw.peer[i].data[0];
     if (serstate.aw.peer[i].recvd > numw) {
       serstate.aw.peer[i].recvd = 0;
       serstate.aw.peer[i].count -= (numw+1);
       memmove(&serstate.aw.peer[i].data[0], &serstate.aw.peer[i].data[numw+1],
-              serstate.aw.peer[i].count * sizeof(uint16_t));
+              serstate.aw.peer[i].count * sizeof(u16));
       return CMD_NONE;
     }
     else
@@ -678,7 +678,7 @@ bool serialaw_update(unsigned cycles) {
 
 void serialaw_net_receive(const void* buf, size_t len, uint16_t client_id) {
   // MAW1 header, sanity checking.
-  const uint32_t *pkt = (uint32_t*)buf;
+  const u32 *pkt = (u32*)buf;
   if (len >= 8 && netorder32(pkt[0]) == NET_SERADWR_HEADER) {
     const u32 flags = netorder32(pkt[1]);
     const u16 cmd = flags >> 16;
