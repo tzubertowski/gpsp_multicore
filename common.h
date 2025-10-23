@@ -95,6 +95,40 @@
 #define GBA_SCREEN_BUFFER_SIZE  \
   (GBA_SCREEN_PITCH * (GBA_SCREEN_HEIGHT + 1) * sizeof(uint16_t))
 
+// SF2000 MIPS32 Performance Optimization System - inspired by TempGBA
+#ifdef SF2000
+// Performance vs accuracy tradeoff levels
+#define SF2000_OPTIMIZATION_NONE       0  // Maximum accuracy, minimal optimizations
+#define SF2000_OPTIMIZATION_SAFE       1  // Safe optimizations, minimal accuracy loss  
+#define SF2000_OPTIMIZATION_MODERATE   2  // Moderate optimizations for 2D games
+#define SF2000_OPTIMIZATION_AGGRESSIVE 3  // Maximum performance for sprite-heavy games
+
+// Default optimization level (can be configured at runtime)
+#ifndef SF2000_OPTIMIZATION_LEVEL
+#define SF2000_OPTIMIZATION_LEVEL SF2000_OPTIMIZATION_SAFE
+#endif
+
+// Global performance level variable (can be modified at runtime)
+extern u32 sf2000_performance_level;
+
+// Enable specific optimizations based on performance level
+#define SF2000_ENABLE_CYCLE_BATCHING          (sf2000_performance_level >= SF2000_OPTIMIZATION_SAFE)
+#define SF2000_ENABLE_CACHE_INVALIDATION_REDUCTION (sf2000_performance_level >= SF2000_OPTIMIZATION_SAFE)
+#define SF2000_ENABLE_MEMORY_OPTIMIZATIONS    (sf2000_performance_level >= SF2000_OPTIMIZATION_MODERATE)
+#define SF2000_ENABLE_AGGRESSIVE_SPRITE_OPTS  (sf2000_performance_level >= SF2000_OPTIMIZATION_AGGRESSIVE)
+
+// Cache invalidation reduction intensity based on performance level
+#define SF2000_CACHE_SKIP_RATIO_SAFE       4  // Skip 1 out of 4 flushes
+#define SF2000_CACHE_SKIP_RATIO_MODERATE   3  // Skip 1 out of 3 flushes  
+#define SF2000_CACHE_SKIP_RATIO_AGGRESSIVE 2  // Skip 1 out of 2 flushes
+
+#define SF2000_GET_CACHE_SKIP_RATIO() \
+  ((sf2000_performance_level >= SF2000_OPTIMIZATION_AGGRESSIVE) ? SF2000_CACHE_SKIP_RATIO_AGGRESSIVE : \
+   (sf2000_performance_level >= SF2000_OPTIMIZATION_MODERATE) ? SF2000_CACHE_SKIP_RATIO_MODERATE : \
+   SF2000_CACHE_SKIP_RATIO_SAFE)
+
+#endif // SF2000
+
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
   #define netorder32(value) (value)
 #else

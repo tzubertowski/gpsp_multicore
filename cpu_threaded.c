@@ -3482,6 +3482,46 @@ void partial_flush_ram_full(u32 address)
   }
 #endif // 0 - OLD IMPLEMENTATION - DISABLED
 
+// Enhanced cache invalidation reduction system - inspired by TempGBA optimizations
+#ifdef SF2000
+static u32 sf2000_cache_flush_counter = 0;
+
+// Cache flush reduction flags
+#define FLUSH_REASON_SMC              0
+#define FLUSH_REASON_DMA              1  
+#define FLUSH_REASON_NATIVE_BRANCHING 2
+#define FLUSH_REASON_FORCED           3
+
+// Enhanced cache invalidation with intelligent flush reduction
+static bool should_skip_cache_flush(u32 flush_reason) {
+  // Check if cache invalidation reduction is enabled at current performance level
+  if (!SF2000_ENABLE_CACHE_INVALIDATION_REDUCTION) {
+    return false; // Don't skip any flushes at NONE level
+  }
+  
+  sf2000_cache_flush_counter++;
+  
+  u32 skip_ratio = SF2000_GET_CACHE_SKIP_RATIO();
+  
+  // Skip based on flush reason and performance level
+  if (flush_reason == FLUSH_REASON_NATIVE_BRANCHING) {
+    // Skip based on performance level (more aggressive = higher skip rate)
+    if ((sf2000_cache_flush_counter % skip_ratio) != 0) {
+      return true; // Skip this cache flush
+    }
+  }
+
+  // For other flush reasons, apply basic throttling (except forced flushes)
+  if (flush_reason != FLUSH_REASON_FORCED) {
+    if ((sf2000_cache_flush_counter % (skip_ratio / 2)) != 0) {
+      return true;
+    }
+  }
+
+  return false; // Don't skip this flush
+}
+#endif
+
 // Safe partial flush implementation - selective cache invalidation
 // Selective invalidation: only invalidate specific tags in the affected range
 static void selective_invalidate_ram_range(u8 *smc_start, u32 size, u32 region)
@@ -3517,11 +3557,17 @@ static void selective_invalidate_ram_range(u8 *smc_start, u32 size, u32 region)
 
 void partial_flush_ram_safe(u32 address)
 {
+#ifdef SF2000
+  // Enhanced cache invalidation reduction - check if we should skip this flush
+  if (should_skip_cache_flush(FLUSH_REASON_SMC)) {
+    return; // Skip this flush for performance
+  }
+#endif
+
   u32 region = address >> 24;
   u8 *smc_data;
   u32 smc_offset;
   u32 region_size;
-  u32 addr_mask;
 
   // Determine the SMC tracking region based on address
   switch (region) {
@@ -3529,13 +3575,11 @@ void partial_flush_ram_safe(u32 address)
       smc_data = &ewram[0x40000];
       smc_offset = address & 0x3FFFE;  // Word-aligned
       region_size = 0x40000;
-      addr_mask = 0x3FFFF;
       break;
-    case 0x03: /* IWRAM */  
+    case 0x03: /* IWRAM */
       smc_data = iwram;
       smc_offset = address & 0x7FFE;   // Word-aligned
       region_size = 0x8000;
-      addr_mask = 0x7FFF;
       break;
     default:
       // Not a tracked region, no flush needed
@@ -3619,6 +3663,12 @@ void partial_flush_ram_safe(u32 address)
 // DMA-specific partial flush - similar logic but may have different performance characteristics
 void partial_flush_ram_safe_dma(u32 address)
 {
+#ifdef SF2000
+  // Enhanced cache invalidation reduction for DMA - less aggressive than SMC
+  if (should_skip_cache_flush(FLUSH_REASON_DMA)) {
+    return; // Skip this DMA flush for performance
+  }
+#endif
   // For DMA writes, use the same logic but potentially with different thresholds
   partial_flush_ram_safe(address);
 }

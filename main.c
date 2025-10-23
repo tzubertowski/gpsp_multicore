@@ -36,6 +36,11 @@ u32 oam_update_count = 0;
 char main_path[512];
 char save_path[512];
 
+#ifdef SF2000
+// SF2000 Performance Level - global variable for runtime configuration
+u32 sf2000_performance_level = SF2000_OPTIMIZATION_LEVEL;
+#endif
+
 // Custom splash screen variables
 static bool splash_shown = false;
 static u32 splash_timer = 0;
@@ -540,11 +545,39 @@ u32 function_cc update_gba(int remaining_cycles)
     execute_cycles = MAX(video_count, 0);
     
 #if defined(SF2000) || defined(MIPS_SOFT_FPU) || defined(__mips__)
-    // SF2000/MIPS optimization: batch more cycles together to reduce dynarec overhead
-    // Extended to all soft FPU MIPS devices for better performance
-    // Only do this when we have a reasonable chunk and no critical events pending
-    if (execute_cycles > 300 && execute_cycles < 3000) {
-      execute_cycles = MIN(execute_cycles * 2, 6000);  // Double the execution chunk, increased range
+    // Enhanced SF2000/MIPS cycle batching with configurable performance levels
+    // More aggressive batching reduces dynarec overhead significantly
+    if (SF2000_ENABLE_CYCLE_BATCHING && execute_cycles > 200) {
+      u32 batch_min, batch_max, batch_multiplier;
+      
+      // Configure batching parameters based on performance level
+      switch (sf2000_performance_level) {
+        case SF2000_OPTIMIZATION_AGGRESSIVE:
+          batch_min = 150;
+          batch_max = 8000;  // Much larger batches for maximum performance
+          batch_multiplier = 3;  // Triple the cycles
+          break;
+        case SF2000_OPTIMIZATION_MODERATE:  
+          batch_min = 200;
+          batch_max = 6500;  // Increased from original 6000
+          batch_multiplier = 25; // 2.5x the cycles (using integer math)
+          break;
+        case SF2000_OPTIMIZATION_SAFE:
+        default:
+          batch_min = 300;
+          batch_max = 6000;  // Original safe values
+          batch_multiplier = 2;  // Double the cycles
+          break;
+      }
+      
+      if (execute_cycles > batch_min && execute_cycles < 4000) {
+        if (batch_multiplier == 25) {
+          // Special handling for 2.5x multiplier using integer math
+          execute_cycles = MIN((execute_cycles * 5) / 2, batch_max);
+        } else {
+          execute_cycles = MIN(execute_cycles * batch_multiplier, batch_max);
+        }
+      }
     }
 #endif
     {
