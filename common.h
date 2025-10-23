@@ -116,11 +116,12 @@ extern u32 sf2000_performance_level;
 #define SF2000_ENABLE_CACHE_INVALIDATION_REDUCTION (sf2000_performance_level >= SF2000_OPTIMIZATION_SAFE)
 #define SF2000_ENABLE_MEMORY_OPTIMIZATIONS    (sf2000_performance_level >= SF2000_OPTIMIZATION_MODERATE)
 #define SF2000_ENABLE_AGGRESSIVE_SPRITE_OPTS  (sf2000_performance_level >= SF2000_OPTIMIZATION_AGGRESSIVE)
+#define SF2000_ENABLE_TIMER_BATCHING          (sf2000_performance_level >= SF2000_OPTIMIZATION_SAFE)
 
 // Cache invalidation reduction intensity based on performance level
-#define SF2000_CACHE_SKIP_RATIO_SAFE       4  // Skip 1 out of 4 flushes
-#define SF2000_CACHE_SKIP_RATIO_MODERATE   3  // Skip 1 out of 3 flushes  
-#define SF2000_CACHE_SKIP_RATIO_AGGRESSIVE 2  // Skip 1 out of 2 flushes
+#define SF2000_CACHE_SKIP_RATIO_SAFE       8  // Skip 7 out of 8 flushes
+#define SF2000_CACHE_SKIP_RATIO_MODERATE   12 // Skip 11 out of 12 flushes
+#define SF2000_CACHE_SKIP_RATIO_AGGRESSIVE 16 // Skip 15 out of 16 flushes
 
 #define SF2000_GET_CACHE_SKIP_RATIO() \
   ((sf2000_performance_level >= SF2000_OPTIMIZATION_AGGRESSIVE) ? SF2000_CACHE_SKIP_RATIO_AGGRESSIVE : \

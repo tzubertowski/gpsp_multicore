@@ -483,15 +483,16 @@ else ifeq ($(platform), rs90)
 
 # SF2000
 else ifeq ($(platform), sf2000)
-	TARGET := $(TARGET_NAME)_libretro_$(platform).a
+	TARGET := _libretro_$(platform).a
 	MIPS:=/opt/mips32-mti-elf/2019.09-03-2/bin/mips-mti-elf-
 	CC = $(MIPS)gcc
 	CXX = $(MIPS)g++
 	AR = $(MIPS)ar
 	CFLAGS = -EL -march=mips32 -mtune=mips32 -msoft-float -G0 -mno-abicalls -fno-pic
-	CFLAGS += -ffast-math -fomit-frame-pointer -ffunction-sections -fdata-sections 
+	CFLAGS += -ffast-math -fomit-frame-pointer -ffunction-sections -fdata-sections
 	CFLAGS += -DROM_BUFFER_SIZE=16
 	CFLAGS += -DSF2000
+	CFLAGS += $(EXTRA_CFLAGS)
 	CXXFLAGS = $(CFLAGS)
 	STATIC_LINKING = 1
 	HAVE_DYNAREC := 1

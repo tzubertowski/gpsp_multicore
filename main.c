@@ -299,6 +299,18 @@ static void show_custom_splash() {
 static unsigned update_timers(irq_type *irq_raised, unsigned completed_cycles)
 {
    unsigned i, ret = 0;
+#ifdef SF2000
+   static u32 timer_update_batch_counter = 0;
+   bool do_register_write = true;
+
+   // SF2000: Batch timer register writes to reduce overhead
+   if (SF2000_ENABLE_TIMER_BATCHING) {
+      timer_update_batch_counter++;
+      // Only write timer registers every 4th update (still update internal counts every time)
+      do_register_write = (timer_update_batch_counter & 0x3) == 0;
+   }
+#endif
+
    for (i = 0; i < 4; i++)
    {
       if(timer[i].status == TIMER_INACTIVE)
@@ -308,6 +320,9 @@ static unsigned update_timers(irq_type *irq_raised, unsigned completed_cycles)
       {
          timer[i].count -= completed_cycles;
          /* io_registers accessors range: REG_TM0D, REG_TM1D, REG_TM2D, REG_TM3D */
+#ifdef SF2000
+         if (do_register_write)
+#endif
          write_ioreg(REG_TMXD(i), -(timer[i].count >> timer[i].prescale));
       }
 
@@ -321,6 +336,9 @@ static unsigned update_timers(irq_type *irq_raised, unsigned completed_cycles)
       if((i != 3) && (timer[i + 1].status == TIMER_CASCADE))
       {
          timer[i + 1].count--;
+#ifdef SF2000
+         if (do_register_write)
+#endif
          write_ioreg(REG_TMXD(i + 1), -timer[i+1].count);
       }
 
@@ -553,30 +571,25 @@ u32 function_cc update_gba(int remaining_cycles)
       // Configure batching parameters based on performance level
       switch (sf2000_performance_level) {
         case SF2000_OPTIMIZATION_AGGRESSIVE:
-          batch_min = 150;
-          batch_max = 8000;  // Much larger batches for maximum performance
-          batch_multiplier = 3;  // Triple the cycles
+          batch_min = 100;
+          batch_max = 12000; // MASSIVE batches for maximum performance
+          batch_multiplier = 5;  // 5x the cycles!
           break;
-        case SF2000_OPTIMIZATION_MODERATE:  
-          batch_min = 200;
-          batch_max = 6500;  // Increased from original 6000
-          batch_multiplier = 25; // 2.5x the cycles (using integer math)
+        case SF2000_OPTIMIZATION_MODERATE:
+          batch_min = 150;
+          batch_max = 10000; // Very large batches
+          batch_multiplier = 4;  // 4x the cycles
           break;
         case SF2000_OPTIMIZATION_SAFE:
         default:
-          batch_min = 300;
-          batch_max = 6000;  // Original safe values
-          batch_multiplier = 2;  // Double the cycles
+          batch_min = 200;
+          batch_max = 8000;  // Larger safe batches
+          batch_multiplier = 3;  // Triple the cycles
           break;
       }
       
       if (execute_cycles > batch_min && execute_cycles < 4000) {
-        if (batch_multiplier == 25) {
-          // Special handling for 2.5x multiplier using integer math
-          execute_cycles = MIN((execute_cycles * 5) / 2, batch_max);
-        } else {
-          execute_cycles = MIN(execute_cycles * batch_multiplier, batch_max);
-        }
+        execute_cycles = MIN(execute_cycles * batch_multiplier, batch_max);
       }
     }
 #endif
