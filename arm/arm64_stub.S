@@ -765,4 +765,7 @@ defsymbl(io_registers)
 defsymbl(palette_ram_converted)
   .space 0x400
 
+#if defined(__linux__) && defined(__ELF__)
+  .section .note.GNU-stack,"",%progbits
+#endif
 
