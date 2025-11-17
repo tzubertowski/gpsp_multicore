@@ -23,7 +23,3 @@ ctr_clear_cache:
   svc 0x80                      @ svcCustomBackdoor
   bx lr
   .endfunc
-
-#if defined(__linux__) && defined(__ELF__)
-  .section .note.GNU-stack,"",%progbits
-#endif

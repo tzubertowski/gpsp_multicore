@@ -100,9 +100,6 @@ u32 idle_loop_target_pc = 0xFFFFFFFF;
 u32 translation_gate_target_pc[MAX_TRANSLATION_GATES];
 u32 translation_gate_targets = 0;
 
-/* Netplay interface variables */
-u32 netplay_num_clients = 0, netplay_client_id = 0;
-
 static u16 *gba_screen_pixels_prev = NULL;
 static u16 *gba_processed_pixels   = NULL;
 

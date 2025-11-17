@@ -3,7 +3,7 @@
 #define GPSP_CONFIG_H
 
 #define GPSP_NAME                "gpSP"
-#define GPSP_VERSION             "v1.1.0-sf2000-fake-rtc"
+#define GPSP_VERSION             "v1.0.0-fake-rtc"
 #define GPSP_NETPACKET_VERSION   "gpSP v1.0"
 
 /* Default ROM buffer size in megabytes (this is a maximum value!) */
@@ -34,8 +34,5 @@
 
 /* RFU Multiplayer config, do not mess around too much with it */
 #define MAX_RFU_NETPLAYERS       32
-
-/* Serial modes (multiplayer serial). */
-#define MAX_SERMULT_NETPLAYERS    4
 
 #endif

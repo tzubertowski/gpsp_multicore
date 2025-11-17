@@ -1,5 +1,4 @@
 DEBUG=0
-OVERCLOCK_60FPS ?= 0
 FRONTEND_SUPPORTS_RGB565=1
 FORCE_32BIT_ARCH=0
 MMAP_JIT_CACHE=0
@@ -134,10 +133,10 @@ else ifneq (,$(findstring ios,$(platform)))
 		CC = cc -arch arm64 -isysroot $(IOSSDK)
 		CXX = c++ -arch arm64 -isysroot $(IOSSDK)
 	else
-		CC = cc -marm -arch armv7 -isysroot $(IOSSDK)
-		CXX = c++ -marm -arch armv7 -isysroot $(IOSSDK)
+		CC = cc -arch armv7 -isysroot $(IOSSDK)
+		CXX = c++ -arch armv7 -isysroot $(IOSSDK)
 	endif
-	CFLAGS += -DIOS -DHAVE_POSIX_MEMALIGN
+	CFLAGS += -DIOS -DHAVE_POSIX_MEMALIGN -marm
 
 	ifeq ($(platform),$(filter $(platform),ios9 ios-arm64))
 		MINVERSION = -miphoneos-version-min=8.0
@@ -154,17 +153,13 @@ else ifeq ($(platform), tvos-arm64)
 	fpic := -fPIC
 	SHARED := -dynamiclib
 	CPU_ARCH := arm
-	CFLAGS += -DIOS -DHAVE_POSIX_MEMALIGN
+	CFLAGS += -DIOS -DHAVE_POSIX_MEMALIGN -marm
 
 	ifeq ($(IOSSDK),)
 		IOSSDK := $(shell xcodebuild -version -sdk appletvos Path)
 	endif
    CC = clang -arch arm64 -isysroot $(IOSSDK)
    CXX = clang++ -arch arm64 -isysroot $(IOSSDK)
-   MINVERSION = -mappletvos-version-min=11.0
-   SHARED += $(MINVERSION)
-   CC += $(MINVERSION)
-   CXX += $(MINVERSION)
 
 # iOS Theos
 else ifeq ($(platform), theos_ios)
@@ -244,7 +239,7 @@ else ifeq ($(platform), vita)
 	CC = arm-vita-eabi-gcc$(EXE_EXT)
 	CXX = arm-vita-eabi-g++$(EXE_EXT)
 	AR = arm-vita-eabi-ar$(EXE_EXT)
-	CFLAGS += -DVITA
+	CFLAGS += -DVITA -DOVERCLOCK_60FPS
 	CFLAGS += -marm -mcpu=cortex-a9 -mfloat-abi=hard
 	CFLAGS += -Wall -mword-relocations
 	CFLAGS += -fomit-frame-pointer -ffast-math
@@ -253,7 +248,6 @@ else ifeq ($(platform), vita)
 	ASFLAGS += -mcpu=cortex-a9
 	STATIC_LINKING = 1
 	HAVE_DYNAREC = 1
-	OVERCLOCK_60FPS = 1
 	CPU_ARCH := arm
 
 # CTR(3DS)
@@ -603,11 +597,6 @@ endif
 
 ifeq ($(SF2000), 1)
 	CFLAGS += -DSF2000
-endif
-
-# check if user compiles a 60 FPS overclock version
-ifeq ($(OVERCLOCK_60FPS),1)
-	CFLAGS += -DOVERCLOCK_60FPS
 endif
 
 
