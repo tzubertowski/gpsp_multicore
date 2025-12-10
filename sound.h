@@ -23,7 +23,11 @@
 #define BUFFER_SIZE        (1 << 16)
 #define BUFFER_SIZE_MASK   (BUFFER_SIZE - 1)
 
+#ifndef SF2000
 #define GBA_SOUND_FREQUENCY   (64 * 1024)
+#else
+#define GBA_SOUND_FREQUENCY   (22050)
+#endif
 
 #ifdef OVERCLOCK_60FPS
   #define GBC_BASE_RATE ((float)(60 * 228 * (272+960)))

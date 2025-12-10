@@ -14,7 +14,10 @@ SOURCES_C := $(CORE_DIR)/main.c \
              $(CORE_DIR)/cheats.c \
              $(CORE_DIR)/memmap.c \
              $(CORE_DIR)/libretro/libretro.c \
-             $(CORE_DIR)/gba_cc_lut.c \
+             $(CORE_DIR)/gba_cc_lut.c
+
+ifneq ($(STATIC_LINKING), 1)
+SOURCES_C += \
              $(LIBRETRO_COMM_DIR)/compat/compat_posix_string.c \
              $(LIBRETRO_COMM_DIR)/compat/compat_strl.c \
              $(LIBRETRO_COMM_DIR)/compat/fopen_utf8.c \
@@ -25,6 +28,7 @@ SOURCES_C := $(CORE_DIR)/main.c \
              $(LIBRETRO_COMM_DIR)/string/stdstring.c \
              $(LIBRETRO_COMM_DIR)/time/rtime.c \
              $(LIBRETRO_COMM_DIR)/vfs/vfs_implementation.c
+endif
 
 ifeq ($(HAVE_DYNAREC), 1)
 SOURCES_C += $(CORE_DIR)/cpu_threaded.c
