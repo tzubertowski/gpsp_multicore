@@ -473,17 +473,20 @@ else ifeq ($(platform), rs90)
 
 # SF2000
 else ifeq ($(platform), sf2000)
-	TARGET := $(TARGET_NAME)_libretro_$(platform).a
+	TARGET := _libretro_$(platform).a
 	MIPS:=/opt/mips32-mti-elf/2019.09-03-2/bin/mips-mti-elf-
 	CC = $(MIPS)gcc
 	CXX = $(MIPS)g++
 	AR = $(MIPS)ar
-	CFLAGS = -EL -march=mips32 -mtune=mips32 -msoft-float -G0 -mno-abicalls -fno-pic
-	CFLAGS += -ffast-math -fomit-frame-pointer -ffunction-sections -fdata-sections
-	CFLAGS += -DROM_BUFFER_SIZE=1
-	CFLAGS += -DSF2000
-	CFLAGS += -DSMALL_TRANSLATION_CACHE
-	CXXFLAGS = $(CFLAGS)
+	CFLAGS = -EL -march=mips32 -mtune=mips32 -msoft-float -G0 \
+         -mno-abicalls -fno-pic -fno-builtin \
+         -O3 -ffast-math -fomit-frame-pointer \
+         -fno-strict-aliasing \
+         -fdata-sections -ffunction-sections \
+         -fno-unwind-tables -fno-asynchronous-unwind-tables \
+         -fno-stack-protector \
+         -DNDEBUG \
+         -DROM_BUFFER_SIZE=4 -DSF2000 -DSMALL_TRANSLATION_CACHE
 	STATIC_LINKING = 1
 	HAVE_DYNAREC := 1
 	CPU_ARCH := mips
