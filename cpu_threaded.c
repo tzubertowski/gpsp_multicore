@@ -3387,6 +3387,137 @@ void flush_translation_cache_ram(void)
   ram_block_tag = INITIAL_TOP_TAG;
 }
 
+/* Partial flush for DMA writes - handles larger memory regions */
+void partial_flush_ram_full_dma(u32 address)
+{
+  u8 *smc_data;
+  u8 *ewram_smc_data = &ewram[0x40000];
+  u8 *iwram_smc_data = iwram;
+  u8 *smc_data_area;
+  u8 *smc_data_area_end;
+
+  switch (address >> 24)
+  {
+    case 0x02: /* EWRAM */
+      smc_data = ewram_smc_data + (address & 0x3FFFE);
+      smc_data_area = ewram_smc_data;
+      smc_data_area_end = ewram_smc_data + 0x40000;
+      break;
+    case 0x03: /* IWRAM */
+      smc_data = iwram_smc_data + (address & 0x7FFE);
+      smc_data_area = iwram_smc_data;
+      smc_data_area_end = iwram_smc_data + 0x8000;
+      break;
+    default:
+      return;
+  }
+
+  u8 *smc_data_right = smc_data;
+
+  /* Clear current position first */
+  *((u16*) smc_data) = 0;
+
+  /* Clear code tags scanning left from the write address */
+  while (1)
+  {
+    smc_data = smc_data - 2;
+    if (smc_data < smc_data_area)
+      smc_data = smc_data_area_end - 2;
+    if (*((u16*) smc_data) == 0 || *((u16*) smc_data) == 0xFFFF)
+      break;
+    *((u16*) smc_data) = 0;
+  }
+
+  /* Clear code tags scanning right from the write address */
+  smc_data = smc_data_right;
+  while (1)
+  {
+    smc_data = smc_data + 2;
+    if (smc_data == smc_data_area_end)
+      smc_data = smc_data_area;
+    if (*((u16*) smc_data) == 0)
+      break;
+    *((u16*) smc_data) = 0;
+  }
+}
+
+/* Partial flush for SMC writes - only invalidate the affected region
+   and add a dynamic translation gate instead of full cache flush */
+void partial_flush_ram_full(u32 address)
+{
+  u8 *smc_data;
+  u8 *ewram_smc_data = &ewram[0x40000];
+  u8 *iwram_smc_data = iwram;
+  u8 *smc_data_area;
+  u8 *smc_data_area_end;
+  u32 y;
+
+  switch (address >> 24)
+  {
+    case 0x02: /* EWRAM */
+      smc_data = ewram_smc_data + (address & 0x3FFFE);
+      smc_data_area = ewram_smc_data;
+      smc_data_area_end = ewram_smc_data + 0x40000;
+      break;
+    case 0x03: /* IWRAM */
+      smc_data = iwram_smc_data + (address & 0x7FFE);
+      smc_data_area = iwram_smc_data;
+      smc_data_area_end = iwram_smc_data + 0x8000;
+      break;
+    default:
+      return;
+  }
+
+  u8 *smc_data_right = smc_data;
+
+  /* Add dynamic translation gate at this address */
+  u32 translation_gate_dyn = ((address & ~0x03) - 4);
+
+  /* Check if this gate already exists */
+  for (y = 0; y < translation_gate_targets; y++) {
+    if (translation_gate_target_pc[y] == translation_gate_dyn)
+      break;
+  }
+
+  /* If it doesn't exist, add it (circular buffer) */
+  if (y == translation_gate_targets) {
+    translation_gate_target_pc[translation_gate_targets] = translation_gate_dyn;
+
+    if (translation_gate_targets == MAX_TRANSLATION_GATES) {
+      /* Wrap around to overwrite oldest entries */
+      translation_gate_targets = 0;
+    } else {
+      translation_gate_targets++;
+    }
+  }
+
+  /* Clear current position first */
+  *((u16*) smc_data) = 0;
+
+  /* Clear code tags scanning left from the write address */
+  while (1)
+  {
+    smc_data = smc_data - 2;
+    if (smc_data < smc_data_area)
+      smc_data = smc_data_area_end - 2;
+    if (*((u16*) smc_data) == 0 || *((u16*) smc_data) == 0xFFFF)
+      break;
+    *((u16*) smc_data) = 0;
+  }
+
+  /* Clear code tags scanning right from the write address */
+  smc_data = smc_data_right;
+  while (1)
+  {
+    smc_data = smc_data + 2;
+    if (smc_data == smc_data_area_end)
+      smc_data = smc_data_area;
+    if (*((u16*) smc_data) == 0)
+      break;
+    *((u16*) smc_data) = 0;
+  }
+}
+
 void flush_translation_cache_rom(void)
 {
   /* We flush the generated code except for everything below the watermark. */

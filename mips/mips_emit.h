@@ -2309,14 +2309,29 @@ static void emit_pmemst_stub(
     mips_emit_addu(reg_rv, reg_rv, reg_a0);    // Adds to base addr
   }
 
+  // Store the data (do write first so we can use reg_rv in SMC check to do lui)
+  if (realsize == 2) {
+    mips_emit_sw(reg_a1, reg_rv, base_addr);
+  } else if (realsize == 1) {
+    mips_emit_sh(reg_a1, reg_rv, base_addr);
+  } else {
+    mips_emit_sb(reg_a1, reg_rv, base_addr);
+  }
+
   // Generate SMC write and tracking
   // TODO: Should we have SMC checks here also for aligned?
   if (meminfo->check_smc && !aligned) {
     if (region == 2) {
       mips_emit_lui(reg_temp, 0x40000 >> 16);
       mips_emit_addu(reg_temp, reg_rv, reg_temp); // SMC lives after the ewram
+      // Prepare reg_a0 so that we can pass address to partial_flush_ram_full
+      mips_emit_lui(reg_rv, 0x200);
+      mips_emit_addu(reg_a0, reg_rv, reg_a0);    // a0 should now be original address
     } else {
       mips_emit_addiu(reg_temp, reg_rv, 0x8000); // -32KB is the addr of the SMC buffer
+      // Prepare reg_a0 so that we can pass address to partial_flush_ram_full
+      mips_emit_lui(reg_rv, 0x300);
+      mips_emit_addu(reg_a0, reg_rv, reg_a0);    // a0 should now be original address
     }
     if (realsize == 2) {
       mips_emit_lw(reg_temp, reg_temp, base_addr);
@@ -2328,15 +2343,8 @@ static void emit_pmemst_stub(
     // If the data is non zero, we just wrote over code
     // Local-jump to the smc_write (which lives at offset:0)
     mips_emit_b(bne, reg_zero, reg_temp, branch_offset(&rom_translation_cache[SMC_WRITE_OFF]));
-  }
-
-  // Store the data (delay slot from the SMC branch)
-  if (realsize == 2) {
-    mips_emit_sw(reg_a1, reg_rv, base_addr);
-  } else if (realsize == 1) {
-    mips_emit_sh(reg_a1, reg_rv, base_addr);
-  } else {
-    mips_emit_sb(reg_a1, reg_rv, base_addr);
+    // nop in delay slot
+    mips_emit_nop();
   }
 
   // Post processing store:

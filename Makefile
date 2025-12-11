@@ -478,15 +478,11 @@ else ifeq ($(platform), sf2000)
 	CC = $(MIPS)gcc
 	CXX = $(MIPS)g++
 	AR = $(MIPS)ar
-	CFLAGS = -EL -march=mips32 -mtune=mips32 -msoft-float -G0 \
-         -mno-abicalls -fno-pic -fno-builtin \
-         -O3 -ffast-math -fomit-frame-pointer \
-         -fno-strict-aliasing \
-         -fdata-sections -ffunction-sections \
-         -fno-unwind-tables -fno-asynchronous-unwind-tables \
-         -fno-stack-protector \
-         -DNDEBUG \
-         -DROM_BUFFER_SIZE=4 -DSF2000 -DSMALL_TRANSLATION_CACHE
+	CFLAGS = -EL -march=mips32 -mtune=mips32 -msoft-float -G0 -mno-abicalls -fno-pic
+	CFLAGS += -ffast-math -fomit-frame-pointer -ffunction-sections -fdata-sections
+	CFLAGS += -DROM_BUFFER_SIZE=3
+	CFLAGS += -DSF2000
+	CXXFLAGS = $(CFLAGS)
 	STATIC_LINKING = 1
 	HAVE_DYNAREC := 1
 	CPU_ARCH := mips
