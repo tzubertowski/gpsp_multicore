@@ -370,10 +370,10 @@ lookup_pc_noflags:
   nop
 
 
-# $4 (reg_a0) should already contain the SMC address
 defsymbl(smc_write)
   sw $6, REG_PC($16)              # save PC
   save_registers
+  lw $4, REG_SAVE($16)            # load saved GBA address into a0
   cfncall partial_flush_ram_full, 10
   b lookup_pc_noflags
   lw $1, REG_CPSR($16)            # (delay)
