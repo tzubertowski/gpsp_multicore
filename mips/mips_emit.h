@@ -1941,18 +1941,33 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 address)
     mips_emit_srl(reg, reg, numbits); \
     mips_emit_sll(reg, reg, numbits)
   // Extract a bitfield (pos, size) to a register
-  #define extract_bits(rt, rs, pos, size) \
-    mips_emit_sll(rt, rs, 32 - ((pos) + (size))); \
-    mips_emit_srl(rt, rt, 32 - (size))
+  #define extract_bits(rt, rs, pos, size)              \
+    if ((pos) == 0) {                                  \
+      /* Extracting from LSB - just mask */            \
+      if ((size) <= 16) {                              \
+        mips_emit_andi(rt, rs, (1 << (size)) - 1);     \
+      } else {                                         \
+        mips_emit_sll(rt, rs, 32 - (size));            \
+        mips_emit_srl(rt, rt, 32 - (size));            \
+      }                                                \
+    } else {                                           \
+      mips_emit_sll(rt, rs, 32 - ((pos) + (size)));    \
+      mips_emit_srl(rt, rt, 32 - (size));              \
+    }
   // Extends signed byte to u32
   #define extend_byte_signed(rd, rs) \
     mips_emit_sll(rd, rs, 24); \
     mips_emit_sra(rd, rd, 24)
   // Rotates a word (uses temp reg)
-  #define rotate_right(rdest, rsrc, rtemp, amount) \
-    mips_emit_sll(rtemp, rsrc, 32 - (amount));     \
-    mips_emit_srl(rdest, rsrc, (amount));          \
-    mips_emit_or(rdest, rdest, rtemp)
+  #define rotate_right(rdest, rsrc, rtemp, amount)   \
+    if ((amount) == 0) {                             \
+      if ((rdest) != (rsrc))                         \
+        mips_emit_addu(rdest, rsrc, reg_zero);       \
+    } else {                                         \
+      mips_emit_sll(rtemp, rsrc, 32 - (amount));     \
+      mips_emit_srl(rdest, rsrc, (amount));          \
+      mips_emit_or(rdest, rdest, rtemp);             \
+    }
   // Variable rotation using temp reg (dst != src)
   #define rotate_right_var(rdest, rsrc, rtemp, ramount) \
     mips_emit_andi(rtemp, ramount, 0x1F);               \
