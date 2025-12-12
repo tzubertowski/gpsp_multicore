@@ -193,6 +193,23 @@ symbol:
   sw $30, REG_R14($16)
 .endm
 
+# Lightweight save - only caller-saved regs (for block_lookup calls)
+# $s2, $gp, $fp are callee-saved by C convention, no need to save
+.macro save_registers_lite
+  sw $3, REG_R0($16)
+  sw $7, REG_R1($16)
+  sw $8, REG_R2($16)
+  sw $9, REG_R3($16)
+  sw $10, REG_R4($16)
+  sw $11, REG_R5($16)
+  sw $12, REG_R6($16)
+  sw $13, REG_R7($16)
+  sw $14, REG_R8($16)
+  sw $15, REG_R9($16)
+  sw $24, REG_R11($16)
+  sw $25, REG_R12($16)
+.endm
+
 .macro restore_registers
   lw $3, REG_R0($16)
   lw $7, REG_R1($16)
@@ -210,6 +227,22 @@ symbol:
   lw $18, REG_R10($16)
   lw $28, REG_R13($16)
   lw $30, REG_R14($16)
+.endm
+
+# Lightweight restore - only caller-saved regs
+.macro restore_registers_lite
+  lw $3, REG_R0($16)
+  lw $7, REG_R1($16)
+  lw $8, REG_R2($16)
+  lw $9, REG_R3($16)
+  lw $10, REG_R4($16)
+  lw $11, REG_R5($16)
+  lw $12, REG_R6($16)
+  lw $13, REG_R7($16)
+  lw $14, REG_R8($16)
+  lw $15, REG_R9($16)
+  lw $24, REG_R11($16)
+  lw $25, REG_R12($16)
 .endm
 
 # PIC ABI mandates to jump to target via $t9

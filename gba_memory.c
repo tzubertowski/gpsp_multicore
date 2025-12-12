@@ -252,9 +252,15 @@ static void trigger_timer(u32 timer_number, u32 value)
 
          if(timer_number < 2)
          {
+#ifdef SF2000
+            // Integer-only: ((tick_delta * 22050) / 16777216) * 2 = (tick_delta * 44100) >> 24
+            u32 buffer_adjust =
+               (u32)(((u64)(cpu_ticks - gbc_sound_last_cpu_ticks) * 44100) >> 24);
+#else
             u32 buffer_adjust =
                (u32)(((float)(cpu_ticks - gbc_sound_last_cpu_ticks) *
                         sound_frequency) / GBC_BASE_RATE) * 2;
+#endif
 
             sound_update_frequency_step(timer_number);
             adjust_sound_buffer(timer_number, 0);

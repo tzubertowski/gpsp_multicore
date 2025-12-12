@@ -409,8 +409,14 @@ void render_gbc_sound()
   u16 sound_status = read_ioreg(REG_SOUNDCNT_X) & 0xFFF0;
   const s8 *sample_data;
   u32 tick_delta = cpu_ticks - gbc_sound_last_cpu_ticks;
+#ifdef SF2000
+  // Integer-only version for soft-float platforms
+  // (tick_delta * 22050 / 16777216) * 65536 = (tick_delta * 22050) >> 8
+  fixed16_16 buffer_ticks = (fixed16_16)(((u64)tick_delta * GBA_SOUND_FREQUENCY) >> 8);
+#else
   fixed16_16 buffer_ticks = float_to_fp16_16((float)(tick_delta) *
                                              sound_frequency / GBC_BASE_RATE);
+#endif
   if (!tick_delta)
     return;
 
@@ -577,8 +583,13 @@ void reset_sound(void)
 
 void init_sound()
 {
+#ifdef SF2000
+  // Integer-only: (256 << 16) / 22050
+  gbc_sound_tick_step = (256 << 16) / GBA_SOUND_FREQUENCY;
+#else
   gbc_sound_tick_step =
    float_to_fp16_16(256.0f / sound_frequency);
+#endif
 
   init_noise_table(noise_table15, 32767, 14);
   init_noise_table(noise_table7, 127, 6);

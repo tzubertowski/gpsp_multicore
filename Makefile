@@ -478,9 +478,10 @@ else ifeq ($(platform), sf2000)
 	CC = $(MIPS)gcc
 	CXX = $(MIPS)g++
 	AR = $(MIPS)ar
-	CFLAGS = -EL -march=mips32 -mtune=mips32 -msoft-float -G0 -mno-abicalls -fno-pic
+	CFLAGS = -EL -march=mips32 -mtune=mips32r2 -msoft-float -G0 -mno-abicalls -fno-pic
 	CFLAGS += -ffast-math -fomit-frame-pointer -ffunction-sections -fdata-sections
-	CFLAGS += -DROM_BUFFER_SIZE=4
+	CFLAGS += -funroll-loops -fno-strict-aliasing
+	CFLAGS += -DROM_BUFFER_SIZE=8
 	CFLAGS += -DSF2000
 	CXXFLAGS = $(CFLAGS)
 	STATIC_LINKING = 1
