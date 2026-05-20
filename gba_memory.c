@@ -20,6 +20,11 @@
 #include "common.h"
 #include "streams/file_stream.h"
 
+/* Stub for interpreter builds: JIT cache flush is a no-op without dynarec */
+#ifndef HAVE_DYNAREC
+void partial_flush_ram_full_dma(u32 address) { (void)address; }
+#endif
+
 /* Sound */
 #define gbc_sound_tone_control_low(channel, regn)                             \
 {                                                                             \

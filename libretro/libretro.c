@@ -1055,9 +1055,7 @@ bool retro_load_game(const struct retro_game_info* info)
    }
 
    reset_gba();
-
    set_memory_descriptors();
-
    return true;
 }
 
