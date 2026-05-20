@@ -1,5 +1,6 @@
 
 #include <stdint.h>
+#include <stddef.h>
 
 #include "memmap.h"
 
@@ -57,7 +58,11 @@
 	void *map_jit_block(unsigned size) {
 		unsigned i;
 		uintptr_t base = (uintptr_t)(map_jit_block) & (~0xFFFFFULL);
-		for (i = 0; i < 256; i++) { 
+		/* MIPS j instruction requires target within same 256MB region (top 4 bits
+		 * of PC). Accept any mapping whose top 4 bits match the .so base. */
+		uintptr_t region_mask = ~((uintptr_t)0x0FFFFFFFUL);
+		uintptr_t base_region = base & region_mask;
+		for (i = 0; i < 256; i++) {
 			int offset = ((i & 1) ? 1 : -1) * (i >> 1) * 1024 * 1024;
 			uintptr_t baddr = base + (intptr_t)offset;
 			if (!baddr)
@@ -65,12 +70,16 @@
 
 			void *p = mmap((void*)baddr, size, PROT_READ|PROT_WRITE|PROT_EXEC,
 			                                   MAP_ANON|MAP_PRIVATE, -1, 0);
-			if (p == (void*)baddr)
-				return p;
-			if (p)
+			if (p) {
+				if (((uintptr_t)p & region_mask) == base_region)
+					return p;
 				munmap(p, size);
+			}
 		}
-		return 0;
+		/* Last resort: unconstrained allocation — JIT j-instructions may fault
+		 * if outside region, but worth trying rather than returning NULL. */
+		return mmap(NULL, size, PROT_READ|PROT_WRITE|PROT_EXEC,
+		            MAP_ANON|MAP_PRIVATE, -1, 0);
 	}
 
 	void unmap_jit_block(void *bufptr, unsigned size) {

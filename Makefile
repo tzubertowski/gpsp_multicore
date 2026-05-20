@@ -407,6 +407,16 @@ else ifeq ($(platform), mips32)
 	HAVE_DYNAREC := 1
 	CPU_ARCH := mips
 
+# SF3000 (MIPS32r2 LE Linux shared library, cross-compiled)
+else ifeq ($(platform), sf3000)
+	TARGET := $(TARGET_NAME)_libretro.so
+	SHARED := -shared -nostdlib -Wl,--version-script=link.T
+	fpic := -fPIC -DPIC
+	HAVE_DYNAREC := 1
+	CPU_ARCH := mips
+	MMAP_JIT_CACHE := 1
+	FRONTEND_SUPPORTS_RGB565 := 1
+
 # MIPS64
 else ifeq ($(platform), mips64n32)
 	TARGET := $(TARGET_NAME)_libretro.so
