@@ -4530,6 +4530,20 @@ void update_scanline(void)
         render_scanline_bitmap(screen_offset, dispcnt);
     }
   }
+
+  // Undocumented Green Swap: swaps the green component between each pair
+  // of horizontally adjacent pixels (GBA hardware quirk, REG_GRNSWP).
+  if(read_ioreg(REG_GRNSWP) & 0x01)
+  {
+    u32 x;
+    for(x = 0; x < 240; x += 2)
+    {
+      u16 left = screen_offset[x];
+      u16 right = screen_offset[x + 1];
+      screen_offset[x] = (left & 0xF81F) | (right & 0x07E0);
+      screen_offset[x + 1] = (right & 0xF81F) | (left & 0x07E0);
+    }
+  }
   // Don't update background scanline params in mode 0
   if(video_mode != 0)
   {
