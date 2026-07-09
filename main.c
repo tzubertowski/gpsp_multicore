@@ -245,7 +245,12 @@ u32 function_cc update_gba(int remaining_cycles)
 
     // Figure out when we need to stop CPU execution. The next event is
     // a video event or a timer event, whatever happens first.
-    execute_cycles = MAX(video_count, 0);
+    // Cap at 96 cycles so we re-check IRQ/DMA status more often within a
+    // scanline (some games issue several DMA/IRQ requests per scanline;
+    // the old once-per-scanline check was too coarse for those - see
+    // upstream gpsp issue #224). video_count is always > 0 here since the
+    // block above re-fills it whenever it drops to <= 0.
+    execute_cycles = MIN(video_count, 96);
 
     for (i = 0; i < 4; i++)
     {
