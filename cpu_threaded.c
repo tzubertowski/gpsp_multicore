@@ -2894,11 +2894,21 @@ u8 function_cc *block_lookup_address_thumb(u32 pc)
   }                                                                           \
 }                                                                             \
 
-#define MAX_BLOCK_SIZE 8192
-#define MAX_EXITS      256
+// Separate arm/thumb limits (upstream gpsp PR #262) so each mode can be
+// tuned independently later (upstream shrinks arm's to reduce dynarec
+// cache flushes on Camelot games - issue #151). Our fork already tunes
+// these much larger than upstream's pre-split baseline (1024/32), so we
+// keep our existing values for both modes here rather than blindly
+// adopting upstream's arm=32/4 - that needs its own validation on this
+// fork's MIPS dynarec before shrinking. arrays are sized off the larger
+// (thumb) limit since both modes share block_data[]/block_exits[].
+#define thumb_MAX_BLOCK_SIZE 8192
+#define thumb_MAX_EXITS      256
+#define arm_MAX_BLOCK_SIZE   8192
+#define arm_MAX_EXITS        256
 
-block_data_type block_data[MAX_BLOCK_SIZE];
-block_exit_type block_exits[MAX_EXITS];
+block_data_type block_data[thumb_MAX_BLOCK_SIZE];
+block_exit_type block_exits[thumb_MAX_EXITS];
 
 #define smc_write_arm_yes() {                                                 \
   intptr_t offset = (pc < 0x03000000) ? 0x40000 : -0x8000;                    \
@@ -2974,7 +2984,7 @@ block_exit_type block_exits[MAX_EXITS];
         if(i < 0)                                                             \
           break;                                                              \
       }                                                                       \
-      if(block_exit_position == MAX_EXITS)                                    \
+      if(block_exit_position == type##_MAX_EXITS)                             \
         break;                                                                \
     }                                                                         \
     else                                                                      \
@@ -2990,7 +3000,7 @@ block_exit_type block_exits[MAX_EXITS];
                                                                               \
     block_data[block_data_position].update_cycles = 0;                        \
     block_data_position++;                                                    \
-    if((block_data_position == MAX_BLOCK_SIZE) ||                             \
+    if((block_data_position == type##_MAX_BLOCK_SIZE) ||                     \
      (block_end_pc == 0x3007FF0) || (block_end_pc == 0x203FFFF0))             \
     {                                                                         \
       break;                                                                  \
@@ -3039,7 +3049,7 @@ bool translate_block_arm(u32 pc, bool ram_region)
   u8 *translation_cache_limit = NULL;
   s32 i;
   u32 flag_status;
-  block_exit_type external_block_exits[MAX_EXITS];
+  block_exit_type external_block_exits[arm_MAX_EXITS];
   generate_block_extra_vars_arm();
   arm_fix_pc();
 
@@ -3203,7 +3213,7 @@ bool translate_block_thumb(u32 pc, bool ram_region)
   u8 *translation_cache_limit = NULL;
   s32 i;
   u32 flag_status;
-  block_exit_type external_block_exits[MAX_EXITS];
+  block_exit_type external_block_exits[thumb_MAX_EXITS];
   generate_block_extra_vars_thumb();
   thumb_fix_pc();
 
