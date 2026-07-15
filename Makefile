@@ -412,9 +412,9 @@ else ifeq ($(platform), sf3000)
 	TARGET := $(TARGET_NAME)_libretro.so
 	SHARED := -shared -nostdlib -Wl,--version-script=link.T
 	fpic := -fPIC -DPIC
-	# pure-c-pure: MIPS dynarec OFF — C interpreter only (no JIT).
-	HAVE_DYNAREC := 0
+	HAVE_DYNAREC := 1
 	CPU_ARCH := mips
+	MMAP_JIT_CACHE := 1
 	FRONTEND_SUPPORTS_RGB565 := 1
 
 # MIPS64
