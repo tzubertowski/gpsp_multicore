@@ -1037,8 +1037,7 @@ bool retro_load_game(const struct retro_game_info* info)
      if (bios_loaded && bios_rom[0] != 0x18)
      {
         if (selected_bios == official_bios)
-          show_warning_message("BIOS image seems incorrect, using built-in BIOS", 2500);
-        bios_loaded = false;
+          show_warning_message("BIOS image doesn't match official bios...", 2500);
      }
    }
 
