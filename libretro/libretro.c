@@ -486,7 +486,7 @@ void retro_get_system_info(struct retro_system_info* info)
 #define GIT_VERSION ""
 #endif
    info->library_version = "v0.91" GIT_VERSION;
-   info->need_fullpath = true;
+   info->need_fullpath = false;
    info->block_extract = false;
    info->valid_extensions = "gba|bin|agb|gbz|u1" ;
 }
