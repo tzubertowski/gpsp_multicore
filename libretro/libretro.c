@@ -481,12 +481,12 @@ extern struct retro_perf_callback perf_cb;
 
 void retro_get_system_info(struct retro_system_info* info)
 {
-   info->library_name = "gpSP";
+   info->library_name = "gpSP-C";
 #ifndef GIT_VERSION
 #define GIT_VERSION ""
 #endif
-   info->library_version = "v0.91" GIT_VERSION;
-   info->need_fullpath = true;
+   info->library_version = "v0.91-Prosty" GIT_VERSION;
+   info->need_fullpath = false;
    info->block_extract = false;
    info->valid_extensions = "gba|bin|agb|gbz|u1" ;
 }
@@ -1037,8 +1037,7 @@ bool retro_load_game(const struct retro_game_info* info)
      if (bios_loaded && bios_rom[0] != 0x18)
      {
         if (selected_bios == official_bios)
-          show_warning_message("BIOS image seems incorrect, using built-in BIOS", 2500);
-        bios_loaded = false;
+          show_warning_message("BIOS image doesn't match official bios...", 2500);
      }
    }
 

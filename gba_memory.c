@@ -384,7 +384,8 @@ u32 gamepak_sticky_bit[1024/32];
 // This is global so that it can be kept open for large ROMs to swap
 // pages from, so there's no slowdown with opening and closing the file
 // a lot.
-RFILE *gamepak_file_large = NULL;
+u8* copyPtr = NULL;
+static bool ownCopyPtr = false;
 
 // Writes to these respective locations should trigger an update
 // so the related subsystem may react to it.
@@ -2417,8 +2418,7 @@ u8 *load_gamepak_page(u32 physical_index)
   // Fill in the entry
   gamepak_blk_queue[entry].phy_rom = physical_index;
 
-  filestream_seek(gamepak_file_large, physical_index * (32 * 1024), SEEK_SET);
-  filestream_read(gamepak_file_large, swap_location, (32 * 1024));
+  memcpy(swap_location, &copyPtr[physical_index * (32 * 1024)], (32 * 1024));
 
   // Map it to the read handlers now
   map_rom_entry(read, physical_index, swap_location, gamepak_size >> 15);
@@ -2528,16 +2528,13 @@ void init_memory(void)
   reg[REG_BUS_VALUE] = 0xe129f000;
 }
 
-void memory_term(void)
-{
-  if (gamepak_file_large)
-  {
-    filestream_close(gamepak_file_large);
-    gamepak_file_large = NULL;
+void memory_term(void) {
+  if (copyPtr && ownCopyPtr) {
+    free(copyPtr);
+    copyPtr = NULL;
   }
 
-  while (gamepak_buffer_count)
-  {
+  while (gamepak_buffer_count) {
     free(gamepak_buffers[--gamepak_buffer_count]);
   }
 }
@@ -2666,17 +2663,36 @@ unsigned memory_write_savestate(u8 *dst)
   return (unsigned int)(dst - startp);
 }
 
-static s32 load_gamepak_raw(const char *name)
-{
-  unsigned i, j;
-  gamepak_file_large = filestream_open(name, RETRO_VFS_FILE_ACCESS_READ,
-                                       RETRO_VFS_FILE_ACCESS_HINT_NONE);
-  if(gamepak_file_large)
-  {
-    // Round size to 32KB pages
-    gamepak_size = (u32)filestream_get_size(gamepak_file_large);
-    gamepak_size = (gamepak_size + 0x7FFF) & ~0x7FFF;
+static s32 load_gamepak_raw(const struct retro_game_info* info) {
+  if (!info) return -1;
 
+  unsigned i, j;
+  size_t rom_size = 0;
+  
+  if (info->data) {
+    copyPtr = (u8 *)info->data;
+    rom_size = info->size;
+    ownCopyPtr = false;
+  } else {
+    RFILE *gamepak_file_large = filestream_open(info->path, RETRO_VFS_FILE_ACCESS_READ, RETRO_VFS_FILE_ACCESS_HINT_NONE);
+    if (!gamepak_file_large) return -1;
+    rom_size = (u32)filestream_get_size(gamepak_file_large);
+    copyPtr = (u8*)malloc(rom_size);
+    if (!copyPtr) {
+      filestream_close(gamepak_file_large);
+      return -1;
+    }
+    ownCopyPtr = true;
+    filestream_rewind(gamepak_file_large);
+    filestream_read(gamepak_file_large, copyPtr, rom_size);
+    filestream_close(gamepak_file_large);
+  }
+
+  if(copyPtr) {
+    // Round size to 32KB pages
+    gamepak_size = (rom_size + 0x7FFF) & ~0x7FFF;
+    size_t total_copied = 0;
+    
     // Load stuff in 1MB chunks
     u32 buf_blocks = (gamepak_size + gamepak_buffer_blocksize-1) / (gamepak_buffer_blocksize);
     u32 rom_blocks = gamepak_size >> 15;
@@ -2687,10 +2703,26 @@ static s32 load_gamepak_raw(const char *name)
     map_null(read, 0x8000000, 0xD000000);
 
     // Proceed to read the whole ROM or as much as possible.
-    for (i = 0; i < ldblks; i++)
-    {
+    for (i = 0; i < ldblks; i++) {
+      // Calculate remaining bytes to avoid reading past the end of copyPtr
+      size_t chunk_size = gamepak_buffer_blocksize;
+      if (total_copied + chunk_size > rom_size) {
+        if (total_copied < rom_size) {
+          chunk_size = rom_size - total_copied;
+        } else {
+          chunk_size = 0;
+        }
+      }
+      
+      // Zero-fill the target buffer block to handle alignment padding safely
+      memset(gamepak_buffers[i], 0, gamepak_buffer_blocksize);
+
       // Load 1MB chunk and map it
-      filestream_read(gamepak_file_large, gamepak_buffers[i], gamepak_buffer_blocksize);
+      if (chunk_size > 0) {
+        memcpy(gamepak_buffers[i], &copyPtr[total_copied], chunk_size);
+        total_copied += chunk_size;
+      }
+
       for (j = 0; j < 32 && i*32 + j < rom_blocks; j++)
       {
         u32 phyn = i*32 + j;
@@ -2714,7 +2746,7 @@ u32 load_gamepak(const struct retro_game_info* info, const char *name)
    char gamepak_filename[512];
    gamepak_info_t gpinfo;
 
-   if (load_gamepak_raw(name))
+   if (load_gamepak_raw(info))
       return -1;
 
    strncpy(gamepak_filename, name, sizeof(gamepak_filename));
